@@ -611,6 +611,13 @@ enrichFiber(BASE_PLAN);
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
 const APP_VER="9.3.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+/* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
+   Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
+   profili maschili, per poterli provare senza cambiare genere. Con false
+   restano visibili ma disattivati, che è il comportamento definitivo.
+   Finché è true l'app mostra un avviso rosso fisso in Oggi e in Regole.
+   Deve stare QUI, in cima: viene già letto dalle migrazioni all'avvio. */
+const PHYS_TEST_UNLOCK=true;
 function freshWeek(){return {started:new Date().toISOString().slice(0,10),
   days:PLAN.map(d=>({meals:d.meals.map(()=>({done:false,skip:false,opt:0,movedTo:-1,movedAs:"",custom:null})),
     extras:[],workouts:[],note:"",water:0,sleep:0,relax:0,feel:0,steps:0}))};}
@@ -3066,9 +3073,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     ${(function(){
       const dis=!physAllowed(),grey=(!isFemale()?' style="opacity:.55"':'');
       const d=dis?" disabled":"";
-      return (!isFemale()?`<div class="hint" style="background:${PHYS_TEST_UNLOCK?"var(--rossobg)":"var(--menta)"};padding:8px;border-radius:10px;margin:6px 0;${PHYS_TEST_UNLOCK?"color:var(--rosso);font-weight:700":""}">${PHYS_TEST_UNLOCK
-        ?"⚠️ SBLOCCO DI TEST ATTIVO: su un profilo maschile ciclo, allattamento e gravidanza restano cliccabili. Prima del rilascio va messo <b>PHYS_TEST_UNLOCK = false</b> nel codice."
-        :"Ciclo, allattamento e gravidanza riguardano il profilo femminile: qui restano visibili ma non attivabili (il genere si imposta in <b>Io → Anagrafica</b>)."}</div>`:"")
+      return (!isFemale()?`<div class="hint" style="background:var(--menta);padding:8px;border-radius:10px;margin:6px 0">Ciclo, allattamento e gravidanza riguardano il profilo femminile (il genere si imposta in <b>Io → Anagrafica</b>).</div>`:"")
       +`<div class="ckrow3"${grey}>
       <label class="ck"><input type="checkbox" id="phCycle" ${cycleDay()?"checked":""}${d} onchange="cycleToggle()"> 🩸 Ciclo${cycleDay()?" g."+cycleDay():""}</label>
       <label class="ck"><input type="checkbox" id="phLactF" ${S.phys.lact==="esclusivo"?"checked":""}${d} onchange="lactSet(this.checked?'esclusivo':'no')"> 🤱 All. escl.</label>
@@ -3087,6 +3092,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     ${illOn()?`<div class="hint" style="background:var(--zaffbg);padding:8px;border-radius:10px;margin-top:6px">🤒 <b>Deficit sospeso</b>: finché sei malato/a si mangia a mantenimento. Non è un passo indietro — guarire richiede energia.</div>`:""}
     ${pregOn()!=="no"?`<div class="hint" style="background:var(--zaffbg);padding:8px;border-radius:10px;margin-top:6px">🤰 <b>Nessun deficit in gravidanza.</b> Il piano va sempre concordato con il medico o l'ostetrica: l'app non sostituisce il controllo clinico.</div>`:""}
     ${cycleDay()?`<div class="hint" style="background:var(--menta);padding:8px;border-radius:10px;margin-top:6px">💧 In questi giorni è normale pesare <b>1-2 kg in più</b>: è acqua, non grasso. Non toccare il piano per questo — passa da sé quando il ciclo finisce.</div>`:""}
+    ${physDurationNote()}
     <div style="border-top:1px solid var(--linea);margin-top:12px;padding-top:10px">
     <label>📝 Nota del giorno</label>
   <textarea id="dayNote" placeholder="Come è andata? Fame, digestione, imprevisti… (finisce nell'esportazione e nell'analisi dei pattern)" onchange="setNote(${di},this.value)">${esc(S.week.days[di].note||"")}</textarea></div>
@@ -4264,9 +4270,7 @@ function rulesCardHTML(){
   const sel=(id,val,opts)=>`<select class="rv" id="${id}">`+opts.map(o=>`<option value="${o[0]}" ${String(val)===String(o[0])?"selected":""}>${o[1]}</option>`).join("")+`</select>`;
   const row=(k,desc,ctrl)=>`<tr><td>${k}</td><td class="rd">${desc}</td><td class="rc">${ctrl}</td></tr>`;
   const out=(v)=>`<span class="rout">${v}</span>`;
-  return `${PHYS_TEST_UNLOCK?`<div class="card" style="border-left:4px solid var(--rosso);background:var(--rossobg)">
-    <div class="hint" style="color:var(--rosso);font-weight:700">⚠️ <b>SBLOCCO DI TEST ATTIVO</b> — ciclo, allattamento e gravidanza sono cliccabili anche sui profili maschili.<br>Prima del rilascio: nel codice, <b>PHYS_TEST_UNLOCK = false</b>. Da lì resteranno visibili ma non attivabili.</div></div>`:""}
-  <div class="card"><h2>📐 Regole del sistema</h2>
+  return `<div class="card"><h2>📐 Regole del sistema</h2>
   <div class="hint">Ogni regola è modificabile e ha effetto immediato; in verde i risultati calcolati. In prova è tutto aperto: in futuro la sezione sarà gestita dal professionista.</div>
 
   <div class="gsec">Fabbisogno</div>
@@ -4322,6 +4326,7 @@ function rulesCardHTML(){
   ${row("Ciclo dieta · mese di mantenimento","Quanto dura la pausa di mantenimento prima di ricominciare con il deficit.",num("rCycMaint",cycMaintDays(),5,7,90,"giorni"))}
   ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
   ${row("Proteine · quale peso","Le proteine si calcolano su <b>"+refWeight()+" kg</b> — "+refWeightWhy()+" — non sul peso della bilancia: il grasso corporeo non richiede proteine, quindi in sovrappeso il peso pieno gonfierebbe il numero. Standard: <b>1,5 g/kg</b>.",out(dayTargetP()+" g al giorno · "+(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())+" g/kg"))}
+  ${row("Stati fisiologici · come funzionano","Ciclo, allattamento, gravidanza, infortunio e malattia <b>non sono etichette</b>: cambiano le calorie del giorno e le grammature del piano. Il <b>ciclo scade da solo</b>; gli altri restano attivi <b>finché non li togli</b> da Oggi → Come stai. Controlla che siano sempre aggiornati: uno stato acceso per sbaglio sposta il target senza che si veda.",out(physDelta()?((physDelta()>0?"+":"")+physDelta()+" kcal attivi ora"):"nessuno stato attivo"))}
   ${row("Ciclo · durata della fase","Dopo questi giorni la fase luteale si spegne da sola. Lo standard è <b>7 giorni</b>: la settimana prima del flusso, quella in cui il fabbisogno sale davvero.",num("rCycleDays",cycleDaysMax(),1,3,14,"giorni"))}
   ${row("Gravidanza · 1° trimestre","Calorie aggiuntive nel primo trimestre. In gravidanza il deficit viene <b>sempre</b> sospeso.",num("rPregT1",(+S.profile.pregT1>0?+S.profile.pregT1:70),10,0,600,"kcal"))}
   ${row("Gravidanza · 2° trimestre","Calorie aggiuntive nel secondo trimestre.",num("rPregT2",(+S.profile.pregT2>0?+S.profile.pregT2:260),10,0,600,"kcal"))}
@@ -6131,12 +6136,6 @@ function deficitTarget(){
 function cycleDaysMax(){const n=+S.profile.cycleDays;return n>0?n:7;}
 /* Ciclo, allattamento e gravidanza: solo profilo femminile */
 function isFemale(){return S.profile.gender==="f";}
-/* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
-   Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
-   profili maschili, per poterli provare senza cambiare genere. Con false
-   restano visibili ma disattivati, che è il comportamento definitivo.
-   Finché è true l'app mostra un avviso rosso fisso in Oggi e in Regole. */
-const PHYS_TEST_UNLOCK=true;
 function physAllowed(){return isFemale()||PHYS_TEST_UNLOCK;}
 /* Gravidanza: il fabbisogno cresce per trimestre (riferimenti LARN/EFSA:
    1° ~+70, 2° ~+260, 3° ~+450 kcal). Valori modificabili in Regole. */
@@ -6190,6 +6189,36 @@ function physNote(){
   if(injOn())p.push("infortunio, movimento ridotto del "+injPct()+"%: −"+(illOn()&&illPct()>injPct()?0:moveCut())+" kcal");
   if(illOn())p.push("malattia: deficit sospeso"+((!injOn()||illPct()>=injPct())?", movimento ridotto del "+illPct()+"%: −"+moveCut()+" kcal":""));
   return p.filter(Boolean).join(" · ");}
+/* Data in cui il ciclo si spegne da solo (null se non è attivo) */
+function cycleEndDate(){
+  if(!cycleDay()||!S.phys.cycleStart)return null;
+  const a=safeDate(S.phys.cycleStart+"T12:00:00");if(!a)return null;
+  const d=new Date(a);d.setDate(d.getDate()+cycleDaysMax());return d;}
+/* ═══ AVVISO SULLE DURATE ══════════════════════════════════════════
+   Questi stati cambiano le calorie del giorno e le grammature del piano.
+   Alcuni scadono da soli, altri restano accesi finché non li togli: se
+   uno resta acceso per sbaglio, il target continua a essere sbagliato
+   senza che si veda. Qui si dice sempre chiaramente quale è quale. */
+function physDurationNote(){
+  const auto=[],manu=[];
+  if(cycleDay()){
+    const e=cycleEndDate();
+    auto.push("🩸 <b>Ciclo</b> — giorno "+cycleDay()+" di "+cycleDaysMax()+
+      (e?", si spegne da solo il <b>"+e.toLocaleDateString("it-IT",{day:"numeric",month:"long"})+"</b>":", si spegne da solo alla scadenza"));}
+  if(lactKcal())manu.push("🤱 <b>Allattamento "+S.phys.lact+"</b> (+"+lactKcal()+" kcal)");
+  if(pregKcal())manu.push("🤰 <b>Gravidanza, "+PREG_LBL[pregOn()]+"</b> (+"+pregKcal()+" kcal)");
+  if(injOn())manu.push("🩼 <b>Infortunio</b> (−"+moveCut()+" kcal)");
+  if(illOn())manu.push("🤒 <b>Malattia</b> (deficit sospeso)");
+  if(!auto.length&&!manu.length)
+    return `<div class="hint" style="background:var(--menta);padding:9px 10px;border-radius:10px;margin-top:8px">
+      ⏳ <b>Attenzione a cosa spunti qui.</b> Questi stati non sono etichette: cambiano le <b>calorie del giorno</b> e le <b>grammature del piano</b>.
+      Il ciclo si spegne da solo dopo ${cycleDaysMax()} giorni; allattamento, gravidanza, infortunio e malattia restano attivi
+      <b>finché non li togli tu</b>. Spunta solo ciò che corrisponde davvero alla tua situazione, e ricordati di togliere la spunta quando la situazione cambia.</div>`;
+  return `<div class="hint" style="background:var(--zaffbg);padding:9px 10px;border-radius:10px;margin-top:8px">
+    ⏳ <b>Stati attivi adesso</b> — stanno cambiando le calorie di oggi e le porzioni del piano.
+    ${auto.length?"<br><br><b>Scade da solo:</b><br>"+auto.join("<br>"):""}
+    ${manu.length?"<br><br><b>Resta attivo finché non lo togli tu:</b><br>"+manu.join("<br>")+
+      "<br><br>⚠️ Ricordati di togliere la spunta appena la situazione cambia: se resta accesa per sbaglio, il target e le grammature restano tarati su una condizione che non c'è più.":""}</div>`;}
 /* Etichetta breve per marcare le porzioni riscalate */
 function physTag(){
   if(pregKcal())return "gravidanza";

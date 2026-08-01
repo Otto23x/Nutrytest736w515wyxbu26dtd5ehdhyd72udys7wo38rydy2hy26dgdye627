@@ -318,6 +318,12 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .pbar .pv.ok{color:var(--salvia)}
 .pbar .pv.up{color:var(--rosso)}
 .gsec{font-weight:700;color:var(--bosco);margin:10px 0 2px;font-size:13.5px}
+details.adv{margin:12px 0 2px;border-top:1px solid var(--linea);padding-top:10px}
+details.adv>summary{cursor:pointer;font-weight:700;color:var(--grigio);font-size:13px;list-style:none;padding:8px 10px;background:var(--crema);border-radius:10px}
+details.adv>summary::-webkit-details-marker{display:none}
+details.adv>summary::before{content:"▸ ";color:var(--salvia)}
+details.adv[open]>summary::before{content:"▾ "}
+details.adv[open]>summary{margin-bottom:6px}
 .aibox{background:var(--mensabg);border:1px solid var(--linea);border-radius:14px;padding:12px;margin-top:9px;font-size:13.5px;line-height:1.5;white-space:pre-wrap}
 .histweek{border:1px solid var(--linea);border-radius:16px;background:var(--card);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .3s}
 .histweek:hover{box-shadow:var(--shadow-lift)}
@@ -1000,15 +1006,21 @@ function simulateWeightDescent(startW,startDate){
   const intake=plannedDietSummary().kcal_giorno;
   const dailyDeficitStart=Math.round(bmrForWeight(startW)*p.act)+plannedActivityBurnFor(startW)-intake;
   let w=startW;const pts=[{d:new Date(start),w:Math.round(w*10)/10}];
-  let day=0;const MAX=3650;let stalled=false;
+  let day=0;const MAX=3650;let stalled=false,pausa=0;
   while(w>goal&&day<MAX){day++;
+    const dt=new Date(start);dt.setDate(dt.getDate()+day);
+    /* Nelle settimane di mantenimento programmate si mangia a fabbisogno:
+       il peso resta fermo e la curva si appiattisce. Non è uno stallo. */
+    if(cycMaintAtDate(dt)){pausa++;
+      if(day%7===0)pts.push({d:dt,w:Math.round(w*10)/10});
+      continue;}
     const def=Math.round(bmrForWeight(w)*p.act)+plannedActivityBurnFor(w)-intake;
     if(def<=0){stalled=true;break;}
     w-=def/7700;if(w<goal)w=goal;
-    if(day%7===0||w<=goal){const dt=new Date(start);dt.setDate(dt.getDate()+day);pts.push({d:dt,w:Math.round(w*10)/10});}}
+    if(day%7===0||w<=goal)pts.push({d:dt,w:Math.round(w*10)/10});}
   const reached=w<=goal+0.05&&!stalled;
   const etaDate=new Date(start);etaDate.setDate(etaDate.getDate()+day);
-  return {points:pts,etaDays:day,etaDate,reached,stalled,dailyDeficitStart,intake};}
+  return {points:pts,etaDays:day,etaDate,reached,stalled,dailyDeficitStart,intake,pausa};}
 /* Peso "ideale" proiettato a una certa data, partendo dalla prima pesata reale */
 function projectedWeightAt(dateISO){
   const W=(S.profile.weights||[]).filter(x=>x.w).slice().sort((a,b)=>new Date(a.d)-new Date(b.d));
@@ -3514,7 +3526,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <button class="btn ghost small" onclick="resetShop()">🧽 Pulisci</button>
     <button class="btn ghost small" onclick="waShop()">📤 WhatsApp</button>
   </div>
-  <div class="hint" style="margin-top:6px">La lista copre i <b>7 giorni che partono da oggi</b> (${esc(shopWindowLabel())}): la spesa si può fare in qualsiasi giorno della settimana, e i pasti di oggi già spuntati non vengono ricomprati. 🔄 <b>Rigenera</b> calcola le quantità <b>esatte</b> che il piano usa in quei giorni (i pasti fuori casa contano solo se li prepari tu) e ti mostra le differenze prima di confermare. ✨ <b>Ottimizza spesa</b> (AI) arrotonda ai <b>formati in vendita</b> nei supermercati italiani e scrive accanto al prodotto come distribuire quello che avanza.</div></div>`;
+  <div class="hint" style="margin-top:6px">Copre i <b>7 giorni da oggi</b> (${esc(shopWindowLabel())}): la spesa si può fare in qualunque giorno.<br>🔄 <b>Rigenera</b> — quantità esatte del piano.<br>✨ <b>Ottimizza</b> — le arrotonda ai formati che trovi al supermercato.</div></div>`;
   if(!SHOPCUR().length)h+=`<div class="card" style="text-align:center">
     <div style="font-size:32px">🛒</div><h2 style="margin-top:4px">Lista vuota</h2>
     <div class="hint">${planIsEmpty()
@@ -3685,11 +3697,20 @@ function cycDefDays(){const n=+S.profile.cycDefDays;return n>0?n:90;}
 function cycMaintDays(){const n=+S.profile.cycMaintDays;return n>0?n:30;}
 function cycOn(){return S.profile.cycPhases!==false;}
 /* Giorni trascorsi nel periodo di dieta aperto (0 se non ce n'è uno) */
-function dietDayN(){
+function dietDayNAt(date){
   const ap=activePeriod();
   if(!ap||ap.type!=="dieta")return 0;
   const a=safeDate(ap.start+"T12:00:00");if(!a)return 0;
-  return Math.max(1,Math.round((new Date(iso(new Date())+"T12:00:00")-a)/864e5)+1);}
+  const d=new Date(date);d.setHours(12,0,0,0);
+  return Math.max(1,Math.round((d-a)/864e5)+1);}
+function dietDayN(){return dietDayNAt(new Date());}
+/* Quel giorno cade in una pausa di mantenimento? Serve alla proiezione:
+   nelle pause il peso non scende, e la curva deve dirlo. */
+function cycMaintAtDate(date){
+  if(!cycOn())return false;
+  const n=dietDayNAt(date);if(!n)return false;
+  const tot=cycDefDays()+cycMaintDays();
+  return (((n-1)%tot)+1)>cycDefDays();}
 /* Fase attuale del ciclo: "deficit" o "mantenimento" (null = ciclo spento
    o nessun periodo di dieta aperto) */
 function cycPhase(){
@@ -4000,6 +4021,9 @@ function onbSave(silent){
   }
   if(st===4){p.goal=v("obGoal");
     setGoalWeight(v("obTargetW"));              /* unico punto di scrittura */
+    {const cv=v("obCyc"),pr=CYC_PRESETS.find(x=>x[0]===cv);
+     if(cv==="cost")p.cycPhases=false;
+     else if(pr){p.cycPhases=true;p.cycDefDays=pr[1];p.cycMaintDays=pr[2];}}
     D.ritmo=v("obRitmo")||"";
     if(D.ritmo)p.defMode="ritmo";      /* il ritmo scelto guida davvero il deficit */
     /* se hai scelto lo sport ma non hai scritto quante volte, vale 1:
@@ -4310,7 +4334,7 @@ function rulesCardHTML(){
      sel("rRitmo",String(ratePerWeek()),[["0.25","0,25 kg a settimana"],["0.5","0,5 kg a settimana"],["0.75","0,75 kg a settimana"],["1","1 kg a settimana"]]))}
   ${rateCapped()?`<tr><td colspan="3" style="color:var(--zaff);font-weight:600;font-size:12.5px;background:var(--zaffbg)">⚠️ ${rateNote()}. Il tetto serve a non scendere troppo sotto il fabbisogno: per andare più veloce serve il parere di un nutrizionista.</td></tr>`:""}
   ${row("Deficit giornaliero","Risultato della modalità scelta, con tetto al 30% del fabbisogno.",out(deficitTarget()+" kcal"))}
-  ${row("Minimo assoluto","Il target non scende sotto questa soglia. Non è il metabolismo basale: <b>stare sotto il basale è normale quando c'è grasso da consumare</b>.",num("rKcalMin",kcalFloorMin(),50,1000,null,"kcal"))}
+  ${row("Minimo calorico","Il target non scende mai sotto questa soglia. Non è un numero fisso per uomini e donne: si adatta al <b>tuo</b> corpo — ora è "+kcalFloorWhy()+". Stare sotto il <i>basale</i> è normale quando c'è grasso da consumare; stare sotto questa soglia no.",num("rKcalMin",kcalFloorMin(),50,1000,null,"kcal"))}
   ${row("→ Target calorico del piano","Fabbisogno per i target meno il deficit, mai sotto il minimo.",
      out(dayTargetK()+" kcal")+(dayTargetK()<bmr()?`<br><small style="color:var(--zaff)">sotto il basale (${bmr()}): sostenibile a periodi, con proteine alte</small>`:""))}
   </table>
@@ -4318,31 +4342,37 @@ function rulesCardHTML(){
   <div class="gsec">Proteine</div>
   <table class="rules">
   ${row("Grammi per kg","Riferimenti: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · aumento massa 1,6–2,2. Se non lo tocchi, l'app usa il valore adatto al tuo obiettivo e alla tua attività.",num("rProtKg",r.obiettivo_proteine_g_kg,.1,.8,3,"g/kg"))}
-  ${row("Allenamenti e tempi dell'obiettivo","Gli allenamenti pianificati ("+goalWkTotal()+" a settimana) bruciano in media <b>"+wkForecastBurn()+" kcal al giorno</b>. Questa energia <b>non alza le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Serve invece a stimare <b>in quanto tempo</b> arrivi all'obiettivo, ed è quello che vedi in Piano → 🔮 Stima risultati.",out(wkForecastBurn()+" kcal/g"))}
-  ${row("Ciclo · aumento del metabolismo","In fase luteale il metabolismo basale sale di qualche punto percentuale. Queste calorie si <b>sommano</b> al fabbisogno: il target cresce, non si riorganizza. Attiva la fase da <b>Oggi → Come stai</b>."+(cycleDay()?" <b>Attiva ora: giorno "+cycleDay()+" di "+cycleDaysMax()+", +"+cycleKcal()+" kcal.</b>":""),num("rCyclePct",cyclePct(),1,0,15,"%"))}
-  ${row("Ciclo dieta · schema","Alternare deficit e mantenimento evita che il metabolismo si adatti troppo, ma <b>lo schema giusto non è uguale per tutti</b>: sceglilo tu o fattelo indicare dal professionista che ti segue. Con «costante» il deficit resta sempre attivo."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
-     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato (valori qui sotto)"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
-  ${row("Ciclo dieta · mesi di deficit","Un deficit continuo oltre i 3 mesi abbassa il metabolismo e logora la testa. Passati questi giorni, l'app entra da sola in <b>mantenimento</b>: il deficit va a zero, le grammature del piano risalgono e la spesa si adegua."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",cycDefDays(),5,30,180,"giorni"))}
-  ${row("Ciclo dieta · mese di mantenimento","Quanto dura la pausa di mantenimento prima di ricominciare con il deficit.",num("rCycMaint",cycMaintDays(),5,7,90,"giorni"))}
-  ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
   ${row("Proteine · quale peso","Le proteine si calcolano su <b>"+refWeight()+" kg</b> — "+refWeightWhy()+" — non sul peso della bilancia: il grasso corporeo non richiede proteine, quindi in sovrappeso il peso pieno gonfierebbe il numero. Standard: <b>1,5 g/kg</b>.",out(dayTargetP()+" g al giorno · "+(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())+" g/kg"))}
-  ${row("Stati fisiologici · come funzionano","Ciclo, allattamento, gravidanza, infortunio e malattia <b>non sono etichette</b>: cambiano le calorie del giorno e le grammature del piano. Il <b>ciclo scade da solo</b>; gli altri restano attivi <b>finché non li togli</b> da Oggi → Come stai. Controlla che siano sempre aggiornati: uno stato acceso per sbaglio sposta il target senza che si veda.",out(physDelta()?((physDelta()>0?"+":"")+physDelta()+" kcal attivi ora"):"nessuno stato attivo"))}
-  ${row("Ciclo · durata della fase","Dopo questi giorni la fase luteale si spegne da sola. Lo standard è <b>7 giorni</b>: la settimana prima del flusso, quella in cui il fabbisogno sale davvero.",num("rCycleDays",cycleDaysMax(),1,3,14,"giorni"))}
-  ${row("Gravidanza · 1° trimestre","Calorie aggiuntive nel primo trimestre. In gravidanza il deficit viene <b>sempre</b> sospeso.",num("rPregT1",(+S.profile.pregT1>0?+S.profile.pregT1:70),10,0,600,"kcal"))}
-  ${row("Gravidanza · 2° trimestre","Calorie aggiuntive nel secondo trimestre.",num("rPregT2",(+S.profile.pregT2>0?+S.profile.pregT2:260),10,0,600,"kcal"))}
-  ${row("Gravidanza · 3° trimestre","Calorie aggiuntive nel terzo trimestre.",num("rPregT3",(+S.profile.pregT3>0?+S.profile.pregT3:450),10,0,600,"kcal"))}
-  ${row("Infortunio · taglio del movimento","Quanto si riduce la quota di fabbisogno dovuta all'<b>attività</b> quando sei fermo per un infortunio. Il metabolismo basale non viene mai toccato."+(injOn()?" <b>Attivo ora: −"+moveCut()+" kcal.</b>":""),num("rInjPct",injPct(),5,0,90,"%"))}
-  ${row("Malattia · taglio del movimento","Come sopra, ma per i giorni di malattia. In più, finché la malattia è attiva il <b>deficit resta sospeso</b>: si mangia a mantenimento."+(illOn()?" <b>Attiva ora.</b>":""),num("rIllPct",illPct(),5,0,90,"%"))}
-  ${row("Saldo fisiologico di oggi","Somma di ciò che si aggiunge (ciclo, allattamento, gravidanza) meno ciò che si toglie (movimento ridotto). Riscala le porzioni del piano in proporzione, partendo dalle kcal del tuo piano.",out((physDelta()>0?"+":"")+physDelta()+" kcal"+(physPct(viewIdx())?" · porzioni "+(physPct(viewIdx())>0?"+":"−")+Math.abs(physPct(viewIdx()))+"%":"")))}
-  ${row("Allattamento esclusivo","Costo energetico della produzione di latte quando il bambino prende solo il tuo latte. Si somma al fabbisogno, e alza anche il pavimento di sicurezza."+(S.phys.lact==="esclusivo"?" <b>Attivo ora.</b>":""),num("rLactFull",(+S.profile.lactFull||500),10,200,900,"kcal"))}
-  ${row("Allattamento parziale","Quando il latte è affiancato da altri alimenti."+(S.phys.lact==="parziale"?" <b>Attivo ora.</b>":""),num("rLactPart",(+S.profile.lactPart||250),10,100,600,"kcal"))}
   ${row("Peso di riferimento","Non il peso attuale: il grasso non richiede proteine, quindi si usa massa magra, peso obiettivo o peso corretto. <b>Nel tuo caso viene da: "+refWeightWhy()+"</b>."+
     (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:6px 0 0\" onclick=\"askGoalWeight()\">🎯 Imposta il peso obiettivo</button>")+" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi).",out(refWeight()+" kg"))}
   ${row("→ Target proteico del piano","Peso di riferimento × grammi per kg.",out(dayTargetP()+" g"))}
   ${row("Proteine intoccabili","Ribilanciamenti e recuperi riducono solo carboidrati e grassi.",
      sel("rProtLock",p.protLock!==false?"si":"no",[["si","Sì, mai ridotte"],["no","No, riducibili"]]))}
   </table>
-
+  <div class="gsec">Fasi della dieta</div>
+  <table class="rules">
+  ${row("Ciclo dieta · schema","Alternare deficit e mantenimento evita che il metabolismo si adatti troppo, ma <b>lo schema giusto non è uguale per tutti</b>: sceglilo tu o fattelo indicare dal professionista che ti segue. Con «costante» il deficit resta sempre attivo."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
+     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato (valori qui sotto)"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
+  ${row("Ciclo dieta · mesi di deficit","Un deficit continuo oltre i 3 mesi abbassa il metabolismo e logora la testa. Passati questi giorni, l'app entra da sola in <b>mantenimento</b>: il deficit va a zero, le grammature del piano risalgono e la spesa si adegua."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",cycDefDays(),5,30,180,"giorni"))}
+  ${row("Ciclo dieta · mese di mantenimento","Quanto dura la pausa di mantenimento prima di ricominciare con il deficit.",num("rCycMaint",cycMaintDays(),5,7,90,"giorni"))}
+  ${row("Allenamenti e tempi dell'obiettivo","Gli allenamenti pianificati ("+goalWkTotal()+" a settimana) bruciano in media <b>"+wkForecastBurn()+" kcal al giorno</b>. Questa energia <b>non alza le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Serve invece a stimare <b>in quanto tempo</b> arrivi all'obiettivo, ed è quello che vedi in Piano → 🔮 Stima risultati.",out(wkForecastBurn()+" kcal/g"))}
+  </table>
+  <div class="gsec">Il tuo corpo</div>
+  <table class="rules">
+  ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
+  ${row("Stati fisiologici · come funzionano","Ciclo, allattamento, gravidanza, infortunio e malattia <b>non sono etichette</b>: cambiano le calorie del giorno e le grammature del piano. Il <b>ciclo scade da solo</b>; gli altri restano attivi <b>finché non li togli</b> da Oggi → Come stai. Controlla che siano sempre aggiornati: uno stato acceso per sbaglio sposta il target senza che si veda.",out(physDelta()?((physDelta()>0?"+":"")+physDelta()+" kcal attivi ora"):"nessuno stato attivo"))}
+  ${row("Ciclo · durata della fase","Dopo questi giorni la fase luteale si spegne da sola. Lo standard è <b>7 giorni</b>: la settimana prima del flusso, quella in cui il fabbisogno sale davvero.",num("rCycleDays",cycleDaysMax(),1,3,14,"giorni"))}
+  ${row("Ciclo · aumento del metabolismo","In fase luteale il metabolismo basale sale di qualche punto percentuale. Queste calorie si <b>sommano</b> al fabbisogno: il target cresce, non si riorganizza. Attiva la fase da <b>Oggi → Come stai</b>."+(cycleDay()?" <b>Attiva ora: giorno "+cycleDay()+" di "+cycleDaysMax()+", +"+cycleKcal()+" kcal.</b>":""),num("rCyclePct",cyclePct(),1,0,15,"%"))}
+  ${row("Allattamento esclusivo","Costo energetico della produzione di latte quando il bambino prende solo il tuo latte. Si somma al fabbisogno, e alza anche il pavimento di sicurezza."+(S.phys.lact==="esclusivo"?" <b>Attivo ora.</b>":""),num("rLactFull",(+S.profile.lactFull||500),10,200,900,"kcal"))}
+  ${row("Allattamento parziale","Quando il latte è affiancato da altri alimenti."+(S.phys.lact==="parziale"?" <b>Attivo ora.</b>":""),num("rLactPart",(+S.profile.lactPart||250),10,100,600,"kcal"))}
+  ${row("Gravidanza · 1° trimestre","Calorie aggiuntive nel primo trimestre. In gravidanza il deficit viene <b>sempre</b> sospeso.",num("rPregT1",(+S.profile.pregT1>0?+S.profile.pregT1:70),10,0,600,"kcal"))}
+  ${row("Gravidanza · 2° trimestre","Calorie aggiuntive nel secondo trimestre.",num("rPregT2",(+S.profile.pregT2>0?+S.profile.pregT2:260),10,0,600,"kcal"))}
+  ${row("Gravidanza · 3° trimestre","Calorie aggiuntive nel terzo trimestre.",num("rPregT3",(+S.profile.pregT3>0?+S.profile.pregT3:450),10,0,600,"kcal"))}
+  ${row("Infortunio · taglio del movimento","Quanto si riduce la quota di fabbisogno dovuta all'<b>attività</b> quando sei fermo per un infortunio. Il metabolismo basale non viene mai toccato."+(injOn()?" <b>Attivo ora: −"+moveCut()+" kcal.</b>":""),num("rInjPct",injPct(),5,0,90,"%"))}
+  ${row("Malattia · taglio del movimento","Come sopra, ma per i giorni di malattia. In più, finché la malattia è attiva il <b>deficit resta sospeso</b>: si mangia a mantenimento."+(illOn()?" <b>Attiva ora.</b>":""),num("rIllPct",illPct(),5,0,90,"%"))}
+  ${row("Saldo fisiologico di oggi","Somma di ciò che si aggiunge (ciclo, allattamento, gravidanza) meno ciò che si toglie (movimento ridotto). Riscala le porzioni del piano in proporzione, partendo dalle kcal del tuo piano.",out((physDelta()>0?"+":"")+physDelta()+" kcal"+(physPct(viewIdx())?" · porzioni "+(physPct(viewIdx())>0?"+":"−")+Math.abs(physPct(viewIdx()))+"%":"")))}
+  </table>
+  <details class="adv"><summary>⚙️ Impostazioni avanzate — solo se vuoi mettere le mani nei calcoli</summary>
   <div class="gsec">Pasti e ribilanciamento</div>
   <table class="rules">
   ${row("Minimo per pasto","Nessuna proposta può portare un pasto sotto questa soglia, e nessun pasto viene eliminato.",num("rMinMeal",r.kcal_minime_per_pasto,25,100,null,"kcal"))}
@@ -4359,6 +4389,7 @@ function rulesCardHTML(){
   ${row("Giorni recuperabili","Quanti giorni indietro possono comparire nel menu Recupero.",num("rRgpDays",(+p.rgpDays||5),1,1,7,"giorni"))}
   </table>
 
+  </details>
   <div class="gsec">Regole aggiuntive per l'AI</div>
   <textarea id="rCustom" placeholder="Scrivi qui regole in linguaggio naturale: es. «niente carne rossa più di una volta a settimana», «cena sempre leggera», «almeno 2 porzioni di pesce a settimana»…">${esc(S.rules.custom||"")}</textarea>
   <div class="hint">Vengono allegate a <b>ogni</b> richiesta all'AI, insieme ai valori qui sopra e alle caratteristiche alimentari.</div>
@@ -5216,29 +5247,13 @@ function renderTools(){
   let h=`<div class="card"><h2>🧰 Tools</h2>
   <div class="hint">Gli strumenti che ti aiutano nel momento: creare un piatto con quello che hai in casa, scegliere al ristorante, trovare i piatti tipici del posto dove sei. Agiscono sul giorno che stai guardando (<b>${fmtDateShort(VIEW)}</b>) e sul pasto che scegli in ogni riquadro.</div></div>`;
   if(di<0){h+=`<div class="card"><div class="hint">Il giorno che stai guardando non è nella settimana in corso: torna a <b>Oggi</b> per usare gli strumenti.</div></div>`;el.innerHTML=h;return;}
+  h+=`<div class="gsec">Sto per cedere</div>`;
   h+=`<div class="card"><h2>🧭 Ho una voglia…</h2>
   ${mealSelHtml("craveTarget",di)}
   <div id="craveBox">${craveRows()}</div>
   <div class="mtools"><button class="btn small" onclick="craveHack(${di})">Trovami un hack</button></div>
-  <div class="hint">Scegli la <b>sensazione</b> che cerchi, non il cibo: l'AI inventa qualcosa che la soddisfa davvero restando nelle calorie che ti restano oggi.</div>
+  <div class="hint">Scegli la <b>sensazione</b>, non il cibo: l'AI trova qualcosa che la soddisfa restando nelle calorie di oggi.</div>
   <div class="aibox" id="craveOut" style="display:none"></div></div>`;
-  h+=`<div class="card"><h2>🤝 Compromesso a tavola</h2>
-  ${mealSelHtml("coupleTarget",di)}
-  <label>Chi c'è a tavola</label>
-  <div id="coupleBox">${splitRowsHTML()}</div>
-  <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
-  <div class="mtools"><button class="btn small" onclick="coupleFork(${di})">Cosa vogliono gli altri?</button></div>
-  <div class="hint">Ricetta <b>a biforcazione</b>: si cucina la stessa base insieme, poi ognuno completa la sua parte. Stessa tavola, tu resti nei tuoi numeri.</div>
-  <div class="aibox" id="coupleOut" style="display:none"></div></div>`;
-  h+=`<div class="card"><h2>🎈 Ridurre gonfiore</h2>
-  ${mealSelHtml("bloatTarget",di)}
-  <div class="mtools"><button class="btn small" onclick="bloatSOS(${di})">Aiutami</button></div>
-  <div class="hint">L'AI guarda cosa hai mangiato nelle ultime 48 ore, ti spiega che l'aumento sulla bilancia è gas e acqua, e riscrive in versione altamente digeribile i pasti che restano, dal pasto scelto qui sopra in poi.</div>
-  <div class="aibox" id="bloatOut" style="display:none"></div></div>`;
-  h+=`<div class="card"><h2>🕐 Calibra la giornata</h2>
-  <div class="mtools"><button class="btn small" onclick="calibraGiornata()">Calibra su come sto</button></div>
-  <div class="hint">Dopo una notte storta o una giornata stressante, l'AI riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame. Prima dai un voto a sonno e come ti senti in <b>Oggi → Come stai</b>.</div>
-  <div class="aibox" id="caliOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🍩 Tentazione improvvisa</h2>
   ${mealSelHtml("treatTarget",di)}
   <div class="mtools"><button class="btn small" onclick="treatDefuse(${di})">Mi hanno offerto…</button></div>
@@ -5254,6 +5269,22 @@ function renderTools(){
   <div class="mtools"><button class="btn small" onclick="grazing(${di})">Fammi una grazing board</button></div>
   <div class="hint">I pasti che restano diventano un vassoio di bocconcini da consumare lentamente, con lo stesso totale di calorie e proteine.</div>
   <div class="aibox" id="grazOut" style="display:none"></div></div>`;
+  h+=`<div class="card"><h2>🎈 Ridurre gonfiore</h2>
+  ${mealSelHtml("bloatTarget",di)}
+  <div class="mtools"><button class="btn small" onclick="bloatSOS(${di})">Aiutami</button></div>
+  <div class="hint">L'AI guarda le ultime 48 ore e riscrive i pasti che restano in versione più digeribile. Sulla bilancia è gas e acqua, non grasso.</div>
+  <div class="aibox" id="bloatOut" style="display:none"></div></div>`;
+  h+=`<div class="gsec">Sistemo la giornata</div>`;
+  h+=`<div class="card"><h2>🕐 Calibra la giornata</h2>
+  <div class="mtools"><button class="btn small" onclick="calibraGiornata()">Calibra su come sto</button></div>
+  <div class="hint">Dopo una notte storta o una giornata stressante, l'AI riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame. Prima dai un voto a sonno e come ti senti in <b>Oggi → Come stai</b>.</div>
+  <div class="aibox" id="caliOut" style="display:none"></div></div>`;
+  h+=`<div class="card"><h2>🏋️ Mi alleno tra poco e ho zero energie</h2>
+  <div class="hint">Non aggiunge calorie: l'AI <b>prende</b> una quota di carboidrati dai pasti che devi ancora fare e la trasforma in uno spuntino pre-allenamento ad assorbimento rapido, lasciando intatte le proteine. Poi aggiorna da sola i pasti da cui l'ha presa.</div>
+  <div class="mtools"><button class="btn small" onclick="fuelPre(${di})">⚡ Dammi energia ora</button></div>
+  <div class="aibox" id="fuelOut" style="display:none"></div></div>`;
+  // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
+
   h+=`<div class="card"><h2>🔮 Bilanciamento predittivo</h2>
   <label>Quando sarà l'occasione?</label>
   <div class="row2"><select id="predDay" onchange="predFillMeals()">${(function(){let o="";for(let k=di;k<7;k++){if(PLAN[k])o+=`<option value="${k}">${PLAN[k].day}${k===di?" (oggi)":""}</option>`;}return o;})()}</select>
@@ -5261,29 +5292,9 @@ function renderTools(){
   <label>Cosa prevedi di mangiare?</label>
   <textarea id="predWhat" placeholder="es. «pizza e birra», «cena aziendale al ristorante», «compleanno con torta»"></textarea>
   <div class="mtools"><button class="btn small" onclick="predictive(${di})">Prepara il tesoretto</button></div>
-  <div class="hint">Lo sgarro si gestisce <b>prima</b>: scegli giorno e pasto (es. venerdì a cena), scrivi cosa mangerai e l'AI stima le calorie reali, fa il <b>delta</b> con quanto il piano prevedeva per quel pasto e lo distribuisce in piccoli tagli sui pasti ancora da fare da qui ad allora, senza toccare le proteine.</div>
+  <div class="hint">Lo sgarro si gestisce <b>prima</b>. Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano.</div>
   <div class="aibox" id="predOut" style="display:none"></div></div>`;
-  h+=`<div class="card"><h2>🍳 Cucina intelligente</h2>
-  <label>Copri il fabbisogno fino a…</label>
-  <select id="prepUntil">${prepUntilOpts(di)}</select>
-  <div class="mtools"><button class="btn small" onclick="mealPrep(${di})">Piano di batch cooking</button></div>
-  <div class="hint">Giornate intere (si arriva sempre a una cena), massimo 3 giorni: l'AI parte dai pasti <b>non ancora spuntati</b> di oggi, aggiunge quelli dei giorni scelti ed estrae le preparazioni base da cucinare adesso in una volta sola.</div>
-  <div class="aibox" id="prepOut" style="display:none"></div></div>`;
-  h+=`<div class="aibox" id="bingeOut" style="display:none"></div>`;
-  h+=`<div class="card"><h2>🍲 Cucino per tutti</h2>
-  ${mealSelHtml("splitTarget",di)}
-  <div id="splitBox">${splitRowsHTML()}</div>
-  <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
-  <textarea id="splitIn" placeholder="cosa stai cucinando: riso, zucchine, petto di pollo…"></textarea>
-  <div class="mtools"><button class="btn small" onclick="splitCook(${di})">Calcola dosi e mia porzione</button></div>
-  <div class="hint">Una pentola sola: l'AI dà le dosi <b>a crudo</b> per tutti e i grammi esatti da mettere nel tuo piatto <b>pesati da cotto</b>, così non devi fare conversioni a mente.</div>
-  <div class="aibox" id="splitOut" style="display:none"></div></div>`;
-  h+=`<div class="card"><h2>🏋️ Mi alleno tra poco e ho zero energie</h2>
-  <div class="hint">Non aggiunge calorie: l'AI <b>prende</b> una quota di carboidrati dai pasti che devi ancora fare e la trasforma in uno spuntino pre-allenamento ad assorbimento rapido, lasciando intatte le proteine. Poi aggiorna da sola i pasti da cui l'ha presa.</div>
-  <div class="mtools"><button class="btn small" onclick="fuelPre(${di})">⚡ Dammi energia ora</button></div>
-  <div class="aibox" id="fuelOut" style="display:none"></div></div>`;
-  // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
-
+  h+=`<div class="gsec">Cucino</div>`;
   h+=`<div class="card" style="margin-top:18px"><h2>🍲 Crea un piatto con quello che hai</h2>
   ${mealSelHtml("frTarget",di)}
   <div class="btngrid4">
@@ -5297,6 +5308,30 @@ function renderTools(){
   <div class="mtools"><button class="btn ghost small" onclick="fridge(${di})">Usa il testo</button></div>
   <div class="aibox" id="fridgeOut" style="display:none"></div></div>`;
   // Selezionatore di menù — FOTO MULTIPLE + "Cerca" per confermare; "Usa il testo" sotto la casella
+  h+=`<div class="card"><h2>🍳 Cucina intelligente</h2>
+  <label>Copri il fabbisogno fino a…</label>
+  <select id="prepUntil">${prepUntilOpts(di)}</select>
+  <div class="mtools"><button class="btn small" onclick="mealPrep(${di})">Piano di batch cooking</button></div>
+  <div class="hint">Scegli fin dove arrivare (massimo 3 giorni): l'AI ti dice cosa cucinare <b>adesso, in una volta sola</b>, per coprire tutto.</div>
+  <div class="aibox" id="prepOut" style="display:none"></div></div>`;
+  h+=`<div class="aibox" id="bingeOut" style="display:none"></div>`;
+  h+=`<div class="card"><h2>🍲 Cucino per tutti</h2>
+  ${mealSelHtml("splitTarget",di)}
+  <div id="splitBox">${splitRowsHTML()}</div>
+  <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
+  <textarea id="splitIn" placeholder="cosa stai cucinando: riso, zucchine, petto di pollo…"></textarea>
+  <div class="mtools"><button class="btn small" onclick="splitCook(${di})">Calcola dosi e mia porzione</button></div>
+  <div class="hint">Una pentola sola: l'AI dà le dosi <b>a crudo</b> per tutti e i grammi esatti da mettere nel tuo piatto <b>pesati da cotto</b>, così non devi fare conversioni a mente.</div>
+  <div class="aibox" id="splitOut" style="display:none"></div></div>`;
+  h+=`<div class="card"><h2>🤝 Compromesso a tavola</h2>
+  ${mealSelHtml("coupleTarget",di)}
+  <label>Chi c'è a tavola</label>
+  <div id="coupleBox">${splitRowsHTML()}</div>
+  <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
+  <div class="mtools"><button class="btn small" onclick="coupleFork(${di})">Cosa vogliono gli altri?</button></div>
+  <div class="hint">Si cucina <b>una base sola</b>, poi ognuno completa il suo piatto. Stessa tavola, tu resti nei tuoi numeri.</div>
+  <div class="aibox" id="coupleOut" style="display:none"></div></div>`;
+  h+=`<div class="gsec">Mangio fuori</div>`;
   h+=`<div class="card"><h2>🍽️ Selezionatore di menù</h2>
   ${mealSelHtml("menuTarget",di)}
   <div class="btngrid3">
@@ -5318,8 +5353,18 @@ function renderTools(){
     <button class="btn small" onclick="geoDishes(${di})">📍 Usa la mia posizione</button>
     <button class="btn ghost small" onclick="geoReset(${di})">✍️ Scrivo io il posto</button>
   </div>
-  <div class="hint">In viaggio o in trasferta: l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici che rispettano le tue regole, spiegando <b>come ordinarli</b> per restare nel target. Se la prima terna non ti convince, chiedi <b>altre proposte</b>. La posizione serve solo a capire regione e nazione (le coordinate vengono arrotondate a ~11 km e non vengono mai salvate); in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale in cui sei: per quello usa il <b>selezionatore di menù</b> qui sopra.</div>
+  <div class="hint">In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare. La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.</div>
   <div class="aibox" id="geoOut" style="display:none"></div></div>`;
+  h+=`<div class="gsec">Per periodi lunghi</div>`;
+  h+=`<div class="card"><h2>📈 Uscita morbida</h2>
+  <div class="hint">Per <b>smettere la dieta senza riprendere peso</b>. Invece di tornare di colpo a mangiare come prima, si risale di 60 kcal a settimana finché il peso resta stabile.${reverseOn()?` <b>Attiva: +${reverseBonus()} kcal al giorno, settimana ${S.reverse.step||0}.</b>`:""}</div>
+  <div class="mtools">
+    <button class="btn ${reverseOn()?"warn":"ghost"} small" onclick="reverseToggle()">${reverseOn()?"Chiudi":"Attiva"}</button>
+    ${reverseOn()?`<button class="btn ghost small" onclick="reverseStep()">Valuta la settimana</button>`:""}
+  </div></div>`;
+  h+=`<div class="card"><h2>🏦 Fondo weekend</h2>
+  <div class="hint">Dal lunedì al venerdì metti da parte il <b>${bankPct()}%</b> del target; il sabato torna tutto insieme per la cena fuori. Nella settimana il conto è identico.${bankOn()?" <b>Attivo.</b>":""}</div>
+  <div class="mtools"><button class="btn ${bankOn()?"warn":"ghost"} small" onclick="bankToggle()">${bankOn()?"Disattiva":"Attiva"}</button></div></div>`;
   el.innerHTML=h;predFillMeals();}
 function renderStorico(){const el=document.getElementById("pg-storico");
   const w=weekSummary();
@@ -5671,6 +5716,7 @@ function drawGoalProjection(){
     if(simNow){if(simNow.stalled)parts.push("Con dieta e obiettivi attuali il deficit si annulla prima di "+p.goalW+" kg: servirebbe mangiare meno o muoversi di più.");
       else parts.push("Stima: <b>"+p.goalW+" kg</b> intorno al <b>"+simNow.etaDate.toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"})+"</b> (~"+simNow.etaDays+" giorni), ritmo non lineare.");}
     else parts.push("Sei già all'obiettivo o sotto: nessuna discesa da proiettare.");
+    if(simNow&&simNow.pausa>0)parts.push("La curva comprende <b>"+Math.round(simNow.pausa/7)+" settimane di mantenimento</b> ("+cycDefDays()+" giorni di deficit + "+cycMaintDays()+" di pausa): nei tratti piatti il peso resta fermo apposta. Allungano il percorso ma lo rendono sostenibile — si cambia in Regole → Fasi della dieta.");
     // Delta reale-vs-ideale + tendenza (il divario si allarga o si chiude?)
     let worsening=false;
     if(W.length){const last=W[W.length-1],proj=projectedWeightAt(last.d);
@@ -6380,8 +6426,22 @@ function famCardHTML(pre){
   return `<label>Chi altro mangia a casa</label>
   <div id="famBox">${famRowsHTML()}</div>
   <button class="btn ghost small" onclick="famAdd()">+ Aggiungi una persona</button>
-  <div class="hint">Dai un <b>nome</b> a ciascuno (es. Lorenzo): lo ritroverai nelle spunte di Cucino per tutti e Compromesso a tavola. Bastano poi <b>sesso e data di nascita</b>: la categoria e il fabbisogno relativo li calcola l'app (donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50). Servono per cucinare in una pentola sola e per fare la spesa giusta, senza sprechi.</div>`;}
-function kcalFloorMin(){return +S.profile.kcalMin>0?+S.profile.kcalMin:(S.profile.gender==="f"?1200:1500);}
+  <div class="hint">Dai un <b>nome</b> a ciascuno: lo ritrovi quando cucini per tutti. Bastano <b>sesso e data di nascita</b>, al resto pensa l'app (donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50). Servono per cucinare in una pentola sola e per fare la spesa giusta, senza sprechi.</div>`;}
+/* ═══ MINIMO CALORICO ═══════════════════════════════════════════════
+   Il pavimento segue il CORPO, non il sesso: 1200 per una donna e 1500 per
+   un uomo sono medie di popolazione che non dicono nulla su chi le usa —
+   una donna alta e muscolosa consuma più di un uomo minuto. Qui il minimo è
+   l'85% del metabolismo basale, con una soglia di sicurezza assoluta a
+   1200 kcal sotto la quale non si scende comunque. */
+function kcalFloorMin(){
+  if(+S.profile.kcalMin>0)return +S.profile.kcalMin;   /* valore scritto a mano */
+  const b=bmr();
+  if(!(b>0))return 1200;                                /* profilo non ancora compilato */
+  return Math.max(1200,Math.round(b*0.85/10)*10);}
+function kcalFloorWhy(){
+  if(+S.profile.kcalMin>0)return "valore impostato da te";
+  const b=bmr();if(!(b>0))return "soglia di sicurezza, profilo da completare";
+  return Math.round(b*0.85)<=1200?"soglia di sicurezza assoluta":"85% del tuo basale ("+b+" kcal)";}
 function kcalFloor(){
   /* in allattamento e in gravidanza il pavimento di sicurezza si alza
      insieme al fabbisogno: sotto quella soglia non si scende mai */
@@ -6686,7 +6746,7 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <tr><td>🧰</td><td><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro: 🧭 <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste), 🤝 <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua), 🎈 <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile), 🍩 <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli), 🐺 <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato), 🐿️ <b>Spiluccare</b> (i pasti diventano una grazing board), 🔮 <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte), 🍳 <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti), 🍲 <b>Cucino per tutti</b>, 🏋️ <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.<span class="newtag">NEW</span></td></tr>
 <tr><td>👥</td><td><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.<span class="newtag">NEW</span></td></tr>
 <tr><td>⚡</td><td><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.<span class="newtag">NEW</span></td></tr>
-<tr><td>📈</td><td><b>Uscita morbida e fondo weekend</b> (in Io) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.<span class="newtag">NEW</span></td></tr>
+<tr><td>📈</td><td><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.<span class="newtag">NEW</span></td></tr>
 <tr><td>😋</td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.<span class="newtag">NEW</span></td></tr>
 <tr><td>💧</td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.<span class="newtag">NEW</span></td></tr>
 <tr><td>🕐</td><td><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.<span class="newtag">NEW</span></td></tr>
@@ -6905,7 +6965,8 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   /* Quattro schede distinte, ognuna con il suo salvataggio:
      1) anagrafica (cambia quasi mai) · 2) misurazioni (la pesata, il dato che
      cambia di continuo) · 3) obiettivi · 4) attività di base. */
-  let h=`<div class="card"><h2>👤 Anagrafica</h2>
+  let h=`<div class="gsec">Chi sei</div>`;
+  h+=`<div class="card"><h2>👤 Anagrafica</h2>
   <div class="hint">Dati che non cambiano (o cambiano di rado). Servono a calcolare il metabolismo basale.</div>
   <div class="row2"><div><label>Nome</label><input type="text" id="pName" value="${esc(p.name||"")}"></div>
   <div><label>Genere</label><select id="pGen"><option value="m" ${p.gender==="m"?"selected":""}>Uomo</option><option value="f" ${p.gender==="f"?"selected":""}>Donna</option></select></div></div>
@@ -6965,19 +7026,12 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div><div class="v">${tdee()}</div><div class="l">TDEE base</div></div></div>
   <div class="hint">${parseFloat(S.profile.fatp)>0?"BMR con Katch-McArdle sulla magra derivata dalla tua % di grasso: il metodo più preciso.":"BMR con formula Mifflin-St Jeor. Inserisci la % di massa grassa per un calcolo più preciso."} Gli allenamenti si sommano giorno per giorno.${goalProj()?"<br><br>🎯 "+goalProj():""}</div></div>`;
   // Vacanza
+  h+=`<div class="gsec">Situazioni</div>`;
   h+=`<div class="card"><h2>🏖️ Modalità vacanza</h2>
   <button class="btn ${S.ui.vacanza?"warn":"ghost"}" onclick="toggleVacanza()">${S.ui.vacanza?"Disattiva vacanza":"Attiva vacanza"}</button>
   <div class="hint">In vacanza il deficit non viene giudicato e la serie 🔥 è congelata: l'app diventa un semplice diario.</div></div>`;
   h+=periodsCardHTML(true);
-  h+=`<div class="card"><h2>📈 Uscita morbida e fondo weekend</h2>
-  <div class="hint"><b>Uscita morbida (reverse diet)</b>: invece del deficit, ogni settimana si risale di 60 kcal finché il peso resta stabile — serve a smettere la dieta senza riprendere tutto.${reverseOn()?" <b>Attiva: +"+reverseBonus()+" kcal al giorno, settimana "+(S.reverse.step||0)+".</b>":""}</div>
-  <div class="mtools">
-    <button class="btn ${reverseOn()?"warn":"ghost"} small" onclick="reverseToggle()">${reverseOn()?"Chiudi":"Attiva"} uscita morbida</button>
-    ${reverseOn()?`<button class="btn ghost small" onclick="reverseStep()">Valuta la settimana</button>`:""}
-  </div>
-  <div class="hint" style="margin-top:10px"><b>Fondo fiduciario del weekend</b>: dal lunedì al venerdì si mette da parte il ${bankPct()}% del target, il sabato torna tutto insieme per la cena fuori. Il bilancio settimanale non cambia.${bankOn()?" <b>Attivo.</b>":""}</div>
-  <div class="mtools"><button class="btn ${bankOn()?"warn":"ghost"} small" onclick="bankToggle()">${bankOn()?"Disattiva":"Attiva"} tassa weekend</button></div>
-  </div>`;
+  h+=`<div class="gsec">Impostazioni</div>`;
   h+=`<div class="card"><h2>🧭 Percorso guidato</h2>
   <div class="hint">Ripercorre la configurazione iniziale: profilo, obiettivo, come mangi, chiave AI e backup. Non cancella nulla di quello che hai già registrato. <b>Il piano non si tocca da qui</b>: si genera e si modifica dalla pagina Piano.</div>
   <div class="hint">Il <b>percorso guidato</b> si rifà dalla pagina <b>Piano</b> → 🧭 Percorso guidato: ritrovi tutti i campi già compilati.</div></div>`;
@@ -7011,6 +7065,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <br><b>Disconnetti e desincronizza</b> = stacca solo QUESTO dispositivo, il backup su Drive e gli altri dispositivi restano intatti. <b>Elimina backup</b> = cancella il file su Drive: sparisce da TUTTI i dispositivi (con conferma).
   <br>Configurazione (Client ID + progetto Google Cloud): spiegata passo passo nella <b>❓ Guida</b>. Salva su una cartella privata di Drive dedicata solo a quest'app (nessuna cartella tua è coinvolta). Al primo accesso su ogni dispositivo Google chiede il consenso una volta; poi la sincronizzazione è silenziosa.</div></div>`;
   // Backup
+  h+=`<div class="gsec">I tuoi dati</div>`;
   h+=`<div class="card"><h2>Dati & backup in locale</h2>
   <button class="btn ghost" onclick="exportData()">Esporta</button>
   <button class="btn ghost" onclick="importData()">Importa</button>
@@ -7054,6 +7109,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
    </div>
    <div class="hint">Serie 🔥, settimana in corso e lista della spesa si azzerano <b>sempre per intero</b>: non dipendono da una data.</div>
    <button class="btn warn" onclick="cleanupRun()">🧹 Esegui la pulizia</button></div>`;}
+  h+=`<div class="gsec">Aiuto</div>`;
   h+=`<div class="card"><h2>🐞 Segnala un bug o un'idea</h2>
   <div class="hint">Hai trovato qualcosa che non funziona, o ti è venuta un'idea per migliorare Nutry? Scrivila qui: si apre la tua email già pronta per lo sviluppatore.</div>
   <label>Di cosa si tratta</label>

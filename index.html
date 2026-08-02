@@ -607,7 +607,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="9.8.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="9.9.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -648,6 +648,16 @@ S.customSports=S.customSports||[];
 S.shop=S.shop||{};S.recipes=S.recipes||[];S.history=S.history||[];
 S.ai=S.ai||{key:""};S.drive=S.drive||{cid:"",on:false};
 S.ui=S.ui||{};S.meta=S.meta||{};S.usage=S.usage||{day:"",calls:0,tokens:0,errors:0,last:""};
+/* ═══ DATI D'USO ANONIMI ════════════════════════════════════════════
+   Serve a rispondere a una domanda sola: dopo quanti giorni si smette?
+   Esce SOLO questo: un identificativo casuale, la versione, da quanti
+   giorni è installata, quanti giorni è stata usata, quante spunte, quante
+   richieste all'AI. NON esce nulla che riguardi la persona: niente peso,
+   niente cibo, niente nome, niente note, niente dati di salute. */
+S.tel=Object.assign({on:null,id:"",url:"",primo:"",ultimo:"",giorni:0,ai:0,inviato:""},S.tel||{});
+if(!S.tel.id)S.tel.id="nx-"+Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);
+/* iso() è dichiarata più avanti: qui la data si calcola a mano */
+if(!S.tel.primo)S.tel.primo=new Date().toISOString().slice(0,10);
 S.week=S.week||freshWeek();
 S.week.days=S.week.days||[];
 while(S.week.days.length<PLAN.length)
@@ -1145,7 +1155,7 @@ function gemModels(){const m=S.ai.model||"auto";
 /* Registra consumo giornaliero (chiamate + token dichiarati da Gemini) */
 function trackUsage(tok,err){const t=new Date().toISOString().slice(0,10);
   if(S.usage.day!==t){S.usage.day=t;S.usage.calls=0;S.usage.tokens=0;S.usage.errors=0;}
-  if(err){S.usage.errors++;}else{S.usage.calls++;S.usage.tokens+=tok||0;}
+  if(err){S.usage.errors++;}else{S.usage.calls++;S.usage.tokens+=tok||0;if(S.tel)S.tel.ai=(+S.tel.ai||0)+1;}
   S.usage.last=new Date().toISOString();save();
   const el=document.getElementById("usageLine");if(el)el.innerHTML=usageHtml();}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1402,9 +1412,62 @@ function parseAIJSON(t){
    e whitelist http/https per i link salvati (blocca javascript: ecc.) ══ */
 /* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
    sapere cosa fa legge una riga, chi vuole capire apre «perché?». */
+/* ── Registra l'apertura di oggi (una volta al giorno) ── */
+function telTouch(){
+  const oggi=iso(new Date());
+  if(S.tel.ultimo===oggi)return;
+  S.tel.ultimo=oggi;S.tel.giorni=(+S.tel.giorni||0)+1;save();}
+function telCount(){let sp=0;
+  try{(S.week&&S.week.days||[]).forEach(d=>{(d.meals||[]).forEach(m=>{if(m.done)sp++;});});}catch(e){}
+  return sp;}
+/* Il pacchetto che parte: è tutto qui, e si può leggere in Io */
+function telPayload(){
+  const a=safeDate((S.tel.primo||iso(new Date()))+"T12:00:00");
+  const g=a?Math.max(1,Math.round((new Date()-a)/864e5)+1):1;
+  return {
+    id:S.tel.id,
+    versione:APP_VER,
+    installata_da_giorni:g,
+    giorni_di_utilizzo:+S.tel.giorni||0,
+    ultimo_utilizzo:S.tel.ultimo||"",
+    pasti_spuntati:telCount(),
+    richieste_ai:+S.tel.ai||0,
+    ha_un_piano:!planIsEmpty()
+  };}
+function telOn(){return S.tel.on===true;}
+/* Invio: al massimo una volta al giorno, in sottofondo. Se fallisce,
+   non succede nulla: non è un dato critico e non si riprova. */
+function telSend(forza){
+  if(!telOn()&&!forza)return;
+  const oggi=iso(new Date());
+  if(!forza&&S.tel.inviato===oggi)return;
+  const url=(S.tel.url||"").trim();
+  if(!/^https:\/\//i.test(url))return;
+  try{
+    fetch(url,{method:"POST",mode:"no-cors",keepalive:true,
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(telPayload())});
+    S.tel.inviato=oggi;save();
+  }catch(e){}}
+window.telMail=()=>{
+  const d=telPayload();
+  const corpo=Object.entries(d).map(([k,v])=>k.replace(/_/g," ")+": "+v).join("\n");
+  location.href="mailto:"+DEV_MAIL+"?subject="+encodeURIComponent("[Nutry "+APP_VER+"] dati d'uso")+
+    "&body="+encodeURIComponent(corpo+"\n\n(Nessun dato personale: solo statistiche d'uso.)");};
+window.telSet=async(v)=>{
+  if(v&&!telOn()){
+    if(!await dlgConfirm("📊 Dati d'uso anonimi\n\nOgni giorno, alla prima apertura, l'app invia un piccolo pacchetto di statistiche per capire <b>se Nutry funziona davvero</b>: da quanti giorni ce l'hai, quanti giorni l'hai usata, quante spunte hai fatto.\n\n<b>Non esce nulla di tuo</b>: né peso, né cibo, né nome, né note, né dati di salute. Il pacchetto esatto lo vedi qui sotto, e puoi spegnerlo quando vuoi.",
+      {ok:"Va bene, aiutami a migliorarla",ko:"No grazie"})){S.tel.on=false;save();render("io");return;}
+  }
+  S.tel.on=!!v;save();render("io");
+  toast(v?"Grazie: aiuta a capire cosa non funziona":"Invio disattivato");};
+window.telUrlSave=()=>{
+  const e=document.getElementById("telUrl");if(!e)return;
+  const v=e.value.trim();
+  if(v&&!/^https:\/\//i.test(v))return dlgAlert("L'indirizzo di raccolta deve iniziare con https://");
+  S.tel.url=v;save();toast(v?"Indirizzo salvato ✓":"Indirizzo rimosso");};
 /* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
-   sapere cosa fa legge una riga, chi vuole capire apre «perché?».
-   Nota: qui si nasconde solo del TESTO esplicativo, mai una funzione. */
+   sapere cosa fa legge una riga, chi vuole capire apre «perché?». */
 function hint2(breve,esteso,cls){
   return `<div class="hint${cls?" "+cls:""}">${breve}`+
     (esteso?`<details class="why"><summary>perché?</summary><div>${esteso}</div></details>`:"")+`</div>`;}
@@ -7301,6 +7364,24 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
    </div>
    <div class="hint">Serie 🔥, settimana in corso e lista della spesa si azzerano <b>sempre per intero</b>: non dipendono da una data.</div>
    <button class="btn warn" onclick="cleanupRun()">🧹 Esegui la pulizia</button></div>`;}
+  h+=`<div class="card"><h2>📊 Dati d'uso anonimi</h2>
+  ${hint2("Aiuta a capire se Nutry funziona: una volta al giorno parte un pacchetto di statistiche. <b>Nessun dato tuo</b>.",
+   "Serve a rispondere a una domanda sola — dopo quanti giorni le persone smettono? È l'unico modo per capire cosa non va e migliorarlo. Non escono peso, cibo, nome, note o dati di salute: solo i numeri che vedi qui sotto. Puoi spegnerlo quando vuoi e l'app funziona identica.")}
+  <div class="ckgrid">
+    <label class="ck"><input type="radio" name="telOn" ${telOn()?"checked":""} onchange="telSet(true)"> ✅ Sì, invia</label>
+    <label class="ck"><input type="radio" name="telOn" ${S.tel.on===false?"checked":""} onchange="telSet(false)"> 🚫 No, non inviare</label>
+  </div>
+  ${S.tel.on===null?`<div class="hint" style="background:var(--zaffbg);padding:9px 11px;border-radius:10px">Non hai ancora scelto: finché non lo fai, <b>non viene inviato nulla</b>.</div>`:""}
+  <label>Cosa esce, esattamente</label>
+  <div class="aibox" style="display:block;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap">${esc(JSON.stringify(telPayload(),null,2))}</div>
+  <div class="hint">Questo è il pacchetto reale, generato adesso con i tuoi dati. Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo.</div>
+  <label>Dove vengono raccolti (facoltativo)</label>
+  <input type="text" id="telUrl" value="${esc(S.tel.url||"")}" placeholder="https://... indirizzo di raccolta">
+  <div class="mtools"><button class="btn small" onclick="telUrlSave()">Salva indirizzo</button>
+  <button class="btn ghost small" onclick="telMail()">✉️ Invia per email</button></div>
+  ${hint2("Senza indirizzo non parte niente in automatico: resta il pulsante per mandarli a mano.",
+   "L'invio automatico dal browser ha bisogno di un punto di raccolta (per esempio uno script di Google collegato a un foglio di calcolo). Il pulsante ✉️ apre invece la tua app di posta con il pacchetto già scritto: parte solo se premi invia.")}
+  </div>`;
   h+=`<div class="gsec">Aiuto</div>`;
   h+=`<div class="card"><h2>🐞 Segnala un bug o un'idea</h2>
   <div class="hint">Hai trovato qualcosa che non funziona, o ti è venuta un'idea per migliorare Nutry? Scrivila qui: si apre la tua email già pronta per lo sviluppatore.</div>
@@ -7945,6 +8026,8 @@ window.addEventListener("error",function(ev){
    e mostra come recuperare. */
 (function boot(){
   try{snapSave("giornaliera");}catch(e){}
+  try{telTouch();}catch(e){}
+  try{setTimeout(()=>{try{telSend();}catch(e){}},4000);}catch(e){}
   try{applyTheme();}catch(e){}
   try{bumpStreak();}catch(e){}
   try{renderHeader();}catch(e){}

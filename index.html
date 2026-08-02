@@ -46,12 +46,11 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
   --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
   --grad:linear-gradient(135deg,#16A34A,#0E5132);
   --gradz:linear-gradient(135deg,#F5B142,#EA8A1F);
-  --gradm:linear-gradient(135deg,#4F8DF7,#2563EB);
-  --glass:rgba(255,255,255,.72);
+    --glass:rgba(255,255,255,.72);
   --shadow:0 1px 2px rgba(14,60,30,.05),0 8px 24px -6px rgba(14,60,30,.10);
   --shadow-lift:0 2px 4px rgba(14,60,30,.06),0 18px 44px -10px rgba(14,60,30,.18);
   --hdr1:#0A3B22; --hdr2:#16A34A; --hdr3:#0E7A57;
-  --r-lg:20px; --r-md:14px; --r-sm:10px;
+  --r-lg:20px;
   --ease:cubic-bezier(.22,1,.36,1);
 }
 html[data-theme="dark"]{
@@ -65,6 +64,13 @@ html[data-theme="dark"]{
   --hdr1:#071F12; --hdr2:#1C7A3E; --hdr3:#0D4A34;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* ═══ SOLO SCORRIMENTO VERTICALE ═══════════════════════════════════
+   Niente barre laterali: tutto si adatta alla larghezza dello schermo.
+   Le tre regole sotto sono la rete di sicurezza — se un elemento futuro
+   dovesse sforare, si stringe invece di spingere fuori la pagina. */
+html,body{overflow-x:hidden;max-width:100%}
+img,canvas,table,pre,iframe,video{max-width:100%}
+input,select,textarea,button{max-width:100%}
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--crema);color:var(--ink);font-size:15px;padding-bottom:96px;transition:background .3s,color .3s;position:relative;min-height:100vh}
 /* sfondo vivo: blob sfocati che fluttuano lentissimi */
@@ -72,14 +78,13 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;ba
 body::before,body::after{display:none!important}
 
 
-h1,h2,.dayname,.ringnum{font-family:'Fraunces',Georgia,'Noto Serif',serif}
+h1,h2,.dayname{font-family:'Fraunces',Georgia,'Noto Serif',serif}
 ::selection{background:var(--salvia);color:#fff}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:var(--linea);border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:var(--grigio)}
 /* ══ HEADER: aurora animata + shrink allo scroll ══ */
 header{background:linear-gradient(115deg,var(--hdr1),var(--hdr2),var(--hdr3),var(--hdr1));background-size:320% 320%;color:#fff;padding:10px 12px;position:sticky;top:0;z-index:50;box-shadow:0 6px 24px -8px rgba(4,26,12,.55);transition:padding .3s var(--ease)}
-header.scrolled{padding:8px 16px 7px}
 
 .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
 header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
@@ -105,7 +110,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .page{display:none;padding:16px;max-width:640px;margin:0 auto}
 .page.active{display:block}
 
-/* reveal on scroll (attivato da JS: body.fx) */
 /* ══ NAV: dock flottante in vetro ══ */
 .tabs{position:fixed;bottom:10px;left:6px;right:6px;background:var(--card);border:1px solid var(--linea);display:flex;z-index:60;padding:6px;border-radius:24px;box-shadow:var(--shadow-lift);margin-bottom:env(safe-area-inset-bottom)}
 .tabs button{flex:1;min-width:0;border:0;background:none;padding:8px 1px 6px;font-size:9.6px;letter-spacing:-.01em;white-space:nowrap;color:var(--grigio);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;border-radius:18px;transition:background .25s,color .25s,transform .2s var(--ease);position:relative}
@@ -155,7 +159,7 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .mopts button.sel{border-color:var(--zaff);color:var(--zaff);font-weight:700;background:var(--zaffbg)}
 .mtools{margin-top:10px;display:flex;gap:8px;row-gap:8px;align-items:center;flex-wrap:wrap}
 .mtools .btn{margin-top:0}
-.mtools select{border:1px solid var(--linea);border-radius:10px;padding:7px 9px;font-size:11.5px;color:var(--grigio);background:var(--card);flex:1 1 40%;min-width:120px}
+.mtools select{border:1px solid var(--linea);border-radius:10px;padding:7px 9px;font-size:11.5px;color:var(--grigio);background:var(--card);flex:1 1 120px;min-width:0}
 .badge{font-size:10.5px;background:var(--okbg);color:var(--ok);border-radius:8px;padding:3px 9px;font-weight:700}
 .badge.moved{background:var(--rossobg);color:var(--rosso)}
 .badge.ai{background:var(--mensabg);color:var(--mensa)}
@@ -205,14 +209,7 @@ html[data-theme="dark"] .btn{color:#04170B}
 /* ══ GAUGE / STATISTICHE ══ */
 .gaugecard{background:var(--card);border:1px solid var(--linea);border-radius:22px;padding:18px;margin-bottom:13px;box-shadow:var(--shadow);text-align:center;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
 
-.ringwrap{position:relative;width:176px;height:176px;margin:4px auto}
-.ringwrap svg{transform:rotate(-90deg))}
-.ringwrap svg circle{transition:stroke-dashoffset 1s var(--ease),stroke .4s}
-.ringnum{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center}
-.ringnum .v{font-size:31px;font-weight:800}
 
-.ringnum .v.def{color:var(--salvia)}.ringnum .v.sur{color:var(--rosso)}
-.ringnum .l{font-size:11px;color:var(--grigio);margin-top:2px}
 .stat3{display:flex;gap:9px;margin-top:12px}
 .stat3>div{flex:1;background:var(--menta);border-radius:14px;padding:10px 4px;text-align:center;transition:transform .25s var(--ease),box-shadow .25s}
 .stat3>div:hover{transform:translateY(-2px) scale(1.03);box-shadow:var(--shadow)}
@@ -223,8 +220,6 @@ html[data-theme="dark"] .btn{color:#04170B}
 .mtx .v{font-weight:800;font-size:15.5px;color:var(--bosco);line-height:1.15}
 .mtx .l{font-size:10px;color:var(--grigio);margin-top:1px}
 .mtx .s{font-size:9.5px;color:var(--grigio);margin-top:3px}
-.gnums{display:flex;justify-content:space-around;font-size:12px;color:var(--grigio);margin-top:8px}
-.gnums b{color:var(--ink)}
 .wline{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--linea);font-size:13.5px;gap:8px;transition:background .2s}
 .wline:last-child{border-bottom:0}
 .wline .del{color:var(--rosso);cursor:pointer;font-weight:700;padding:0 7px;transition:transform .15s var(--ease)}
@@ -235,8 +230,8 @@ html[data-theme="dark"] .btn{color:#04170B}
 .duo .stars{font-size:19px;gap:3px}
 .ckrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}
 .ckrow2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0 10px}
-.ckrow2 .ck{justify-content:center;padding:8px 4px;font-size:12.5px;white-space:nowrap}
-.ckrow3 .ck{justify-content:center;padding:8px 4px;font-size:12.5px;white-space:nowrap}
+.ckrow2 .ck{justify-content:center;padding:8px 3px;font-size:clamp(10px,3vw,12.5px);min-width:0;text-align:center;line-height:1.2}
+.ckrow3 .ck{justify-content:center;padding:8px 3px;font-size:clamp(10px,3vw,12.5px);min-width:0;text-align:center;line-height:1.2}
 .water span:hover{transform:translateY(-3px)}
 .water span.f{background:linear-gradient(180deg,#EAF4FF,#C8E1FB);border-color:var(--mensa);transform:translateY(-3px);box-shadow:0 6px 12px -4px rgba(37,99,235,.35)}
 
@@ -250,10 +245,6 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .gtable{width:100%;font-size:13px}
 .gtable td{padding:6px 6px;vertical-align:top;border-bottom:1px solid var(--linea)}
 .gtable td:first-child{width:64px;text-align:center;font-size:17px}
-.dtag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.02em;padding:2px 6px;border-radius:8px;vertical-align:1px;margin-left:4px;white-space:nowrap}
-.dtag.open{background:var(--zaffbg);color:var(--zaff)}
-.dtag.next{background:var(--crema);color:var(--grigio)}
-.dtag.skip{background:var(--menta);color:var(--bosco)}
 .obwrap{max-width:620px;margin:0 auto}
 .obtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .obstep{font-size:12px;font-weight:700;color:var(--grigio);letter-spacing:.03em}
@@ -262,9 +253,6 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .obd.ok{background:var(--salvia);opacity:.55}
 .obd.on{background:var(--salvia)}
 .obp{font-size:14.5px;line-height:1.55;color:var(--ink);margin:0 0 12px}
-.obwrap ul.clean{margin:10px 0}
-.obwrap ul.clean li{font-size:13.5px;line-height:1.5;padding:9px 2px 9px 24px;color:var(--ink)}
-.obwrap ul.clean li::before{top:15px}
 .obwrap label{white-space:normal}
 .obwrap .card{padding:16px 15px}
 .obwrap input,.obwrap select,.obwrap textarea{max-width:100%}
@@ -281,12 +269,12 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .obcard p{font-size:12.8px;line-height:1.5;color:var(--grigio);margin:0 0 10px}
 @media(max-width:560px){.obchoice{grid-template-columns:1fr}}
 .wzbar{display:flex;gap:8px;margin:8px 0 2px;flex-wrap:wrap}
-.wzbar .btn{flex:1;min-width:104px;margin-top:0;text-align:center}
+.wzbar .btn{flex:1 1 104px;min-width:0;margin-top:0;text-align:center}
 .wzval{margin:8px 0 0;padding:9px 11px;overflow-wrap:anywhere;line-height:1.5;border:1px dashed var(--linea);border-radius:12px;font-size:13px;color:var(--bosco);font-weight:600;background:var(--menta)}
 .ctlrow{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:7px 11px;border-radius:14px;
-  background:var(--card);border:1px solid var(--linea);font-size:12.5px;overflow-x:auto;white-space:nowrap}
+  background:var(--card);border:1px solid var(--linea);font-size:12.5px;flex-wrap:wrap}
 .ctlrow .cl{font-weight:700;color:var(--grigio);flex-shrink:0}
-.ctlrow select{max-width:132px;min-width:96px;font-size:12px;padding:5px 6px;margin:0;flex-shrink:1}
+.ctlrow select{max-width:132px;min-width:0;flex:1 1 96px;font-size:12px;padding:5px 6px;margin:0}
 .ctlrow .ck{display:flex;align-items:center;gap:4px;color:var(--grigio);flex-shrink:0}
 .ctlrow .ck input{width:19px;height:19px;margin:0}
 .ctlrow .ck input:disabled+span{opacity:.45}
@@ -318,6 +306,12 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .pbar .pv.ok{color:var(--salvia)}
 .pbar .pv.up{color:var(--rosso)}
 .gsec{font-weight:700;color:var(--bosco);margin:10px 0 2px;font-size:13.5px}
+details.why{margin-top:5px}
+details.why>summary{cursor:pointer;color:var(--salvia);font-weight:600;font-size:11.5px;list-style:none;display:inline-block}
+details.why>summary::-webkit-details-marker{display:none}
+details.why>summary::after{content:" ▸"}
+details.why[open]>summary::after{content:" ▾"}
+details.why>div{margin-top:5px;padding-left:9px;border-left:2px solid var(--linea)}
 details.adv{margin:12px 0 2px;border-top:1px solid var(--linea);padding-top:10px}
 details.adv>summary{cursor:pointer;font-weight:700;color:var(--grigio);font-size:13px;list-style:none;padding:8px 10px;background:var(--crema);border-radius:10px}
 details.adv>summary::-webkit-details-marker{display:none}
@@ -381,6 +375,7 @@ table.rules .rout{font-family:inherit;font-weight:700;color:var(--salvia);font-s
   table.rules td{border:0;padding:2px 0}
   table.rules td.rc{text-align:left;width:auto;margin-top:6px}
   table.rules select.rv{width:100%;max-width:260px}
+.rules td.rfull{width:auto;display:block;padding:9px 11px;border-radius:10px;margin:2px 0;font-size:12.5px;line-height:1.45}
 }
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
 @media(max-width:420px){.grid2{grid-template-columns:1fr}}
@@ -417,8 +412,6 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .ck{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--linea);border-radius:12px;padding:7px 11px;font-size:13px;cursor:pointer;background:var(--card)}
 .ck input[type=checkbox]{}
 .ck input{width:18px;height:18px;margin:0;accent-color:var(--salvia)}
-.ckrow{display:inline-flex;align-items:center;gap:6px}
-.ckrow select{padding:6px 8px;font-size:12px;border:1px solid var(--linea);border-radius:10px;background:var(--card);color:var(--ink)}
 .ckmensa-w{margin:6px 0 12px}
 .ckmensa{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .ckmensa .ck{flex:1;justify-content:flex-start}
@@ -443,6 +436,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .hungry b{font-size:11.5px;color:var(--grigio);font-weight:700;margin-right:2px}
 .hungry span{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--linea);cursor:pointer;background:var(--card);transition:.15s}
 .hungry span.on{background:var(--zaff);border-color:var(--zaff)}
+body.onb .tabs{display:none}
+body.onb{padding-bottom:0}
 .newtag{display:inline-block;background:var(--bosco);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 6px;vertical-align:2px;margin-left:4px}
 </style>
 </head>
@@ -616,7 +611,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="9.3.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="9.4.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -851,7 +846,6 @@ const iso=d=>d.toISOString().slice(0,10);
    sola data corrotta (backup vecchio, import a mano) non deve far crollare
    un'intera pagina. */
 function safeDate(x){if(!x)return null;const d=new Date(x);return isNaN(d.getTime())?null:d;}
-function isoSafe(x){const d=safeDate(x);return d?iso(d):null;}
 function dateIT(x){const d=safeDate(x);return d?d.toLocaleDateString("it-IT"):"data assente";}
 const wd=d=>(d.getDay()+6)%7; // 0=lunedì
 function shiftDay(n){VIEW.setDate(VIEW.getDate()+n);renderHeader();render(cur);}
@@ -1129,9 +1123,17 @@ async function gemRefreshModels(silent){
   }catch(e){if(!silent)dlgAlert("Non riesco a leggere l'elenco dei modelli: "+e.message+"\n\nL'app continua a funzionare con la catena predefinita.");return null;}
 }
 window.gemRefreshModels=gemRefreshModels;
-/* una volta a settimana, in silenzio */
+/* L'elenco dei modelli si aggiorna da solo a OGNI apertura dell'app, in
+   silenzio e senza bloccare nulla: quando Google ne pubblica uno nuovo lo
+   si trova già in lista, senza dover aggiornare l'app. Una sola volta per
+   sessione, e non prima di 6 ore dall'ultimo controllo riuscito. */
 setTimeout(()=>{const d=(S.ai&&S.ai.models)||null;
-  if((S.ai&&S.ai.key)&&(!d||Date.now()-(d.at||0)>7*864e5))gemRefreshModels(true);},4000);
+  if((S.ai&&S.ai.key)&&(!d||Date.now()-(d.at||0)>6*36e5))gemRefreshModels(true);},3000);
+/* e anche quando si torna sull'app dopo averla lasciata in secondo piano */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  const d=(S.ai&&S.ai.models)||null;
+  if((S.ai&&S.ai.key)&&(!d||Date.now()-(d.at||0)>6*36e5))gemRefreshModels(true);});
 function gemModels(){const m=S.ai.model||"auto";
   /* in auto: prima i modelli scoperti (ordinati per generazione), poi la
      catena predefinita come rete di sicurezza */
@@ -1397,6 +1399,11 @@ function parseAIJSON(t){
   return JSON.parse(t);}
 /* ══ SICUREZZA: escaping HTML per OGNI testo dinamico (utente/AI/scanner)
    e whitelist http/https per i link salvati (blocca javascript: ecc.) ══ */
+/* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
+   sapere cosa fa legge una riga, chi vuole capire apre «perché?». */
+function hint2(breve,esteso,cls){
+  return `<div class="hint${cls?" "+cls:""}">${breve}`+
+    (esteso?`<details class="why"><summary>perché?</summary><div>${esteso}</div></details>`:"")+`</div>`;}
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//i.test(String(u).trim())?String(u).trim():"";
 /* ══ DIALOGHI INTERNI ═══════════════════════════════════════════════
@@ -1467,8 +1474,13 @@ function aiFail(e){const m=String(e&&e.message||e);
    7. NAVIGAZIONE
    ═══════════════════════════════════════════════════════════════ */
 const pages=["oggi","piano","spesa","sport","storico","io","regole","tools","guida","setup","benvenuto"];let cur="oggi";
-function show(p){cur=p;pages.forEach(x=>document.getElementById("pg-"+x).classList.toggle("active",x===p));
+function show(p){
+  /* Percorso guidato non finito: non si va da nessun'altra parte. Senza
+     profilo l'app non sa nulla e ogni numero sarebbe inventato. */
+  if(!S.onboard.done&&p!=="benvenuto")p="benvenuto";
+  cur=p;pages.forEach(x=>document.getElementById("pg-"+x).classList.toggle("active",x===p));
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
+  document.body.classList.toggle("onb",!S.onboard.done);
   render(p);window.scrollTo(0,0);}
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>show(b.dataset.p));
 /* Swipe orizzontale sulla pagina Oggi per cambiare giorno */
@@ -1708,7 +1720,8 @@ window.recModal=(di)=>{
   let m=document.getElementById("recM");
   if(!m){m=document.createElement("div");m.id="recM";m.className="modal";document.body.appendChild(m);}
   let inner=`<div class="mcard"><h2 style="color:var(--bosco);font-size:16px">⭐ I miei piatti (${S.recipes.length})</h2>
-  <div class="hint">Il tuo repertorio: i piatti creati da te o con l'AI (🍲 Crea, 🎲 alternativa, 🔁 sostituzione, ✏️ modifica). Scegli il pasto e riusali quando vuoi, senza consumare AI. <b>Tocca il titolo</b> per aprire la ricetta completa con tutte le grammature. Entrano anche nel contesto delle proposte future.</div>
+  ${hint2("I tuoi piatti salvati: scegli il pasto e riusali quando vuoi, senza consumare AI.",
+ "Ci finiscono i piatti creati da te o con l'AI (🍲 Crea, 🎲 alternativa, 🔁 sostituzione, ✏️ modifica). <b>Tocca il titolo</b> per la ricetta completa con le grammature. L'AI li tiene presenti anche nelle proposte future.")}
   ${mealSelHtml("recTarget",di)||`<div class="hint">Nessun pasto disponibile in questo giorno: puoi comunque aggiungerli come extra.</div>`}`;
   if(!S.recipes.length)inner+=`<div class="hint">Ancora nessun piatto salvato. Quando l'AI te ne propone uno che ti piace — o quando lo crei col frigo — premi <b>⭐ Salva</b> e lo ritrovi qui.</div>`;
   /* i più recenti in cima */
@@ -2870,12 +2883,36 @@ window.recalibrate=async()=>{
       if(d.sleep)v.push("sonno "+d.sleep+"/5");if(d.relax)v.push("relax "+d.relax+"/5");if(d.feel)v.push("come ti senti "+d.feel+"/5");
       return v.length?"• come stai oggi: "+v.join(" · "):null;})()
   ].filter(Boolean).join("\n");
-  if(!await dlgConfirm("🎯 Ricalibro il piano sui numeri di adesso?\n\n"+righe+
-    "\n\nI piatti restano gli stessi: cambiano le grammature. Poi rigenero la lista della spesa.",
-    {ok:"Ricalibra",ko:"Lascia com'è"}))return;
+  if(!await dlgConfirm("📅 Ricalibro i 7 giorni che partono da oggi?\n\n"+righe+
+    "\n\nI piatti restano gli stessi: cambiano le grammature. Poi rigenero la lista della spesa.\n\nVale solo per questa settimana: il piano di base resta quello che è, e la settimana prossima si riparte da lì.",
+    {ok:"Ricalibra la settimana",ko:"Lascia com'è"}))return;
   if(await retunePlan()){S.planW=S.profile.w;save();
     await genShop(true);            /* lista SETTIMANALE ricalcolata sul piano nuovo */
     return planForecast(true,true);}};
+/* Ricalibra i soli pasti di OGGI ancora da fare, sui numeri del momento.
+   Non tocca gli altri giorni né la lista della spesa. */
+window.recalibrateToday=async()=>{
+  const di=viewIdx();
+  if(di<0)return dlgAlert("Torna a Oggi per ricalibrare i pasti di oggi.");
+  if(planIsEmpty())return dlgAlert("Non c'è ancora un piano da ricalibrare.");
+  if(!aiOn())return aiFail(new Error("nokey"));
+  const dopo=pendingMeals(di);
+  if(!dopo.length)return dlgAlert("Oggi non ci sono più pasti da ricalibrare: sono tutti spuntati o saltati.");
+  const e=eatenOfDay(di),restaK=Math.max(0,dayTargetK()-e.k),restaP=Math.max(0,dayTargetP()-e.p);
+  if(!await dlgConfirm("🎯 Ricalibro i "+dopo.length+" pasti di oggi ancora da fare?\n\n"+
+    "• target di oggi: "+dayTargetK()+" kcal\n• già mangiate: "+e.k+" kcal\n• restano: "+restaK+" kcal e "+restaP+" g di proteine\n\n"+
+    "I piatti restano gli stessi: cambiano le grammature. Gli altri giorni e la spesa non si toccano.",
+    {ok:"Ricalibra oggi",ko:"Lascia com'è"}))return;
+  return toolRun("caliOut",
+    "Ritara le GRAMMATURE dei pasti di oggi ancora da fare, senza cambiare i piatti. "+
+    "Devono sommare circa "+restaK+" kcal e "+restaP+" g di proteine in totale. "+rulesForAI()+
+    " Pasti da ritarare: "+JSON.stringify(dopo)+
+    '. Rispondi SOLO JSON: {"pasti":[{"pdi":n,"mi":n,"slot":"...","nuovo":"...","kcal":n,"prot":n}],"messaggio":"una riga"}',
+    j=>{CALI=j.pasti||[];
+      return "🎯 <b>Pasti di oggi ritarati</b>\n"+
+        CALI.map(x=>"• "+esc(x.slot||"")+": "+esc(x.nuovo||"")+" (~"+Math.round(x.kcal||0)+" kcal)").join("\n")+
+        (j.messaggio?"\n\n<i>"+esc(j.messaggio)+"</i>":"")+
+        '<div class="btngrid2" style="margin-top:8px"><button class="btn small" onclick="applyMealEdits(CALI)">Applica</button></div>';});};
 window.geoReset=async(di)=>{
   const p=await geoAskPlace("📍 Dove ti trovi adesso?");
   if(!p)return;
@@ -2941,7 +2978,8 @@ window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));con
     S.permMeals[d+"_"+m]={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot),c:Math.round(j.carb)||null,f:Math.round(j.gras)||null};save();render("piano");}catch(e){aiFail(e);}};
 function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(new Date());
   let h=`<div class="card"><h2>La tua settimana</h2>
-  <div class="hint">Questo è il tuo <b>piano</b>: un modello fisso. Le modifiche qui (opzione · ✏️ · 🎲) restano <b>sempre effettive</b>, anche nelle settimane successive. Spunte, extra e tracciamento del giorno si fanno in <b>Oggi</b>. Il piano <b>non cambia</b> quando ribilanci o correggi un pasto in Oggi: resta il riferimento con cui confrontare quello che mangi davvero.</div>
+  ${hint2("Questo è il tuo <b>piano</b>: il modello fisso. Le spunte e il tracciamento si fanno in <b>Oggi</b>.",
+ "Le modifiche fatte qui (opzione · ✏️ · 🎲) restano valide anche nelle settimane successive. Il piano <b>non cambia</b> quando ribilanci o correggi un pasto in Oggi: resta il riferimento con cui confrontare quello che mangi davvero.")}
   <div class="btngrid2">
     <button class="btn small" onclick="wizEditCurrent()">✏️ Gestisci piano</button>
     <button class="btn ghost small" onclick="seasonalizePlan()">${seasonEmoji()} Alternativa stagionale</button>
@@ -2950,7 +2988,13 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     <button class="btn ghost small" onclick="importPlanPhotos()">📸 Importa da foto</button>
     <button class="btn ghost small" onclick="planForecast()">🔮 Stima risultati</button>
   </div>
-  <div class="hint">✏️ <b>Gestisci</b> = modifica pasti, orari, tipo e alternative · ${seasonEmoji()} <b>Alternativa stagionale</b> = aggiunge ai pasti principali un'opzione ${seasonEmoji()} ${seasonLabel()} con ingredienti di stagione, senza toccare il piano base · 🧭 <b>Percorso guidato</b> = ripercorri gli otto passi con i tuoi dati già compilati, cambiando solo ciò che serve · ✨ <b>Genera nuovo piano</b> = l'AI costruisce sette giorni dalle tue caratteristiche · 📸 <b>Importa da foto</b> = fotografa o carica dalla galleria un piano che hai già (carta o PDF) e l'AI lo trascrive, alternative comprese · 🔮 <b>Stima risultati</b> = quanto perdi/prendi a settimana con questo piano, quando arrivi all'obiettivo e, se serve, la ritaratura automatica delle grammature.</div>
+  ${hint2("Da qui gestisci il piano: modificarlo, generarne uno nuovo, importarne uno che hai già.",
+ `✏️ <b>Gestisci</b> — modifica pasti, orari, tipo e alternative.<br>
+  ${seasonEmoji()} <b>Alternativa stagionale</b> — aggiunge un'opzione di stagione, senza toccare il piano base.<br>
+  🧭 <b>Percorso guidato</b> — rifai gli otto passi con i dati già compilati.<br>
+  ✨ <b>Genera nuovo piano</b> — l'AI costruisce sette giorni su misura.<br>
+  📸 <b>Importa da foto</b> — fotografa un piano su carta o PDF e l'AI lo trascrive.<br>
+  🔮 <b>Stima risultati</b> — quanto perdi a settimana e quando arrivi all'obiettivo.`)}
   ${(function(){const d=planWeightDrift();
     if(Math.abs(d)<1)return "";
     return `<div class="hint" style="color:var(--zaff);font-weight:600">⚖️ Il piano è stato costruito a ${S.planW} kg, oggi ne pesi ${S.profile.w}: ${d>0?"−":"+"}${Math.abs(d)} kg.${Math.abs(d)>=PLANW_TRIGGER?` Il fabbisogno è cambiato: conviene <b>ritararlo</b> sui numeri di adesso.`:" Ancora nessuna differenza rilevante."}</div>`;})()}
@@ -2974,16 +3018,6 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   });
   el.innerHTML=h;}
 
-/* ═══════════════════════════════════════════════════════════════
-   10. PAGINA OGGI (segue la data scorrevole VIEW)
-   ═══════════════════════════════════════════════════════════════ */
-function ring(pct,def){const r=72,c=2*Math.PI*r,off=c*(1-Math.min(1,pct));
-  return `<div class="ringwrap"><svg width="170" height="170">
-    <circle cx="85" cy="85" r="${r}" fill="none" stroke="var(--linea)" stroke-width="14"/>
-    <circle cx="85" cy="85" r="${r}" fill="none" stroke="${def>=0?"#2F7D3B":"#B23B3B"}" stroke-width="14" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .5s"/></svg>
-    <div class="ringnum"><div class="v ${def>=0?"def":"sur"}">${def>=0?"−":"+"}${Math.abs(def)}</div>
-    <div class="l">${def>=0?"kcal di deficit":"kcal di surplus"}</div></div></div>`;}
 function stars(di,field){let h=`<div class="stars">`;
   for(let i=1;i<=5;i++)h+=`<span class="${S.week.days[di][field]>=i?"on":""}" onclick="setStar(${di},'${field}',${i})">⭐</span>`;
   return h+`</div>`;}
@@ -3040,7 +3074,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     <div class="stat3"><div><div class="v">${eat.k}</div><div class="l">kcal segnate</div></div>
     <div><div class="v">${eat.p} g</div><div class="l">proteine</div></div>
     <div><div class="v">${burn}</div><div class="l">kcal sport</div></div></div>
-    <div class="gnums" style="margin-top:8px"><span>${eat.p} g P</span><span>${eat.c} g C</span><span>${eat.f} g G</span><span>${eat.fib} g F</span><span>${eat.z} g Z</span></div></div>`;
+    </div>`;
   }else{
     h+=`<div class="gaugecard"><div class="hint" style="margin:0 0 2px">Bilancio di ${PLAN[di].day} ${isToday()?"":("("+VIEW.toLocaleDateString("it-IT")+")")}${isHard(_vd)?` · <span style="color:var(--zaff)">🏷️ ${esc((S.dayEvents||{})[_vd]||"giornata difficile")} (esclusa dalle medie)</span>`:""}</div>
     ${(function(){
@@ -3057,7 +3091,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
       return `<div class="mtx">
       <div><div class="v" style="color:${def>=0?"var(--ok)":"var(--rosso)"}">${def>=0?"−":"+"}${Math.abs(def)}</div>
         <div class="l">kcal di ${def>=0?"deficit":"surplus"}</div>
-        <div class="s" style="margin-top:6px">mangiate ${eat.k} · sport ${burn>=0?"+":"−"}${Math.abs(burn)}</div></div>
+        <div class="s" style="margin-top:6px">mangiate ${eat.k}<br>sport ${burn>=0?"+":"−"}${Math.abs(burn)}</div></div>
       ${box(eat.k,"","kcal mangiate",plan||dayTargetK(),"var(--salvia)")}
       ${box(eat.p," g","proteine",dayTargetP(),"var(--zaff)")}
       ${box(eat.c," g","carboidrati",dayTargetC(),"var(--mensa)")}
@@ -3069,7 +3103,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
       <div><div class="v">${qDot(q,15)} ${q!=null?q+"%":"—"}</div><div class="l">qualità del cibo</div>
         <div class="s" style="margin-top:6px">${q!=null?esc(qLabel(q)):(aiOn()?"spunta i pasti per saperlo":"serve la chiave AI")}</div></div>
     </div>`;})()}
-    <div class="gnums" style="margin-top:8px"><span>Mangiate <b>${eat.k}</b></span><span>Pianificato <b>${plannedOfDay(di).k}</b></span><span>Fabbisogno <b>${target}</b></span></div>${(function(){const t=waterPredict(di);return t?`<div class="hint" style="background:var(--menta);padding:9px;border-radius:10px;margin-top:10px">${t}</div>`:"";})()}</div>`;}
+    ${(function(){const t=waterPredict(di);return t?`<div class="hint" style="background:var(--menta);padding:9px;border-radius:10px;margin-top:10px">${t}</div>`:"";})()}</div>`;}
   // Acqua con obiettivo dinamico
   const goal=waterGoal(di);
   h+=`<div class="card"><h2>Acqua</h2><div class="water">`;
@@ -3100,7 +3134,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
       <label class="ck"><input type="checkbox" id="phInj" ${injOn()?"checked":""} onchange="injSet(this.checked)"> 🩼 Infortunio</label>
       <label class="ck"><input type="checkbox" id="phIll" ${illOn()?"checked":""} onchange="illSet(this.checked)"> 🤒 Malattia</label>
     </div>
-    ${physDelta()?`<div class="hint" style="color:var(--bosco);font-weight:600;margin-top:8px">${physDelta()>0?"➕":"➖"} ${physNote()} — target di oggi <b>${dayTargetK()} kcal</b>${physPct(di)?`, porzioni del piano riscalate del <b>${physPct(di)>0?"+":"−"}${Math.abs(physPct(di))}%</b> sulle kcal del tuo piano (spegnendo lo stato tornano quelle di base)`:""}.</div>`:`<div class="hint">Attivandoli, le calorie si <b>sommano</b> (ciclo, allattamento, gravidanza) o si <b>sottraggono</b> (infortunio, malattia) e le porzioni del piano si riscalano in proporzione. Il piano di base va tenuto in stato <b>neutro</b>. I valori si cambiano in Regole.</div>`}
+    ${physDelta()?`<div class="hint" style="color:var(--bosco);font-weight:600;margin-top:8px">${physDelta()>0?"➕":"➖"} ${physNote()} — target di oggi <b>${dayTargetK()} kcal</b>${physPct(di)?`, porzioni del piano riscalate del <b>${physPct(di)>0?"+":"−"}${Math.abs(physPct(di))}%</b> sulle kcal del tuo piano (spegnendo lo stato tornano quelle di base)`:""}.</div>`:`${hint2("Attivandoli, il target del giorno cambia e le porzioni si adeguano.",
+ "Ciclo, allattamento e gravidanza <b>aggiungono</b> calorie; infortunio e malattia le <b>tolgono</b>, perché ti muovi meno. Le porzioni del piano si riscalano in proporzione partendo dalle kcal del tuo piano, quindi il piano di base va tenuto <b>neutro</b>, cioè scritto senza avere già conteggiato queste calorie. I valori si cambiano in Regole.")}`}
     ${illOn()?`<div class="hint" style="background:var(--zaffbg);padding:8px;border-radius:10px;margin-top:6px">🤒 <b>Deficit sospeso</b>: finché sei malato/a si mangia a mantenimento. Non è un passo indietro — guarire richiede energia.</div>`:""}
     ${pregOn()!=="no"?`<div class="hint" style="background:var(--zaffbg);padding:8px;border-radius:10px;margin-top:6px">🤰 <b>Nessun deficit in gravidanza.</b> Il piano va sempre concordato con il medico o l'ostetrica: l'app non sostituisce il controllo clinico.</div>`:""}
     ${cycleDay()?`<div class="hint" style="background:var(--menta);padding:8px;border-radius:10px;margin-top:6px">💧 In questi giorni è normale pesare <b>1-2 kg in più</b>: è acqua, non grasso. Non toccare il piano per questo — passa da sé quando il ciclo finisce.</div>`:""}
@@ -3109,8 +3144,11 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     <label>📝 Nota del giorno</label>
   <textarea id="dayNote" placeholder="Come è andata? Fame, digestione, imprevisti… (finisce nell'esportazione e nell'analisi dei pattern)" onchange="setNote(${di},this.value)">${esc(S.week.days[di].note||"")}</textarea></div>
   ${crashHTML(di)}
-    <div class="mtools" style="margin-top:10px"><button class="btn ghost small" onclick="recalibrate()">🎯 Ricalibra piano e spesa</button></div>
-    <div class="hint">La ricalibratura ritara le grammature del piano e rigenera la <b>lista della spesa settimanale</b> tenendo conto di ciclo, allattamento, obiettivo, allenamenti, peso di oggi e di come stai (sonno, umore).</div>
+    <div class="mtools" style="margin-top:10px">
+      <button class="btn ghost small" onclick="recalibrateToday()">🎯 Ricalibra i pasti di oggi</button>
+      <button class="btn ghost small" onclick="recalibrate()">📅 Ricalibra la settimana</button></div>
+    ${hint2("Ritara le grammature sui numeri di adesso: <b>oggi</b> solo i pasti che restano, <b>la settimana</b> i 7 giorni da oggi.",
+ "La ricalibratura della settimana rigenera anche la spesa e vale <b>solo per questa settimana</b>: il piano di base resta quello che è, e la settimana dopo si riparte da lì.")}
   </div></div>`;
   // Pasti
   if(planIsEmpty()){h+=`<div class="card" style="text-align:center">
@@ -3501,7 +3539,8 @@ window.shopPresetPick=(t)=>{if(!t)return;
   toast("Catena impostata ✓ — se un 🔗 non funziona, usa la procedura «latte»");};
 function renderSpesa(){const el=document.getElementById("pg-spesa");
   let h=`<div class="card"><h2>🔗 Il tuo supermercato online</h2>
-  <div class="hint">Scegli una delle catene nazionali con la spesa online: il link di ricerca è già pronto. Molti siti chiedono prima il negozio: se un 🔗 non dovesse funzionare, crea il modello dal <b>tuo</b> negozio con la procedura qui sotto — funziona con qualunque supermercato.</div>
+  ${hint2("Scegli la tua catena: il link di ricerca è già pronto.",
+ "Molti siti chiedono prima di scegliere il negozio, quindi un link può non funzionare. In quel caso usa la procedura «latte» qui sotto: funziona con qualunque supermercato.")}
   <select id="shopPreset" onchange="shopPresetPick(this.value)">
     <option value="">— Scegli la catena —</option>
     ${SHOP_MARKETS.map(m=>`<option value="${esc(m.t)}" ${S.shopTpl===m.t?"selected":""}>${esc(m.n)}</option>`).join("")}
@@ -3510,7 +3549,8 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   <input type="text" id="cTpl" value="${esc(S.shopTpl||"")}" placeholder="incolla qui l'indirizzo della ricerca di «latte» (o un modello con {q})">
   <div class="mtools"><button class="btn small" onclick="saveShopTpl()">Salva modello</button>
   <button class="btn ghost small" onclick="shopTplTest()">🔍 Prova il link</button></div>
-  <div class="hint">⚠️ Gli indirizzi delle catene cambiano nel tempo e l'app non può verificarli da sola: dopo aver scelto la catena premi <b>Prova il link</b>. Se non si apre la ricerca di «latte», usa la procedura qui sopra partendo dal sito del tuo negozio.</div></div>
+  ${hint2("Dopo aver scelto la catena premi <b>Prova il link</b> per controllare che funzioni.",
+ "Gli indirizzi delle catene cambiano nel tempo e l'app non può verificarli da sola. Se non si apre la ricerca di «latte», usa la procedura qui sopra partendo dal sito del tuo negozio.")}</div>
   <div class="card"><h2>Lista della spesa</h2>
   <div class="hint">☐ spunta · 🔗 cerca sul sito della spesa · 🤖 alternativa se esaurito · ✕ rimuovi. Le spunte restano salvate.</div>
   ${(S.family||[]).length?`<label>Per chi fai la spesa?</label>
@@ -3526,7 +3566,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <button class="btn ghost small" onclick="resetShop()">🧽 Pulisci</button>
     <button class="btn ghost small" onclick="waShop()">📤 WhatsApp</button>
   </div>
-  <div class="hint" style="margin-top:6px">Copre i <b>7 giorni da oggi</b> (${esc(shopWindowLabel())}): la spesa si può fare in qualunque giorno.<br>🔄 <b>Rigenera</b> — quantità esatte del piano.<br>✨ <b>Ottimizza</b> — le arrotonda ai formati che trovi al supermercato.</div></div>`;
+  <div class="hint" style="margin-top:6px">Copre i <b>7 giorni da oggi</b> (${esc(shopWindowLabel())}).<details class="why"><summary>i due pulsanti</summary><div>🔄 <b>Rigenera</b> — quantità esatte del piano.<br>✨ <b>Ottimizza</b> — le arrotonda ai formati che trovi al supermercato.</div></details></div></div>`;
   if(!SHOPCUR().length)h+=`<div class="card" style="text-align:center">
     <div style="font-size:32px">🛒</div><h2 style="margin-top:4px">Lista vuota</h2>
     <div class="hint">${planIsEmpty()
@@ -3605,7 +3645,7 @@ function renderSport(){const el=document.getElementById("pg-sport");const ti=vie
        <div style="height:100%;width:${pc}%;background:${f>=g?"var(--salvia)":"var(--zaff)"}"></div></div>
      <div class="hint">${f>=g?"Obiettivo raggiunto ✓":(g-f)+" da fare entro domenica. L'obiettivo si imposta in Io → Obiettivi e viene usato anche nella proiezione del peso."}</div></div>`;}}
   h+=`<div class="card"><h2>🚶 Passi</h2>
-  <div class="hint">I passi quotidiani sono già <b>inclusi nel fabbisogno</b> come <b>passi base</b> (${((+S.profile.baseSteps>0)?+S.profile.baseSteps:3000).toLocaleString("it-IT")}/giorno — modificabili in <b>Io</b>). Non serve inserirli. Se fai una <b>camminata vera</b>, registrala qui sotto come sport con i suoi dettagli: conterà nel bruciato del giorno.</div></div>`;
+  ${hint2(`I passi di tutti i giorni sono <b>già inclusi</b> nel fabbisogno: non serve inserirli.`,`Contano come <b>passi base</b> (${((+S.profile.baseSteps>0)?+S.profile.baseSteps:3000).toLocaleString("it-IT")}/giorno, modificabili in <b>Io</b>). Se fai una <b>camminata vera</b>, registrala qui sotto come sport: conterà nel bruciato del giorno.`)}</div>`;
   h+=`<div class="card"><h2>Allenamenti della settimana</h2>`;
   let tot=0,anyw=false;
   PLAN.forEach((d,di)=>{const ws=S.week.days[di].workouts;if(ws.length){anyw=true;
@@ -3674,12 +3714,15 @@ function activePeriod(){return S.periods.find(p=>!p.end)||null;}
 /* Schemi standard fra cui scegliere. La scelta è dell'utente o del centro
    dimagrimento che lo segue: non esiste uno schema giusto per tutti. */
 const CYC_PRESETS=[
-  ["cost",  0,  0, "Costante — nessuna pausa programmata"],
-  ["14_7", 14,  7, "2 settimane di deficit + 1 di mantenimento"],
-  ["21_7", 21,  7, "3 settimane di deficit + 1 di mantenimento"],
-  ["28_7", 28,  7, "4 settimane di deficit + 1 di mantenimento"],
-  ["42_14",42, 14, "6 settimane di deficit + 2 di mantenimento"],
-  ["90_30",90, 30, "3 mesi di deficit + 1 mese di mantenimento"]
+  ["cost",   0,  0, "Sempre in deficit"],
+  ["6_1",    6,  1, "6 giorni + 1"],
+  ["12_2",  12,  2, "12 giorni + 2"],
+  ["14_7",  14,  7, "2 settimane + 1"],
+  ["21_7",  21,  7, "3 settimane + 1"],
+  ["28_7",  28,  7, "4 settimane + 1"],
+  ["42_14", 42, 14, "6 settimane + 2"],
+  ["56_14", 56, 14, "8 settimane + 2"],
+  ["90_30", 90, 30, "3 mesi + 1 mese"]
 ];
 /* Quale preset corrisponde alla configurazione attuale (o "pers.") */
 function cycPresetNow(){
@@ -3726,8 +3769,6 @@ function cycPhaseDay(){
   return pos<=cycDefDays()?pos:(pos-cycDefDays());}
 function cycPhaseLen(){return cycPhase()==="mantenimento"?cycMaintDays():cycDefDays();}
 function cycMaintOn(){return cycPhase()==="mantenimento";}
-/* Giorni che mancano al cambio di fase */
-function cycDaysLeft(){const p=cycPhase();if(!p)return 0;return Math.max(0,cycPhaseLen()-cycPhaseDay());}
 /* Chiave del blocco corrente: cambia a ogni passaggio di fase, così
    l'avviso ricompare al blocco successivo ma non ogni giorno. */
 function cycPhaseKey(){
@@ -3984,8 +4025,9 @@ function onbGo(n){S.onboard.step=Math.max(0,Math.min(ONB_STEPS.length-1,n));save
   window.scrollTo(0,0);}
 window.onbNext=()=>{if(onbSave())onbGo(S.onboard.step+1);};
 window.onbBack=()=>{try{onbSave(true);}catch(e){}onbGo(S.onboard.step-1);};
-window.onbSkip=async ()=>{if(await dlgConfirm("Salto la configurazione guidata?\n\nPuoi rifarla quando vuoi da Piano → 🧭 Percorso guidato. Senza profilo, però, l'app non sa calcolare il tuo fabbisogno."))
-  {S.onboard.done=true;save();show("io");}};
+/* Il percorso non si salta più: senza profilo ogni numero dell'app sarebbe
+   inventato. Resta la funzione per compatibilità, ma avvisa e basta. */
+window.onbSkip=()=>dlgAlert("La configurazione serve per calcolare il tuo fabbisogno: bastano pochi campi.\n\nSe non vuoi l'AI o il backup, puoi lasciarli vuoti e proseguire.");
 window.onbFinish=(mode)=>{
   try{onbSave(true);}catch(e){}   /* niente si perde uscendo dal percorso */
   S.onboard.done=true;save();
@@ -4120,6 +4162,11 @@ function renderBenvenuto(){
       <div id="obRitmoBox"></div>
     </div>
     <div class="obbox" id="obRitmoHint"></div>
+    <label>Come vuoi affrontare la dieta</label>
+    <select id="obCyc">
+      ${CYC_PRESETS.map(x=>`<option value="${x[0]}" ${cycPresetNow()===x[0]?"selected":""}>${x[3]}</option>`).join("")}
+    </select>
+    <div class="obbox">Ogni tanto una <b>pausa di mantenimento</b> — si mangia di più e si resta fermi di peso — aiuta a continuare più a lungo. Se non sai cosa scegliere, <b>3 settimane + 1</b> va bene per quasi tutti. Si cambia quando vuoi.</div>
     <label>Allenamenti che prevedi di fare</label>
     <div class="wkhead"><span style="flex:2">Sport</span><span style="flex:1">Minuti</span><span style="flex:1">Volte</span><span style="width:30px"></span></div>
     ${obWkRows().map((gw,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
@@ -4232,7 +4279,7 @@ function renderBenvenuto(){
   }
   el.innerHTML=`<div class="obwrap">
     <div class="obtop"><span class="obstep">Passo ${st+1} di ${ONB_STEPS.length} · ${ONB_STEPS[st]}</span>
-      <button class="ibtn" onclick="onbSkip()" title="Salta la configurazione">✕</button></div>
+</div>
     <div class="obdots">${dots}</div>
     <div class="card">${c}</div>
     <div class="mtools" style="justify-content:space-between">
@@ -4332,7 +4379,7 @@ function rulesCardHTML(){
   ${row("Percentuale di deficit","Usata in modalità percentuale. Fino al 20% è tranquilla; oltre il 25% è una fase spinta, meglio se seguita da un professionista.",num("rDefPct",defPct(),1,5,30,"%"))}
   ${row("Ritmo desiderato","Usato in modalità chili: 1 kg di grasso ≈ 7.700 kcal, quindi 0,5 kg a settimana ≈ 550 kcal al giorno.",
      sel("rRitmo",String(ratePerWeek()),[["0.25","0,25 kg a settimana"],["0.5","0,5 kg a settimana"],["0.75","0,75 kg a settimana"],["1","1 kg a settimana"]]))}
-  ${rateCapped()?`<tr><td colspan="3" style="color:var(--zaff);font-weight:600;font-size:12.5px;background:var(--zaffbg)">⚠️ ${rateNote()}. Il tetto serve a non scendere troppo sotto il fabbisogno: per andare più veloce serve il parere di un nutrizionista.</td></tr>`:""}
+  ${rateCapped()?`<tr><td colspan="3" class="rfull" style="color:var(--zaff);font-weight:600;background:var(--zaffbg)">⚠️ ${rateNote()}. Per andare più veloce serve il parere di un nutrizionista.</td></tr>`:""}
   ${row("Deficit giornaliero","Risultato della modalità scelta, con tetto al 30% del fabbisogno.",out(deficitTarget()+" kcal"))}
   ${row("Minimo calorico","Il target non scende mai sotto questa soglia. Non è un numero fisso per uomini e donne: si adatta al <b>tuo</b> corpo — ora è "+kcalFloorWhy()+". Stare sotto il <i>basale</i> è normale quando c'è grasso da consumare; stare sotto questa soglia no.",num("rKcalMin",kcalFloorMin(),50,1000,null,"kcal"))}
   ${row("→ Target calorico del piano","Fabbisogno per i target meno il deficit, mai sotto il minimo.",
@@ -4351,10 +4398,10 @@ function rulesCardHTML(){
   </table>
   <div class="gsec">Fasi della dieta</div>
   <table class="rules">
-  ${row("Ciclo dieta · schema","Alternare deficit e mantenimento evita che il metabolismo si adatti troppo, ma <b>lo schema giusto non è uguale per tutti</b>: sceglilo tu o fattelo indicare dal professionista che ti segue. Con «costante» il deficit resta sempre attivo."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
-     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato (valori qui sotto)"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
-  ${row("Ciclo dieta · mesi di deficit","Un deficit continuo oltre i 3 mesi abbassa il metabolismo e logora la testa. Passati questi giorni, l'app entra da sola in <b>mantenimento</b>: il deficit va a zero, le grammature del piano risalgono e la spesa si adegua."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",cycDefDays(),5,30,180,"giorni"))}
-  ${row("Ciclo dieta · mese di mantenimento","Quanto dura la pausa di mantenimento prima di ricominciare con il deficit.",num("rCycMaint",cycMaintDays(),5,7,90,"giorni"))}
+  ${row("Schema","Ogni tanto una pausa di mantenimento aiuta a non adattarsi al deficit. Scegli uno schema o scrivi i tuoi giorni nelle due righe qui sotto."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
+     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
+  ${row("Giorni in deficit","Quanti giorni si resta in deficit prima della pausa. Scrivi il numero che vuoi."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",cycDefDays(),1,3,365,"giorni"))}
+  ${row("Giorni di pausa","Quanto dura il mantenimento: il deficit va a zero, le porzioni risalgono e la spesa si adegua.",num("rCycMaint",cycMaintDays(),1,1,120,"giorni"))}
   ${row("Allenamenti e tempi dell'obiettivo","Gli allenamenti pianificati ("+goalWkTotal()+" a settimana) bruciano in media <b>"+wkForecastBurn()+" kcal al giorno</b>. Questa energia <b>non alza le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Serve invece a stimare <b>in quanto tempo</b> arrivi all'obiettivo, ed è quello che vedi in Piano → 🔮 Stima risultati.",out(wkForecastBurn()+" kcal/g"))}
   </table>
   <div class="gsec">Il tuo corpo</div>
@@ -4557,8 +4604,8 @@ window.saveRules=()=>{const p=S.profile,g=id=>document.getElementById(id);
   p.pregT1=Math.max(0,Math.min(600,n("rPregT1",(+p.pregT1>0?+p.pregT1:70))));
   p.pregT2=Math.max(0,Math.min(600,n("rPregT2",(+p.pregT2>0?+p.pregT2:260))));
   p.pregT3=Math.max(0,Math.min(600,n("rPregT3",(+p.pregT3>0?+p.pregT3:450))));
-  p.cycDefDays=Math.max(30,Math.min(180,n("rCycDef",cycDefDays())));
-  p.cycMaintDays=Math.max(7,Math.min(90,n("rCycMaint",cycMaintDays())));
+  p.cycDefDays=Math.max(3,Math.min(365,n("rCycDef",cycDefDays())));
+  p.cycMaintDays=Math.max(1,Math.min(120,n("rCycMaint",cycMaintDays())));
   p.injPct=Math.max(0,Math.min(90,n("rInjPct",injPct())));
   p.illPct=Math.max(0,Math.min(90,n("rIllPct",illPct())));
   p.lactFull=Math.max(200,Math.min(900,n("rLactFull",500)));
@@ -4755,7 +4802,8 @@ function dietCardHTML(){const D=S.diet;
   <label>Dieta di riferimento</label>
   ${`<select id="dTipo" onchange="vegUI('d',this.value)">`+DIET_TYPES.map(o=>`<option ${D.tipo===o?"selected":""}>${o}</option>`).join("")+`</select>`}
   ${vegChecksHTML("d",D.tipo)}
-  <div class="hint">Lo <b>stile di fondo</b>: cosa mangi per scelta o convinzione. Gli schemi tecnici stanno nei <b>protocolli</b> qui sotto, le esclusioni fra le <b>intolleranze</b>: possono convivere tutti e tre (per esempio mediterranea + basso FODMAP + digiuno intermittente).</div>
+  ${hint2("Lo <b>stile di fondo</b>: cosa mangi per scelta o convinzione.",
+ "Gli schemi tecnici stanno nei <b>protocolli</b> qui sotto, le esclusioni fra le <b>intolleranze</b>. Possono convivere tutti e tre: per esempio mediterranea + basso FODMAP + digiuno intermittente.")}
   <div class="hint">⚠️ Nutry non fa diagnosi e non sostituisce un professionista. Le impostazioni particolari (chetogenica, digiuno, eliminazioni) <b>vanno concordate con un medico o un nutrizionista</b>, soprattutto in presenza di patologie, gravidanza o terapie in corso.</div>
   <label>Quanta varietà vuoi nel piano</label>
   ${sel("dVar",D.varieta||"media",["bassa","media","alta"])}
@@ -4766,7 +4814,8 @@ function dietCardHTML(){const D=S.diet;
   ${outTypeHTML("d",false)}
   <label>Giorni in cui mangi fuori casa</label>
   ${mensaChecksHTML("d",D.mensaGiorni)}
-  <div class="hint"><b>Pasti liberi</b> = quelli in cui mangi quello che vuoi senza vincoli. <b>Pasti fuori casa</b> = mensa, bar, ristorante, panino al lavoro: non li prepari tu, quindi l'AI propone scelte realistiche per quel contesto.</div>
+  ${hint2("<b>Liberi</b> = mangi quello che vuoi. <b>Fuori casa</b> = mensa, bar, ristorante.",
+ "Nei pasti fuori casa non cucini tu, quindi l'AI non inventa ricette: propone come comporre il piatto con quello che si trova in quel contesto.")}
   <div class="grid2">
     <div><label>Pasti liberi a settimana</label><input type="number" id="dLiberi2" value="${D.pastiLiberi||0}" min="0" max="7"></div>
     <div><label>Pasti fuori casa a settimana</label><input type="number" id="dFuori" value="${fuoriCount(D.mensaGiorni)}" min="0" max="21" disabled title="Si conta dalle spunte dei pasti fuori casa"></div>
@@ -5135,7 +5184,8 @@ window.seasonalizePlan=async()=>{
 function notesCardHTML(){
   const rows=flattenDiet().filter(d=>d.note&&String(d.note).trim()).reverse();
   let h=`<div class="card"><h2>📝 Le tue note</h2>
-  <div class="hint">Tutto quello che hai scritto in <b>Nota del giorno</b>, dalla più recente. Le note vengono archiviate con la settimana, finiscono nell'esportazione CSV e vengono lette dall'AI in <b>Analizza i pattern</b> e nel report di fine settimana.</div>`;
+  ${hint2("Tutto quello che hai scritto in <b>Nota del giorno</b>, dalla più recente.",
+ "Le note vengono archiviate con la settimana, finiscono nel CSV e le legge l'AI in <b>Analizza i pattern</b> e nel report di fine settimana.")}`;
   if(!rows.length)h+=`<div class="hint">Ancora nessuna nota. La scrivi da <b>Oggi → 📝 Nota del giorno</b>: fame, digestione, imprevisti, come ti sentivi.</div></div>`;
   else{
     h+=`<div class="tbl-scroll" style="max-height:340px">`;
@@ -5160,7 +5210,8 @@ function exportCardHTML(){
     <button class="btn ghost small" onclick="doExportCSV()">⬇️ CSV</button>
     <button class="btn small" onclick="aiPatterns()">🔎 Analizza i pattern</button>
   </div>
-  <div class="hint">Il CSV si apre in Excel o Fogli Google (separatore ;) e contiene una riga per giorno con tutte le colonne, note comprese. <b>Analizza i pattern</b> fa leggere gli stessi dati all'AI di Nutry, che cerca le correlazioni fra sonno, umore, allenamenti e alimentazione.</div>
+  ${hint2("Il CSV si apre in Excel o Fogli Google: una riga per giorno, note comprese.",
+ "<b>Analizza i pattern</b> fa leggere gli stessi dati all'AI, che cerca le correlazioni fra sonno, umore, allenamenti e alimentazione. Separatore punto e virgola.")}
   <div class="aibox" id="expOut" style="display:none"></div></div>`;}
 function extendedRecapHTML(){
   /* Riepilogo esteso v5.1: MEDIE per periodo (come il recap), su tutta la
@@ -5188,7 +5239,8 @@ function extendedRecapHTML(){
   <div class="mtools">${["settimana","mese"].map(m=>`<button class="chipbtn" style="${RECAP.mode===m?"border-color:var(--salvia);color:var(--salvia);font-weight:700":""}" onclick="setRecapMode('${m}')">${m==="settimana"?"Settimanale":"Mensile"}</button>`).join("")}</div>
   <div style="max-height:320px;overflow-y:auto;border:1px solid var(--linea);border-radius:12px;margin-top:8px">
   <table><tr><th>Periodo</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>${rowsH||`<tr><td colspan="5">Ancora nessun dato.</td></tr>`}</table></div>
-  <div class="hint">Medie giornaliere del periodo, calcolate come nel recap (solo giorni tracciati; tra parentesi quanti). Sport = kcal medie dei soli allenamenti. Scorri nel riquadro per la storia completa.</div></div>`;}
+  ${hint2("Medie giornaliere del periodo. Scorri nel riquadro per la storia completa.",
+ "Contano solo i giorni tracciati (tra parentesi quanti). Sport = kcal medie dei soli allenamenti.")}</div>`;}
 /* Chiusura AUTOMATICA della settimana: al primo avvio dopo il lunedì la
    settimana scaduta viene archiviata così com'è (sempre modificabile poi). */
 async function autoCloseStaleWeeks(){
@@ -5237,7 +5289,8 @@ function weightsCardHTML(){const p=S.profile,W=(p.weights||[]);
         <td class="n">${x.spo2!=null&&x.spo2!==""?x.spo2:"–"}</td>
         <td class="n" style="white-space:nowrap"><button class="ibtn" title="Modifica o completa questa pesata" onclick="editWeight(${i2})">✏️</button><button class="ibtn" title="Elimina questa pesata" onclick="delWeight(${i2})">🗑</button></td></tr>`;});
     h+=`</table></div>
-    <div class="hint">Δ = differenza rispetto alla pesata precedente · %MG massa grassa · %MM massa muscolare · PA pressione. Con ✏️ puoi correggere una pesata o <b>aggiungere i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche a distanza di giorni; con 🗑 la elimini.</div></div>`;}
+    ${hint2("Con ✏️ correggi una pesata o aggiungi valori che ti mancavano, anche a distanza di giorni. Con 🗑 la elimini.",
+ "Δ = differenza rispetto alla pesata precedente · %MG massa grassa · %MM massa muscolare · PA pressione.")}</div>`;}
   return h;}
 /* ═══ 🧰 TOOLS ══════════════════════════════════════════════════════
    Tutti gli strumenti che prima affollavano "Oggi": restano legati al
@@ -5245,57 +5298,67 @@ function weightsCardHTML(){const p=S.profile,W=(p.weights||[]);
 function renderTools(){
   const el=document.getElementById("pg-tools");const di=viewIdx();
   let h=`<div class="card"><h2>🧰 Tools</h2>
-  <div class="hint">Gli strumenti che ti aiutano nel momento: creare un piatto con quello che hai in casa, scegliere al ristorante, trovare i piatti tipici del posto dove sei. Agiscono sul giorno che stai guardando (<b>${fmtDateShort(VIEW)}</b>) e sul pasto che scegli in ogni riquadro.</div></div>`;
+  ${hint2(`Aiuti per il momento in cui la dieta rischia di saltare. Agiscono su <b>${fmtDateShort(VIEW)}</b> e sul pasto che scegli in ogni riquadro.`,
+ "Creare un piatto con quello che hai in casa, scegliere al ristorante, gestire una voglia improvvisa, cucinare per tutta la famiglia, trovare i piatti tipici del posto dove sei.")}</div>`;
   if(di<0){h+=`<div class="card"><div class="hint">Il giorno che stai guardando non è nella settimana in corso: torna a <b>Oggi</b> per usare gli strumenti.</div></div>`;el.innerHTML=h;return;}
   h+=`<div class="gsec">Sto per cedere</div>`;
   h+=`<div class="card"><h2>🧭 Ho una voglia…</h2>
+  <div class="hint">Scegli la <b>sensazione</b>, non il cibo: l'AI trova qualcosa che la soddisfa restando nelle calorie di oggi.</div>
   ${mealSelHtml("craveTarget",di)}
   <div id="craveBox">${craveRows()}</div>
-  <div class="mtools"><button class="btn small" onclick="craveHack(${di})">Trovami un hack</button></div>
-  <div class="hint">Scegli la <b>sensazione</b>, non il cibo: l'AI trova qualcosa che la soddisfa restando nelle calorie di oggi.</div>
+  <div class="mtools"><button class="btn small" onclick="craveHack(${di})">Trova un'alternativa</button></div>
+  
   <div class="aibox" id="craveOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🍩 Tentazione improvvisa</h2>
-  ${mealSelHtml("treatTarget",di)}
-  <div class="mtools"><button class="btn small" onclick="treatDefuse(${di})">Mi hanno offerto…</button></div>
   <div class="hint">Non si dice di no: si dice <b>metà, e adesso</b>. L'AI spiega quando mangiarla per limitare il picco glicemico e toglie l'equivalente dal pasto scelto qui sopra.</div>
+  ${mealSelHtml("treatTarget",di)}
+  <div class="mtools"><button class="btn small" onclick="treatDefuse(${di})">Dimmi come gestirla</button></div>
+  
   <div class="aibox" id="treatOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🐺 Ho una fame incontrollabile</h2>
-  ${mealSelHtml("volTarget",di)}
-  <div class="mtools"><button class="btn small" onclick="volumeSOS(${di})">Gonfia il piatto</button></div>
   <div class="hint">Stesse calorie, molto più volume nello stomaco: verdure ricche d'acqua, zuppe, albumi montati. La fame meccanica si spegne senza sforare.</div>
+  ${mealSelHtml("volTarget",di)}
+  <div class="mtools"><button class="btn small" onclick="volumeSOS(${di})">Aumenta il volume</button></div>
+  
   <div class="aibox" id="volOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🐿️ Oggi voglio spiluccare</h2>
-  ${mealSelHtml("grazTarget",di)}
-  <div class="mtools"><button class="btn small" onclick="grazing(${di})">Fammi una grazing board</button></div>
   <div class="hint">I pasti che restano diventano un vassoio di bocconcini da consumare lentamente, con lo stesso totale di calorie e proteine.</div>
+  ${mealSelHtml("grazTarget",di)}
+  <div class="mtools"><button class="btn small" onclick="grazing(${di})">Trasforma in spuntini</button></div>
+  
   <div class="aibox" id="grazOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🎈 Ridurre gonfiore</h2>
-  ${mealSelHtml("bloatTarget",di)}
-  <div class="mtools"><button class="btn small" onclick="bloatSOS(${di})">Aiutami</button></div>
   <div class="hint">L'AI guarda le ultime 48 ore e riscrive i pasti che restano in versione più digeribile. Sulla bilancia è gas e acqua, non grasso.</div>
+  ${mealSelHtml("bloatTarget",di)}
+  <div class="mtools"><button class="btn small" onclick="bloatSOS(${di})">Alleggerisci i pasti</button></div>
+  
   <div class="aibox" id="bloatOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Sistemo la giornata</div>`;
   h+=`<div class="card"><h2>🕐 Calibra la giornata</h2>
-  <div class="mtools"><button class="btn small" onclick="calibraGiornata()">Calibra su come sto</button></div>
-  <div class="hint">Dopo una notte storta o una giornata stressante, l'AI riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame. Prima dai un voto a sonno e come ti senti in <b>Oggi → Come stai</b>.</div>
+  ${hint2("Notte storta o giornata pesante? L'AI risistema i pasti che restano, <b>a parità di calorie</b>.",
+ "Sposta i carboidrati a pranzo, rende la cena più leggera e proteica, aumenta il volume se hai avuto fame. Prima dai un voto a sonno e come ti senti in <b>Oggi → Come stai</b>.")}
+  <div class="mtools"><button class="btn small" onclick="calibraGiornata()">Riorganizza la giornata</button></div>
+  
   <div class="aibox" id="caliOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🏋️ Mi alleno tra poco e ho zero energie</h2>
   <div class="hint">Non aggiunge calorie: l'AI <b>prende</b> una quota di carboidrati dai pasti che devi ancora fare e la trasforma in uno spuntino pre-allenamento ad assorbimento rapido, lasciando intatte le proteine. Poi aggiorna da sola i pasti da cui l'ha presa.</div>
-  <div class="mtools"><button class="btn small" onclick="fuelPre(${di})">⚡ Dammi energia ora</button></div>
+  <div class="mtools"><button class="btn small" onclick="fuelPre(${di})">Trova uno spuntino</button></div>
   <div class="aibox" id="fuelOut" style="display:none"></div></div>`;
   // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
 
   h+=`<div class="card"><h2>🔮 Bilanciamento predittivo</h2>
+  <div class="hint">Lo sgarro si gestisce <b>prima</b>. Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano.</div>
   <label>Quando sarà l'occasione?</label>
   <div class="row2"><select id="predDay" onchange="predFillMeals()">${(function(){let o="";for(let k=di;k<7;k++){if(PLAN[k])o+=`<option value="${k}">${PLAN[k].day}${k===di?" (oggi)":""}</option>`;}return o;})()}</select>
   <select id="predMeal"></select></div>
   <label>Cosa prevedi di mangiare?</label>
   <textarea id="predWhat" placeholder="es. «pizza e birra», «cena aziendale al ristorante», «compleanno con torta»"></textarea>
-  <div class="mtools"><button class="btn small" onclick="predictive(${di})">Prepara il tesoretto</button></div>
-  <div class="hint">Lo sgarro si gestisce <b>prima</b>. Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano.</div>
+  <div class="mtools"><button class="btn small" onclick="predictive(${di})">Prepara il margine</button></div>
+  
   <div class="aibox" id="predOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Cucino</div>`;
   h+=`<div class="card" style="margin-top:18px"><h2>🍲 Crea un piatto con quello che hai</h2>
+  <div class="hint">Scatta PIÙ foto (frigo, congelatore, dispensa), poi "Crea": il piatto sarà tarato sul pasto di questo momento, compensando le calorie già accumulate oggi. In alternativa scrivi gli ingredienti qui sotto.</div>
   ${mealSelHtml("frTarget",di)}
   <div class="btngrid4">
     <button class="btn small" onclick="frAdd()">📸 Fotografa<span id="frN">${FR.length?" ("+FR.length+")":""}</span></button>
@@ -5303,36 +5366,40 @@ function renderTools(){
     <button class="btn small" onclick="frCreate(${di})">🍲 Crea</button>
     <button class="btn ghost small" onclick="recModal(${di})">⭐ Piatti${S.recipes.length?" ("+S.recipes.length+")":""}</button>
   </div>
-  <div class="hint">Scatta PIÙ foto (frigo, congelatore, dispensa), poi "Crea": il piatto sarà tarato sul pasto di questo momento, compensando le calorie già accumulate oggi. In alternativa scrivi gli ingredienti qui sotto.</div>
+  
   <textarea id="fridgeIn" placeholder="…oppure scrivi: zucchine, uova, ricotta…"></textarea>
   <div class="mtools"><button class="btn ghost small" onclick="fridge(${di})">Usa il testo</button></div>
   <div class="aibox" id="fridgeOut" style="display:none"></div></div>`;
   // Selezionatore di menù — FOTO MULTIPLE + "Cerca" per confermare; "Usa il testo" sotto la casella
   h+=`<div class="card"><h2>🍳 Cucina intelligente</h2>
+  <div class="hint">Scegli fin dove arrivare (massimo 3 giorni): l'AI ti dice cosa cucinare <b>adesso, in una volta sola</b>, per coprire tutto.</div>
   <label>Copri il fabbisogno fino a…</label>
   <select id="prepUntil">${prepUntilOpts(di)}</select>
-  <div class="mtools"><button class="btn small" onclick="mealPrep(${di})">Piano di batch cooking</button></div>
-  <div class="hint">Scegli fin dove arrivare (massimo 3 giorni): l'AI ti dice cosa cucinare <b>adesso, in una volta sola</b>, per coprire tutto.</div>
+  <div class="mtools"><button class="btn small" onclick="mealPrep(${di})">Dimmi cosa cucinare</button></div>
+  
   <div class="aibox" id="prepOut" style="display:none"></div></div>`;
   h+=`<div class="aibox" id="bingeOut" style="display:none"></div>`;
   h+=`<div class="card"><h2>🍲 Cucino per tutti</h2>
+  <div class="hint">Una pentola sola: l'AI dà le dosi <b>a crudo</b> per tutti e i grammi esatti da mettere nel tuo piatto <b>pesati da cotto</b>, così non devi fare conversioni a mente.</div>
   ${mealSelHtml("splitTarget",di)}
   <div id="splitBox">${splitRowsHTML()}</div>
   <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
   <textarea id="splitIn" placeholder="cosa stai cucinando: riso, zucchine, petto di pollo…"></textarea>
-  <div class="mtools"><button class="btn small" onclick="splitCook(${di})">Calcola dosi e mia porzione</button></div>
-  <div class="hint">Una pentola sola: l'AI dà le dosi <b>a crudo</b> per tutti e i grammi esatti da mettere nel tuo piatto <b>pesati da cotto</b>, così non devi fare conversioni a mente.</div>
+  <div class="mtools"><button class="btn small" onclick="splitCook(${di})">Calcola le dosi</button></div>
+  
   <div class="aibox" id="splitOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>🤝 Compromesso a tavola</h2>
+  <div class="hint">Si cucina <b>una base sola</b>, poi ognuno completa il suo piatto. Stessa tavola, tu resti nei tuoi numeri.</div>
   ${mealSelHtml("coupleTarget",di)}
   <label>Chi c'è a tavola</label>
   <div id="coupleBox">${splitRowsHTML()}</div>
   <div class="mtools" style="margin-bottom:12px"><button class="btn ghost small" onclick="splitGuests()">👥 Ospiti (${SPLIT.guests||0})</button></div>
-  <div class="mtools"><button class="btn small" onclick="coupleFork(${di})">Cosa vogliono gli altri?</button></div>
-  <div class="hint">Si cucina <b>una base sola</b>, poi ognuno completa il suo piatto. Stessa tavola, tu resti nei tuoi numeri.</div>
+  <div class="mtools"><button class="btn small" onclick="coupleFork(${di})">Trova un compromesso</button></div>
+  
   <div class="aibox" id="coupleOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Mangio fuori</div>`;
   h+=`<div class="card"><h2>🍽️ Selezionatore di menù</h2>
+  <div class="hint">Scatta <b>più foto</b> (pagine diverse del menù), spunta le portate che vuoi fare e premi <b>Cerca</b>: l'AI compone il pasto scegliendo dal menù, ti dà il <b>totale</b> della combinazione e un'alternativa per ogni portata. Se non spunti nulla decide lei come comporlo. In alternativa incolla il testo qui sotto.</div>
   ${mealSelHtml("menuTarget",di)}
   <div class="btngrid3">
     <button class="btn small" onclick="mnAdd()">📸 Fotografa<span id="mnN">${MN.length?" ("+MN.length+")":""}</span></button>
@@ -5342,18 +5409,19 @@ function renderTools(){
   <label>Cosa vuoi ordinare</label>
   <div class="ckgrid">${MENU_CATS.map((c,i)=>`<label class="ck"><input type="checkbox" id="mnCat${i}" ${MNCATS.indexOf(c)>-1?"checked":""} onchange="mnCat(${i})"> ${c}</label>`).join("")}</div>
   <input type="text" id="mnAltro" value="${esc(MNALTRO)}" placeholder="altre sezioni del menù: insalatone, poke, tapas, taglieri…" onchange="MNALTRO=this.value">
-  <div class="hint">Scatta <b>più foto</b> (pagine diverse del menù), spunta le portate che vuoi fare e premi <b>Cerca</b>: l'AI compone il pasto scegliendo dal menù, ti dà il <b>totale</b> della combinazione e un'alternativa per ogni portata. Se non spunti nulla decide lei come comporlo. In alternativa incolla il testo qui sotto.</div>
+  
   <textarea id="menuIn" placeholder="…oppure incolla qui il testo del menù"></textarea>
   <div class="mtools"><button class="btn ghost small" onclick="menuAI(${di})">Usa il testo</button></div>
   <div class="aibox" id="menuOut" style="display:none"></div></div>`;
   // 🗺️ Piatti tipici del posto in cui ti trovi
   h+=`<div class="card"><h2>🗺️ Piatti tipici di dove sei</h2>
+  <div class="hint">In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare. La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.</div>
   ${mealSelHtml("geoTarget",di)}
   <div class="btngrid2">
     <button class="btn small" onclick="geoDishes(${di})">📍 Usa la mia posizione</button>
     <button class="btn ghost small" onclick="geoReset(${di})">✍️ Scrivo io il posto</button>
   </div>
-  <div class="hint">In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare. La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.</div>
+  
   <div class="aibox" id="geoOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Per periodi lunghi</div>`;
   h+=`<div class="card"><h2>📈 Uscita morbida</h2>
@@ -6257,9 +6325,8 @@ function physDurationNote(){
   if(illOn())manu.push("🤒 <b>Malattia</b> (deficit sospeso)");
   if(!auto.length&&!manu.length)
     return `<div class="hint" style="background:var(--menta);padding:9px 10px;border-radius:10px;margin-top:8px">
-      ⏳ <b>Attenzione a cosa spunti qui.</b> Questi stati non sono etichette: cambiano le <b>calorie del giorno</b> e le <b>grammature del piano</b>.
-      Il ciclo si spegne da solo dopo ${cycleDaysMax()} giorni; allattamento, gravidanza, infortunio e malattia restano attivi
-      <b>finché non li togli tu</b>. Spunta solo ciò che corrisponde davvero alla tua situazione, e ricordati di togliere la spunta quando la situazione cambia.</div>`;
+      ⏳ <b>Spunta solo ciò che è vero adesso</b>: questi stati cambiano le calorie del giorno.
+      <details class="why"><summary>durate</summary><div>Il ciclo si spegne da solo dopo ${cycleDaysMax()} giorni. Allattamento, gravidanza, infortunio e malattia restano attivi <b>finché non li togli tu</b>: ricordati di toglierli quando la situazione cambia, altrimenti il target resta tarato su una condizione che non c'è più.</div></details></div>`;
   return `<div class="hint" style="background:var(--zaffbg);padding:9px 10px;border-radius:10px;margin-top:8px">
     ⏳ <b>Stati attivi adesso</b> — stanno cambiando le calorie di oggi e le porzioni del piano.
     ${auto.length?"<br><br><b>Scade da solo:</b><br>"+auto.join("<br>"):""}
@@ -6296,7 +6363,6 @@ function famBand(m){
     ? {k:"uomo", c:1.25,ico:"👨",l:"Uomo (15+ anni)",  rif:2500,age:a}
     : {k:"donna",c:1.00,ico:"👩",l:"Donna (15+ anni)", rif:2000,age:a};}
 function famCoef(m){return famBand(m).c;}
-function famLabel(m){const b=famBand(m);return b.ico+" "+famName(m)+(b.age!==null?" ("+b.age+" anni)":"");}
 /* Nome da mostrare: "Io" per l'utente, il nome scelto per gli altri
    (con la categoria come riserva se il nome non è stato scritto). */
 function famName(m){return (m&&m.me)?"Io":(((m&&m.nome)||"").trim()||famBand(m).l.split(" (")[0]);}
@@ -6426,7 +6492,8 @@ function famCardHTML(pre){
   return `<label>Chi altro mangia a casa</label>
   <div id="famBox">${famRowsHTML()}</div>
   <button class="btn ghost small" onclick="famAdd()">+ Aggiungi una persona</button>
-  <div class="hint">Dai un <b>nome</b> a ciascuno: lo ritrovi quando cucini per tutti. Bastano <b>sesso e data di nascita</b>, al resto pensa l'app (donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50). Servono per cucinare in una pentola sola e per fare la spesa giusta, senza sprechi.</div>`;}
+  ${hint2("Dai un <b>nome</b> a ciascuno e metti <b>sesso e data di nascita</b>: al resto pensa l'app.",
+ "Servono per cucinare in una pentola sola e per fare la spesa giusta. Le porzioni si calcolano così: donna adulta = 1, uomo = 1,25, adolescente = 1,10, bambino = 0,75, infante = 0,50.")}`;}
 /* ═══ MINIMO CALORICO ═══════════════════════════════════════════════
    Il pavimento segue il CORPO, non il sesso: 1200 per una donna e 1500 per
    un uomo sono medie di popolazione che non dicono nulla su chi le usa —
@@ -6736,7 +6803,8 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
 /* ═══ PAGINA GUIDA (statica) ═══ */
 function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <div class="card"><h2>❓ Guida rapida</h2>
-<div class="hint">Come funziona, in 20 secondi: ogni giorno <b>spunti quello che mangi</b> (✓ o ✗, extra compresi) e registri gli allenamenti; l'anello di Oggi ti mostra il <b>deficit</b> in tempo reale; a fine settimana l'app <b>archivia da sola</b> e riparte (tutto resta modificabile nello Storico). Tutto qui — il resto sono aiuti.</div></div>
+${hint2("Ogni giorno <b>spunti quello che mangi</b> e registri gli allenamenti. Il resto lo fa l'app.",
+ "L'anello di Oggi mostra il <b>deficit</b> in tempo reale; a fine settimana l'app <b>archivia da sola</b> e riparte, e tutto resta modificabile nello Storico. Il resto delle funzioni sono aiuti: nessuna è obbligatoria.")}</div>
 
 <div class="card"><h2>✨ Tutto quello che Nutry sa fare</h2>
 <div class="hint">Stai usando <b>Nutry ${APP_VER}</b>. Questa è la mappa completa delle funzioni: le voci con <span class="newtag">NEW</span> sono le novità delle versioni più recenti. Ogni funzione è poi spiegata in dettaglio nel resto della guida.</div>
@@ -6746,6 +6814,13 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <tr><td>🧰</td><td><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro: 🧭 <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste), 🤝 <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua), 🎈 <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile), 🍩 <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli), 🐺 <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato), 🐿️ <b>Spiluccare</b> (i pasti diventano una grazing board), 🔮 <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte), 🍳 <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti), 🍲 <b>Cucino per tutti</b>, 🏋️ <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.<span class="newtag">NEW</span></td></tr>
 <tr><td>👥</td><td><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.<span class="newtag">NEW</span></td></tr>
 <tr><td>⚡</td><td><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.<span class="newtag">NEW</span></td></tr>
+<tr><td>🟢</td><td><b>Qualità del cibo</b> — quando spunti un pasto, al posto dell'orario compare un <b>pallino colorato</b> con un voto da 0 a 100 dato dall'AI: rosso sotto il 20%, poi arancione, giallo, verde chiaro, verde scuro sopra l'80%. Giudica <b>com'è fatto il cibo</b>, non quante calorie ha. Nel bilancio trovi la media della giornata, pesata sulle calorie, e in alto la serie di giorni di fila con cibo buono. Se cambi un pasto (foto, barcode, ✏️, ribilancio) il voto si ricalcola da solo.<span class="newtag">NEW</span></td></tr>
+<tr><td>📊</td><td><b>Bilancio della giornata</b> — nove riquadri: deficit (già comprensivo dello sport), kcal mangiate, proteine, carboidrati, grassi, fibre, zuccheri, serie 🔥 e qualità. Ognuno con la sua barra. Gli <b>zuccheri</b> sono un tetto, non un obiettivo: la barra diventa rossa se lo superi.<span class="newtag">NEW</span></td></tr>
+<tr><td>🤰</td><td><b>Gravidanza, infortunio e malattia</b> (Oggi → Come stai) — oltre a ciclo e allattamento. La gravidanza aggiunge calorie per trimestre e <b>sospende sempre il deficit</b>. Infortunio e malattia riducono il fabbisogno perché ti muovi meno: il taglio è solo sulla quota di <b>attività</b>, il metabolismo basale non si tocca mai. In malattia il deficit resta sospeso finché non guarisci. Il ciclo si spegne da solo dopo 7 giorni; gli altri restano attivi <b>finché non li togli tu</b>.<span class="newtag">NEW</span></td></tr>
+<tr><td>⚖️</td><td><b>Porzioni riscalate</b> — questi stati non riscrivono il piano: moltiplicano le porzioni partendo dalle <b>kcal del tuo piano</b>, non da una stima. Così una grammatura che hai forzato a mano non va persa, e quando spegni lo stato le porzioni tornano <b>esattamente</b> quelle di base. Perché il conto torni, il piano va tenuto in stato <b>neutro</b>, cioè scritto senza avere già conteggiato quelle calorie.<span class="newtag">NEW</span></td></tr>
+<tr><td>🔁</td><td><b>Fasi della dieta</b> (Regole) — stare sempre in deficit stanca il corpo e la testa. Puoi alternare giorni di deficit e giorni di <b>mantenimento</b>: nove schemi pronti (da «6 giorni + 1» a «3 mesi + 1 mese») oppure i tuoi numeri. Nella pausa il deficit va a zero, le porzioni risalgono e la spesa si adegua; un avviso te lo dice e ritara piano e spesa. La <b>proiezione in Storico</b> ne tiene conto: nei tratti piatti il peso resta fermo apposta.<span class="newtag">NEW</span></td></tr>
+<tr><td>🎯</td><td><b>Ricalibra</b> (Oggi, sotto Come stai) — <b>i pasti di oggi</b> ritara solo quelli non ancora spuntati, sulle calorie che ti restano. <b>La settimana</b> ritara i 7 giorni che partono da oggi e rigenera la spesa: vale solo per quella settimana, il piano di base resta quello che è.<span class="newtag">NEW</span></td></tr>
+<tr><td>🛒</td><td><b>La spesa parte da oggi</b> — la lista copre i 7 giorni che iniziano <b>dal giorno in cui la fai</b>, non da lunedì: puoi fare la spesa di mercoledì e coprire fino al martedì dopo. I pasti di oggi già spuntati non vengono ricomprati.<span class="newtag">NEW</span></td></tr>
 <tr><td>📈</td><td><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.<span class="newtag">NEW</span></td></tr>
 <tr><td>😋</td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.<span class="newtag">NEW</span></td></tr>
 <tr><td>💧</td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.<span class="newtag">NEW</span></td></tr>
@@ -6757,7 +6832,7 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <tr><td>👆</td><td><b>Trascina per eliminare</b> — sulle card degli extra: trascina verso sinistra e la card sparisce, con la barra <b>ANNULLA</b> in basso per quattro secondi. Niente più conferme per ogni piccola cosa.<span class="newtag">NEW</span></td></tr>
 <tr><td>🛑</td><td><b>Intercettore di fame emotiva</b> — quando registri un extra denso di zuccheri o grassi, o è tardi, l'app si mette in mezzo senza giudicare: ti chiede se è fame vera, propone il metodo dell'acqua (un bicchiere e quindici minuti) e, se aspetti, tre alternative dolci ma sazianti dentro i macro di oggi.<span class="newtag">NEW</span></td></tr>
 <tr><td>👨‍👩‍👧</td><td><b>Famiglia</b> (onboarding e Regole) — inserisci solo <b>sesso e data di nascita</b> di chi mangia a casa: la categoria e il fabbisogno relativo li calcola l'app secondo le fasce LARN (donna adulta = 1 · uomo = 1,25 · adolescente 10-14 = 1,10 · bambino 4-9 = 0,75 · infante 1-3 = 0,50). L'AI sa quante porzioni servono in pentola e per la spesa.<span class="newtag">NEW</span></td></tr>
-<tr><td>🩸</td><td><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 14 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b>🎯 Ricalibra</b> ritara grammature e spesa su questi numeri.<span class="newtag">NEW</span></td></tr>
+<tr><td>🩸</td><td><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 7 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b>🎯 Ricalibra</b> ritara grammature e spesa su questi numeri.<span class="newtag">NEW</span></td></tr>
 <tr><td>🩺</td><td><b>Condizioni di salute a spunte</b> — colon irritabile, reflusso, colesterolo, trigliceridi, pressione alta, diabete 2, PCOS, fegato grasso, acido urico, tiroide, anemia, calcoli, diverticoli, celiachia, più quelle che aggiungi a mano. Ogni spunta porta con sé <b>criteri dietetici concreti</b> che entrano in tutte le proposte dell'AI: con i trigliceridi taglia zuccheri e alcol, col colesterolo i grassi saturi, col reflusso fritti e piatti acidi. È contesto, non terapia: le indicazioni cliniche restano del medico e del nutrizionista.<span class="newtag">NEW</span></td></tr>
 <tr><td>🗺️</td><td><b>Piatti tipici di dove sei</b> (in Oggi) — in viaggio o in trasferta l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici <b>adatti al pasto di quel momento</b> (a colazione dolci da forno e latticini locali, non secondi di carne) e compatibili con le tue regole, spiegando <b>come ordinarli</b> per restare nel target: porzione, contorno, condimento a parte. Se la terna non convince, chiedi altre proposte. La posizione serve solo a dedurre regione e nazione — le coordinate vengono arrotondate a ~11 km e non vengono mai salvate — e in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale: per quello c'è il selezionatore di menù, che ora <b>compone il pasto</b> invece di scegliere un piatto solo: spunti le portate che vuoi fare — antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda — più le sezioni che scrivi tu (insalatone, poke, taglieri…) — e l'AI mette insieme la combinazione che sta nel <b>totale</b> del target, con il conto delle calorie, come ordinare ogni portata e un'alternativa per ciascuna. Puoi chiedere altre combinazioni finché le opzioni compatibili non finiscono. Le foto del menù <b>scadono dopo tre ore</b>, il tempo di un pasto: un'altra volta in un altro locale non ti ritrovi le proposte di quello di prima.<span class="newtag">NEW</span></td></tr>
 <tr><td>🧬</td><td><b>Tre livelli separati</b> — l'<b>impostazione di riferimento</b> è lo stile di fondo (mediterranea, onnivora, vegetariana, vegana, pescetariana, flexitariana); i <b>protocolli</b> sono gli schemi tecnici (basso FODMAP, digiuno intermittente, low carb, chetogenica, DASH, basso indice glicemico, ipocalorica bilanciata, antinfiammatoria, alta proteina, iposodica, più quelli che scrivi tu); le <b>intolleranze</b> sono le esclusioni. La <b>dieta di riferimento</b> si sceglie dal menù: selezionando <i>vegetariana</i> compaiono da sole le due precisazioni che contano (uova e pesce ammessi o no), perché le versioni cambiano da persona a persona. Prima erano mescolati in un unico menù e se ne poteva scegliere uno solo: ora possono convivere, e ogni protocollo porta con sé le sue regole operative che l'AI applica a ogni proposta.<span class="newtag">NEW</span></td></tr>
@@ -6770,7 +6845,7 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <tr><td>🥗</td><td><b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), <b>mensa giorno per giorno</b> con scelta pranzo/cena, <b>intolleranze</b> a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.<span class="newtag">NEW</span></td></tr>
 <tr><td>🧮</td><td><b>Proteine tarate su di te</b> — g/kg automatici: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · massa 1,6–2,2, sempre sul peso di riferimento e modificabili nelle Regole.<span class="newtag">NEW</span></td></tr>
 <tr><td>🩹</td><td><b>Controllo dell'obiettivo</b> — prima di costruire il piano l'app verifica che il peso desiderato sia sano per la tua altezza: se è troppo basso te lo dice, mostra l'intervallo corretto in kg (BMI 18,5–24,9) e ti lascia <b>riscrivere l'obiettivo sul momento</b>, con rianalisi immediata, senza uscire dalla schermata.<span class="newtag">NEW</span></td></tr>
-<tr><td>🤖</td><td><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (una volta a settimana, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.<span class="newtag">NEW</span></td></tr>
+<tr><td>🤖</td><td><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (a ogni apertura, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.<span class="newtag">NEW</span></td></tr>
 <tr><td>⚖️</td><td><b>Pesate modificabili</b> — con ✏️ correggi una pesata o <b>aggiungi i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche giorni dopo; con 🗑 la elimini, sempre con conferma.<span class="newtag">NEW</span></td></tr>
 <tr><td>📝</td><td><b>Le tue note</b> (in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.<span class="newtag">NEW</span></td></tr>
 <tr><td>⚖️</td><td><b>Ritmo dichiarato = ritmo reale</b> — il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app <b>te lo dice</b> e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.<span class="newtag">NEW</span></td></tr>
@@ -6809,7 +6884,7 @@ Gli allenamenti non sono dentro: si sommano a parte, con la formula <b>(MET dell
 
 <div class="gsec">2 bis · Il target del piano (e perché non è il fabbisogno)</div>
 <p style="font-size:14.5px;line-height:1.55">Le calorie del piano non coincidono col fabbisogno: sono <b>fabbisogno meno il deficit</b>. Il deficit si fissa in due modi, a scelta in <b>Regole</b>: come <b>percentuale</b> del fabbisogno (20% significa mangiare l'80% di quello che consumi) oppure partendo dai <b>chili a settimana</b> desiderati, sapendo che un chilo di grasso vale circa 7.700 kcal. Il tetto è il 30%.
-<br><br>Il metabolismo basale <b>non</b> è un pavimento: per dimagrire bisogna stare sotto il consumo totale, e quando c'è grasso da consumare è normale — e sostenibile — mangiare anche sotto il basale stimato, perché la differenza la copre il corpo. Il limite vero è un <b>minimo assoluto</b> (di base 1.500 kcal per gli uomini, 1.200 per le donne, modificabile) sotto il quale diventa difficile coprire proteine e micronutrienti. Se il target scende sotto il basale, l'app te lo segnala: è una fase spinta, da tenere per periodi limitati e con proteine alte.
+<br><br>Il metabolismo basale <b>non</b> è un pavimento: per dimagrire bisogna stare sotto il consumo totale, e quando c'è grasso da consumare è normale — e sostenibile — mangiare anche sotto il basale stimato, perché la differenza la copre il corpo. Il limite vero è un <b>minimo calorico</b> (l'85% del tuo metabolismo basale, mai sotto 1.200 kcal, modificabile) sotto il quale diventa difficile coprire proteine e micronutrienti. Se il target scende sotto il basale, l'app te lo segnala: è una fase spinta, da tenere per periodi limitati e con proteine alte.
 <br><br>Il moltiplicatore di attività resta però una stima, e se le tue giornate sono più ferme di così il fabbisogno risulta gonfiato. Per questo in <b>Regole</b> ci sono due strumenti: la <b>prudenza</b>, che abbassa di una percentuale il fabbisogno usato per i target, e soprattutto la <b>verifica sui tuoi dati</b>, che ricava il fabbisogno reale da quanto hai mangiato e da come è cambiato il peso — una misura, non una stima — e permette di allineare il moltiplicatore con un tocco.
 <br><br>Le proteine si calcolano sul <b>peso di riferimento</b> (massa magra, peso obiettivo o peso corretto), non su quello attuale: il grasso non richiede proteine, e usare il peso pieno gonfia il numero.</p>
 
@@ -6824,7 +6899,7 @@ in un giorno si taglia al massimo il <b>tetto</b> impostato, in percentuale o in
 nessun pasto scende sotto il <b>minimo</b>. Se lo sforo è grande il resto resta in coda per i giorni dopo. Una festa non si paga con un giorno di digiuno.</p>
 
 <div class="gsec">5 · La settimana</div>
-<p style="font-size:14.5px;line-height:1.55">La settimana va da lunedì a domenica. Alla fine viene <b>archiviata da sola</b> con quello che c'è: nessun bottone da premere, e resta sempre modificabile da Storico → Settimane passate → ✏️.
+<p style="font-size:14.5px;line-height:1.55">La settimana <b>archiviata</b> va da lunedì a domenica (la spesa e la ricalibratura, invece, partono dal giorno in cui le fai). Alla fine viene <b>archiviata da sola</b> con quello che c'è: nessun bottone da premere, e resta sempre modificabile da Storico → Settimane passate → ✏️.
 Le medie si calcolano sui giorni tracciati. I giorni con un <b>evento</b> (Natale, trasferta, giornata no) restano registrati ma escono dalle medie e non spezzano la serie 🔥.</p>
 
 <div class="gsec">6 · Cosa sa l'AI di te</div>
@@ -6990,7 +7065,8 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div><label>Obiettivo acqua (L al giorno)</label><input type="number" step="0.25" id="pWater" value="${p.waterGoalL||""}" placeholder="proposto: ${waterSuggestL()}"></div></div>
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
     return `<div class="hint" style="color:${cl.ok?"var(--bosco)":"var(--rosso)"}">Obiettivo ${p.goalW} kg → BMI ${b} (${cl.label}).</div>`;})()}
-  <div class="hint">Acqua: se lasci vuoto vale la proposta calcolata su di te — ${waterExplain()}, già al netto dell'acqua che arrivi dal cibo. Un bicchiere vale 250 ml; con allenamenti intensi o oltre 45 minuti l'obiettivo del giorno sale di 2 bicchieri.</div>
+  ${hint2("Lascia vuoto e l'obiettivo lo calcola l'app su di te.",
+ `${waterExplain()}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale 250 ml; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.`)}
   <label>Allenamenti obiettivo a settimana</label>
   ${(p.goalWorkoutList||[]).length?`<div class="wkhead"><span style="flex:2">Sport</span><span style="flex:1">Minuti</span><span style="flex:1">Volte</span><span style="width:34px"></span></div>`:""}
   <div id="goalWkList">${(p.goalWorkoutList||[]).map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
@@ -7032,29 +7108,28 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div class="hint">In vacanza il deficit non viene giudicato e la serie 🔥 è congelata: l'app diventa un semplice diario.</div></div>`;
   h+=periodsCardHTML(true);
   h+=`<div class="gsec">Impostazioni</div>`;
-  h+=`<div class="card"><h2>🧭 Percorso guidato</h2>
-  <div class="hint">Ripercorre la configurazione iniziale: profilo, obiettivo, come mangi, chiave AI e backup. Non cancella nulla di quello che hai già registrato. <b>Il piano non si tocca da qui</b>: si genera e si modifica dalla pagina Piano.</div>
-  <div class="hint">Il <b>percorso guidato</b> si rifà dalla pagina <b>Piano</b> → 🧭 Percorso guidato: ritrovi tutti i campi già compilati.</div></div>`;
   h+=`<div class="card"${aiOn()?"":' style="border-left:4px solid var(--zaff)"'}><h2>Motore AI (Gemini)</h2>
-  ${aiOn()?"":`<div class="hint" style="background:var(--zaffbg);border-radius:12px;padding:10px 12px;margin-bottom:10px">
-    ⚠️ <b>Senza chiave l'app è fortemente limitata.</b> Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report. La chiave è gratuita e si crea in un minuto.</div>`}
+  ${aiOn()?"":`${hint2("⚠️ <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto.",
+ "Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report.")}`}
   <label>Chiave API Google Gemini</label><input type="text" id="gKey" value="${(S.ai&&S.ai.key)||""}" placeholder="incolla qui la chiave">
   <label>Modello Gemini</label>
   <select id="gModel">${(function(){const d=gemDiscovered()||[];
     const list=["auto"].concat(d,GEM_ALL.filter(m=>m!=="auto"&&d.indexOf(m)<0));
     return list.map(m=>`<option ${S.ai.model===m?"selected":""}>${m}</option>`).join("");})()}</select>
   <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="gemRefreshModels()">🔄 Cerca modelli nuovi</button></div>
-  <div class="hint">Con <b>auto</b> non serve aggiornare l'app quando Google pubblica un modello nuovo: l'elenco viene letto dal tuo account (una volta a settimana, o subito con il pulsante) e l'app usa il più recente disponibile, scendendo agli altri se non risponde.${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString("it-IT")+" · "+S.ai.models.list.length+" modelli.":""}</div>
+  <div class="hint">Con <b>auto</b> non serve aggiornare l'app quando Google pubblica un modello nuovo: l'elenco si aggiorna da solo a ogni apertura (o subito con il pulsante) e l'app usa il più recente disponibile, scendendo agli altri se non risponde.${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString("it-IT")+" · "+S.ai.models.list.length+" modelli.":""}</div>
   <div class="hint">Con la chiave gratuita usi i modelli <b>Flash</b> (auto = prova 3.5-flash → 3.1-flash-lite → 2.5). I <b>Pro</b> in fondo alla lista funzionano solo con fatturazione attiva: se li scegli senza, l'app ripiega da sola sui Flash.</div>
   <button class="btn" onclick="saveAI()">Salva impostazioni AI</button>
   <div class="aibox" style="margin-top:10px"><div id="usageLine">${usageHtml()}</div>
   <div class="hint" style="margin-top:4px">Contatore locale del tuo consumo (Google non espone i token residui: quelli si vedono solo nella Google Cloud Console). Se vedi molti errori \"quota\", stai toccando i limiti gratuiti: rallenta o attiva la fatturazione.</div>
   <button class="btn ghost small" onclick="S.usage={day:'',calls:0,tokens:0,errors:0,last:''};save();render('io')">Azzera contatore</button></div>
-  <div class="hint">Chiave gratuita su <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a> → <b>Create API key</b> (resta sul dispositivo). Alimenta: 📸 conta-calorie, 📸 svuota-frigo, 📸 selezionatore di menù, stime sgarri/sport, ✏️ ristime, 🎲 alternative, ribilancia, sostituzioni spesa, report settimanali.</div></div>`;
+  ${hint2(`Chiave gratuita su <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a> → <b>Create API key</b>. Resta sul tuo telefono.`,
+ "Serve per: foto dei piatti e del frigo, lettura dei menù, stime di sgarri e sport, alternative, ribilanciamento, sostituzioni nella spesa e report settimanali. Senza chiave l'app funziona lo stesso, ma tutto va fatto a mano.")}</div>`;
   // Drive
   h+=`<div class="card"><h2>☁️ Sincronizzazione Google Drive</h2>
   <label>CLIENT_ID (Google Cloud)</label><input type="text" id="dCid" value="${S.drive.cid||""}" placeholder="xxxx.apps.googleusercontent.com">
-  <div class="hint">Il salvataggio non avviene a ogni tocco: l'app carica al massimo <b>ogni 15 minuti</b> e comunque quando chiudi o metti in secondo piano. Oltre al backup principale conserva una <b>copia datata al giorno</b> (ne restano sette), così puoi tornare a una versione precedente. Se il backup remoto risulta molto più ricco di quello locale, l'app <b>si ferma e chiede</b> invece di sovrascrivere.</div>
+  ${hint2("Salva al massimo ogni 15 minuti, e sempre quando chiudi l'app.",
+ "Oltre al backup principale tiene una <b>copia al giorno</b> (le ultime sette), così puoi tornare indietro. Se il backup online risulta molto più ricco di quello sul telefono, l'app <b>si ferma e chiede</b> invece di sovrascrivere.")}
   <div class="mtools"><button class="btn small" onclick="driveConnect()">Connetti e sincronizza</button>
   <button class="btn ghost small" onclick="driveDisconnect()">Disconnetti e desincronizza</button>
   <button class="btn ghost small" onclick="driveImport()">⬇️ Ripristina l'ultimo</button>
@@ -7594,9 +7669,6 @@ function render(p){const M={oggi:renderOggi,piano:renderPiano,spesa:renderSpesa,
    ═══════════════════════════════════════════════════════════════ */
 const REDUCED=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let _rvObs=null;
-/* v5.1: niente rivelazioni animate allo scroll (nessun observer, nessun
-   ridisegno progressivo): la pagina è statica e non consuma batteria. */
-function initFX(){}
 /* v5.1: header fisso (niente listener di scroll che ridisegna l'intestazione) */
 /* ── ZOOM GRAFICI: tap su un grafico → overlay con pinch/rotella/drag ── */
 let ZM={s:1,x:0,y:0,drag:null,pinch:0};

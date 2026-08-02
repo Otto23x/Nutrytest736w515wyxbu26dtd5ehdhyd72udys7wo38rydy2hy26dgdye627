@@ -312,12 +312,6 @@ details.why>summary::-webkit-details-marker{display:none}
 details.why>summary::after{content:" ▸"}
 details.why[open]>summary::after{content:" ▾"}
 details.why>div{margin-top:5px;padding-left:9px;border-left:2px solid var(--linea)}
-details.adv{margin:12px 0 2px;border-top:1px solid var(--linea);padding-top:10px}
-details.adv>summary{cursor:pointer;font-weight:700;color:var(--grigio);font-size:13px;list-style:none;padding:8px 10px;background:var(--crema);border-radius:10px}
-details.adv>summary::-webkit-details-marker{display:none}
-details.adv>summary::before{content:"▸ ";color:var(--salvia)}
-details.adv[open]>summary::before{content:"▾ "}
-details.adv[open]>summary{margin-bottom:6px}
 .aibox{background:var(--mensabg);border:1px solid var(--linea);border-radius:14px;padding:12px;margin-top:9px;font-size:13.5px;line-height:1.5;white-space:pre-wrap}
 .histweek{border:1px solid var(--linea);border-radius:16px;background:var(--card);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .3s}
 .histweek:hover{box-shadow:var(--shadow-lift)}
@@ -362,6 +356,9 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
 table.rules{table-layout:fixed}
 table.rules td{vertical-align:middle}
 table.rules td:first-child{white-space:normal;width:30%;font-weight:600;color:var(--ink)}
+/* Riga a tutta larghezza (avvisi). Deve avere la stessa specificità della
+   regola qui sopra, altrimenti vince quella e l'avviso resta stretto. */
+table.rules td.rfull{display:block;width:auto;white-space:normal;padding:9px 11px;border-radius:10px;margin:4px 0;font-size:12.5px;line-height:1.45}
 table.rules td.rd{font-size:12.5px;line-height:1.45;color:var(--grigio)}
 table.rules td.rc{width:154px;text-align:right;white-space:nowrap}
 table.rules .rv{width:96px;display:inline-block;margin:0;padding:7px 8px;font-size:13.5px;text-align:right;vertical-align:middle}
@@ -375,7 +372,6 @@ table.rules .rout{font-family:inherit;font-weight:700;color:var(--salvia);font-s
   table.rules td{border:0;padding:2px 0}
   table.rules td.rc{text-align:left;width:auto;margin-top:6px}
   table.rules select.rv{width:100%;max-width:260px}
-.rules td.rfull{width:auto;display:block;padding:9px 11px;border-radius:10px;margin:2px 0;font-size:12.5px;line-height:1.45}
 }
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
 @media(max-width:420px){.grid2{grid-template-columns:1fr}}
@@ -611,7 +607,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="9.4.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="9.8.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -758,8 +754,13 @@ function hasAnyData(){
   return false;}
 if(!S.onboard.done&&!S.customPlan&&!hasAnyData()){
   S.customPlan=emptyPlan();PLAN=S.customPlan;S.week=freshWeek();
-}else if(!S.onboard.done){
-  S.onboard.done=true; // utente già avviato: niente percorso di benvenuto
+}else if(!S.onboard.done&&!S.onboard.started){
+  /* Utente che usava già l'app prima del percorso guidato: non glielo
+     imponiamo. Vale SOLO se il percorso non è mai stato aperto: chi lo ha
+     iniziato e ha chiuso l'app a metà lo ritrova dov'era. Senza questo
+     controllo bastava scrivere la data di nascita — da lì hasAnyData()
+     diventa vera — e il percorso spariva da solo alla riapertura. */
+  S.onboard.done=true;
 }
 enrichFiber(PLAN);
 if(!S.week||!S.week.days||S.week.days.length!==7)S.week=freshWeek();
@@ -1401,6 +1402,9 @@ function parseAIJSON(t){
    e whitelist http/https per i link salvati (blocca javascript: ecc.) ══ */
 /* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
    sapere cosa fa legge una riga, chi vuole capire apre «perché?». */
+/* Riga breve sempre visibile + il resto dietro un tocco: chi vuole solo
+   sapere cosa fa legge una riga, chi vuole capire apre «perché?».
+   Nota: qui si nasconde solo del TESTO esplicativo, mai una funzione. */
 function hint2(breve,esteso,cls){
   return `<div class="hint${cls?" "+cls:""}">${breve}`+
     (esteso?`<details class="why"><summary>perché?</summary><div>${esteso}</div></details>`:"")+`</div>`;}
@@ -3106,6 +3110,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     ${(function(){const t=waterPredict(di);return t?`<div class="hint" style="background:var(--menta);padding:9px;border-radius:10px;margin-top:10px">${t}</div>`:"";})()}</div>`;}
   // Acqua con obiettivo dinamico
   const goal=waterGoal(di);
+  h+=`<div class="gsec">Come stai</div>`;
   h+=`<div class="card"><h2>Acqua</h2><div class="water">`;
   for(let i=0;i<goal;i++)h+=`<span class="${i<S.week.days[di].water?"f":""}" onclick="setWater(${di},${i})">💧</span>`;
   h+=`</div><div class="hint">Obiettivo: ${goal} bicchieri da <b>250 ml</b> (~${(goal/4).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
@@ -3161,6 +3166,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     </div></div>`;}
 
   
+  h+=`<div class="gsec">A tavola</div>`;
   h+=`<div class="card"><h2>I pasti</h2><div class="hint">✓ mangiato · ✗ saltato · ○ da fare · ⏳ quando l'AI elabora · 📸 scatta la foto · 🖼️ scegline una dalla galleria</div></div>`;
   const items=dayItems(di);
   if(items.length)items.forEach(it=>h+=mealCard(it.pdi,it.mi));
@@ -3180,8 +3186,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     </div></div></div></div>`;});
   h+=`<div class="mtools" style="margin-top:4px">
     <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
-    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia pasti</button></div>
-  <div class="hint">⚖️ <b>Ribilancia pasti</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
+    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
+  <div class="hint">⚖️ <b>Ribilancia le calorie residue</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
 
   el.innerHTML=h;
   /* i box AI si mostrano solo quando hanno contenuto: gli id possono non
@@ -3299,7 +3305,8 @@ function renderScanQ(){
    del sito del TUO supermercato (nessun link indovinato). */
 function shopLink(text){
   const q=encodeURIComponent(shopQ(text));
-  if(S.shopTpl&&S.shopTpl.includes("{q}"))return safeUrl(S.shopTpl.replace("{q}",q));
+  const tpl=shopTplNow();
+  if(tpl&&tpl.includes("{q}"))return safeUrl(tpl.replace("{q}",q));
   return "";}
 function shopQ(t){ // pulizia testo per la ricerca sul sito del supermercato
   return t.replace(/\(.*?\)/g,"").replace(/~|≈/g,"")
@@ -3514,43 +3521,122 @@ window.addShopCat=async ()=>{ensureCustomShop();const c=await dlgPrompt("Nome de
 window.resetShopToPlan=async ()=>{if(!await dlgConfirm("Ripristino la lista originale del piano? Le modifiche manuali andranno perse."))return;
   S.customShop=null;S.shop={};save();render("spesa");};
 
-const SHOP_MARKETS=[
- {n:"Esselunga (spesa online)",t:"https://spesaonline.esselunga.it/commerce/nav/supermercato/store/ricerca?freeText={q}"},
- {n:"Conad (spesa online)",t:"https://spesaonline.conad.it/search?query={q}"},
- {n:"Coop — EasyCoop",t:"https://www.easycoop.com/search?text={q}"},
- {n:"Carrefour",t:"https://www.carrefour.it/search?q={q}"},
- {n:"Pam a casa",t:"https://pamacasa.pampanorama.it/search?q={q}"},
- {n:"Bennet",t:"https://www.bennet.com/ricerca?q={q}"},
- {n:"Selex — CosìComodo",t:"https://www.cosicomodo.it/ricerca?q={q}"}];
-/* Gli indirizzi delle catene cambiano nel tempo e non sono verificabili
-   dall'app: questo pulsante apre una ricerca vera («latte») così puoi
-   controllare in un tocco se il link funziona davvero. */
-window.shopTplTest=()=>{
-  const el=document.getElementById("cTpl");
-  const tpl=(el&&el.value.trim())||S.shopTpl||"";
-  if(!tpl.includes("{q}"))return dlgAlert("Prima scegli una catena o salva un modello che contenga {q}.");
+/* ═══ I TUOI SUPERMERCATI ═══════════════════════════════════════════
+   Nessun indirizzo predefinito: l'app non sa e non indovina come è fatto
+   il sito di una catena. Sei tu a incollare l'indirizzo di una ricerca
+   vera, e da lì l'AI ricava il modello. Così in lista c'è solo ciò che
+   usi davvero, e ogni link è già stato verificato da te sul campo.
+   Ogni voce: {n:nome, t:modello ricerca, p:modello offerte, on:attivo} */
+function markets(){
+  if(!Array.isArray(S.markets)){
+    S.markets=[];
+    /* chi aveva già impostato un modello se lo ritrova come primo negozio */
+    if(S.shopTpl&&S.shopTpl.includes("{q}"))
+      S.markets.push({n:"Il mio supermercato",t:S.shopTpl,p:"",on:true});
+  }
+  return S.markets;}
+function marketOn(){const l=markets();return l.find(m=>m.on)||l[0]||null;}
+function promoOn(){const m=marketOn();return !!(S.shopPromo&&m&&m.p);}
+/* Il modello davvero usato dai 🔗 della lista */
+function shopTplNow(){
+  const m=marketOn();if(!m)return "";
+  return (promoOn()&&m.p)?m.p:(m.t||"");}
+
+/* ── Estrazione del modello da un indirizzo incollato ──
+   Se l'alimento cercato compare nell'indirizzo, la sostituzione è certa e
+   si fa senza AI. Altrimenti (parola codificata, ricerca dentro un
+   parametro strano) si chiede all'AI. Se nessuno dei due riesce, si dice
+   chiaramente che non si è capito, invece di salvare un modello rotto. */
+async function tplDaUrl(url,alimento){
+  const u=String(url||"").trim();
+  if(!u)return null;
+  if(u.includes("{q}"))return u;                    /* già un modello */
+  const a=String(alimento||"").trim();
+  if(a){
+    const varianti=[a,encodeURIComponent(a),a.toLowerCase(),a.toUpperCase(),
+                    a.charAt(0).toUpperCase()+a.slice(1).toLowerCase()];
+    for(const v of varianti){
+      if(v&&u.includes(v))return u.split(v).join("{q}");
+    }
+  }
+  if(!aiOn())return null;
+  try{
+    const t=await aiAsk('Questo è l\'indirizzo della pagina dei risultati di ricerca di un supermercato online: "'+u.slice(0,500)+'". '+
+      (a?'Il termine cercato era: "'+a+'". ':'')+
+      'Individua nell\'indirizzo il punto in cui compare il termine cercato e sostituiscilo con {q}, lasciando TUTTO il resto identico. '+
+      'Se non riconosci il termine cercato, restituisci una stringa vuota. Rispondi SOLO JSON: {"tpl":"..."}');
+    const j=parseAIJSON(t);
+    const tpl=j&&j.tpl?String(j.tpl):"";
+    return tpl.includes("{q}")?tpl:null;
+  }catch(e){return null;}}
+
+/* ── Aggiunta guidata di un supermercato ── */
+window.marketAdd=async()=>{
+  const nome=await dlgPrompt("Come si chiama il supermercato?\n\n(es. Conad, Esselunga, il nome del tuo negozio)","");
+  if(!nome||!nome.trim())return;
+  const alimento=await dlgPrompt("Passo 1 di 2 — la ricerca normale\n\nApri il sito del supermercato e cerca un alimento qualsiasi.\n\nChe cosa hai cercato?","pollo");
+  if(!alimento||!alimento.trim())return;
+  const url=await dlgPrompt("Ora copia l'indirizzo della pagina dei risultati e incollalo qui.\n\n(la barra in alto del browser, quella che inizia con https://)","");
+  if(!url||!url.trim())return;
+  const t=await tplDaUrl(url,alimento);
+  if(!t)return dlgAlert("Non riesco a riconoscere «"+alimento.trim()+"» dentro quell'indirizzo.\n\nRiprova: cerca l'alimento sul sito e copia l'indirizzo della pagina dei RISULTATI, non quello della pagina iniziale.");
+  const m={n:nome.trim(),t:t,p:"",on:true};
+  markets().forEach(x=>x.on=false);
+  S.markets.push(m);save();render("spesa");
+  toast("«"+m.n+"» aggiunto ✓");
+  if(await dlgConfirm("Passo 2 di 2 — le offerte (facoltativo)\n\nSullo stesso sito, con la stessa ricerca, attiva il filtro <b>offerte</b> o <b>promozioni</b> e copia il nuovo indirizzo.\n\nDa lì l'app impara a mostrarti prima i prodotti in offerta.",
+    {ok:"Aggiungo le offerte",ko:"Più tardi"}))await marketPromo(S.markets.length-1);};
+
+/* ── Modello «offerte» per un negozio già in lista ── */
+window.marketPromo=async(i)=>{
+  const m=markets()[i];if(!m)return;
+  const alimento=await dlgPrompt("Che alimento hai cercato, con il filtro offerte attivo?","pollo");
+  if(!alimento||!alimento.trim())return;
+  const url=await dlgPrompt("Incolla l'indirizzo della pagina con il filtro <b>offerte</b> attivo.","");
+  if(!url||!url.trim())return;
+  const p=await tplDaUrl(url,alimento);
+  if(!p)return dlgAlert("Non riesco a riconoscere «"+alimento.trim()+"» in quell'indirizzo.");
+  if(p===m.t)return dlgAlert("Questo indirizzo è identico a quello della ricerca normale.\n\nVuol dire che su questo sito il filtro offerte non finisce nell'indirizzo: purtroppo non è possibile richiamarlo da un link.");
+  m.p=p;S.shopPromo=true;save();render("spesa");
+  toast("Offerte attive per «"+m.n+"» ✓");};
+
+window.marketPick=(i)=>{markets().forEach((m,k)=>m.on=(k===+i));save();render("spesa");};
+window.marketDel=async(i)=>{
+  const m=markets()[i];if(!m)return;
+  if(!await dlgConfirm("Tolgo «"+m.n+"» dalla lista?",{ok:"Togli",ko:"Annulla"}))return;
+  S.markets.splice(i,1);
+  if(S.markets.length&&!S.markets.some(x=>x.on))S.markets[0].on=true;
+  save();render("spesa");toast("Rimosso");};
+window.marketPromoDel=(i)=>{const m=markets()[i];if(!m)return;m.p="";save();render("spesa");toast("Modello offerte rimosso");};
+window.shopPromoSet=(v)=>{S.shopPromo=!!v;save();render("spesa");
+  toast(v?"I link puntano ai prodotti in offerta":"I link tornano alla ricerca normale");};
+/* Prova il link: apre una ricerca vera, così vedi subito se funziona */
+window.marketTest=(i,promo)=>{
+  const m=markets()[i];if(!m)return;
+  const tpl=promo?m.p:m.t;
+  if(!tpl)return;
   const u=safeUrl(tpl.replace("{q}",encodeURIComponent("latte")));
   if(!u)return dlgAlert("Indirizzo non valido.");
-  window.open(u,"_blank","noopener");
-  toast("Se non si apre la ricerca di «latte», il link non è valido");};
-window.shopPresetPick=(t)=>{if(!t)return;
-  const el=document.getElementById("cTpl");if(el)el.value=t;
-  S.shopTpl=t;save();render("spesa");
-  toast("Catena impostata ✓ — se un 🔗 non funziona, usa la procedura «latte»");};
+  window.open(u,"_blank","noopener");};
 function renderSpesa(){const el=document.getElementById("pg-spesa");
-  let h=`<div class="card"><h2>🔗 Il tuo supermercato online</h2>
-  ${hint2("Scegli la tua catena: il link di ricerca è già pronto.",
- "Molti siti chiedono prima di scegliere il negozio, quindi un link può non funzionare. In quel caso usa la procedura «latte» qui sotto: funziona con qualunque supermercato.")}
-  <select id="shopPreset" onchange="shopPresetPick(this.value)">
-    <option value="">— Scegli la catena —</option>
-    ${SHOP_MARKETS.map(m=>`<option value="${esc(m.t)}" ${S.shopTpl===m.t?"selected":""}>${esc(m.n)}</option>`).join("")}
-  </select>
-  <div class="hint" style="margin-top:8px">…oppure: sul sito del tuo supermercato cerca esattamente <b>latte</b>, copia l'indirizzo della pagina dei risultati e incollalo qui — il modello lo creo io (non serve capire gli URL).</div>
-  <input type="text" id="cTpl" value="${esc(S.shopTpl||"")}" placeholder="incolla qui l'indirizzo della ricerca di «latte» (o un modello con {q})">
-  <div class="mtools"><button class="btn small" onclick="saveShopTpl()">Salva modello</button>
-  <button class="btn ghost small" onclick="shopTplTest()">🔍 Prova il link</button></div>
-  ${hint2("Dopo aver scelto la catena premi <b>Prova il link</b> per controllare che funzioni.",
- "Gli indirizzi delle catene cambiano nel tempo e l'app non può verificarli da sola. Se non si apre la ricerca di «latte», usa la procedura qui sopra partendo dal sito del tuo negozio.")}</div>
+  let h=`<div class="card"><h2>🔗 I tuoi supermercati</h2>
+  ${hint2("Aggiungi i negozi dove fai la spesa: da lì i 🔗 della lista aprono la ricerca del prodotto.",
+   "Non ci sono catene predefinite, e non è una dimenticanza: gli indirizzi dei siti cambiano spesso e l'app non può verificarli. Li insegni tu una volta sola, incollando l'indirizzo di una ricerca vera — così ogni link è già stato provato sul campo, e in lista c'è solo quello che usi.")}
+  ${markets().length?markets().map((m,k)=>`
+    <div class="ctlrow" style="align-items:flex-start">
+      <input type="radio" name="mkt" ${m.on?"checked":""} onchange="marketPick(${k})" style="margin:3px 0 0" aria-label="Usa ${esc(m.n)}">
+      <div style="flex:1 1 140px;min-width:0">
+        <b>${esc(m.n)}</b>
+        <div class="ru" style="margin:2px 0 0">${m.p?"🏷️ con offerte":"solo ricerca"}</div>
+      </div>
+      <button class="ibtn" title="Prova il link" onclick="marketTest(${k},0)">🔍</button>
+      ${m.p?`<button class="ibtn" title="Togli le offerte" onclick="marketPromoDel(${k})">🏷️</button>`
+           :`<button class="ibtn" title="Insegna le offerte" onclick="marketPromo(${k})">➕🏷️</button>`}
+      <button class="ibtn" title="Togli" onclick="marketDel(${k})">✕</button>
+    </div>`).join(""):`<div class="hint" style="background:var(--menta);padding:9px 11px;border-radius:10px">Nessun supermercato ancora. Aggiungine uno: servono due minuti e si fa una volta sola.</div>`}
+  <div class="mtools"><button class="btn small" onclick="marketAdd()">+ Aggiungi supermercato</button></div>
+  ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:10px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)"> 🏷️ Mostra prima i prodotti in <b>offerta</b></label>`:""}
+  ${markets().length&&!markets().some(m=>m.p)?`<div class="hint" style="margin-top:8px">Vuoi vedere prima le <b>offerte</b>? Tocca ➕🏷️ accanto al negozio: ti guido in due passaggi.</div>`:""}</div>
   <div class="card"><h2>Lista della spesa</h2>
   <div class="hint">☐ spunta · 🔗 cerca sul sito della spesa · 🤖 alternativa se esaurito · ✕ rimuovi. Le spunte restano salvate.</div>
   ${(S.family||[]).length?`<label>Per chi fai la spesa?</label>
@@ -3577,7 +3663,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
       h+=`<div class="shopitem ${c?"c":""}">
         <span class="box" onclick="tglShop('${id}')">${c?"✓":""}</span>
         <span class="st" onclick="tglShop('${id}')">${esc(it)}</span>
-                ${S.shopTpl?`<a class="ibtn" target="_blank" rel="noopener" href="${shopLink(it)}" title="Cerca nel tuo supermercato">🔗</a>`:`<button class="ibtn" title="Imposta il link del tuo supermercato in cima alla pagina" onclick="dlgAlert('Imposta prima il link di ricerca del tuo supermercato, in cima alla pagina Spesa.')">🔗</button>`}
+                ${shopTplNow()?`<a class="ibtn" target="_blank" rel="noopener" href="${shopLink(it)}" title="Cerca nel tuo supermercato">🔗</a>`:`<button class="ibtn" title="Imposta il link del tuo supermercato in cima alla pagina" onclick="dlgAlert('Imposta prima il link di ricerca del tuo supermercato, in cima alla pagina Spesa.')">🔗</button>`}
         <button class="ibtn" title="Alternativa AI" onclick="subAI('${it.replace(/'/g,"\\'")}')">🤖</button>
         <button class="ibtn" title="Rimuovi dalla lista" onclick="removeShopItem(${ci},${ii})">✕</button></div>`;});
     h+=`</div>`;});
@@ -3585,6 +3671,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   if(S.customShop)h+=`<button class="btn ghost small" onclick="resetShopToPlan()">↩️ Ripristina dal piano</button>`;
   h+=`</div>`;
   // Prodotti salvati del supermercato
+  h+=`<div class="gsec">I tuoi prodotti</div>`;
   h+=`<div class="card" style="margin-top:14px"><h2>I miei prodotti salvati</h2>
   <div class="hint">Salva i link diretti dei tuoi prodotti preferiti per ritrovarli al volo.</div>`;
   if(!S.links.length)h+=`<div class="hint">Nessun prodotto salvato.</div>`;
@@ -3592,16 +3679,6 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <span><a class="ibtn" target="_blank" rel="noopener" href="${esc(safeUrl(l.u))}">🛒 Apri</a><span class="del" onclick="delLink(${i})">✕</span></span></div>`;});
   h+=`<button class="btn ghost small" onclick="addLink()">+ Aggiungi prodotto</button></div>`;
   el.innerHTML=h;}
-window.saveShopTpl=async()=>{let v=document.getElementById("cTpl").value.trim();
-  if(v&&!v.includes("{q}")){
-    if(/latte/i.test(v))v=v.replace(/latte/ig,"{q}");
-    else if(aiOn()){
-      try{const t=await aiAsk('Questo è l\'indirizzo di una pagina di ricerca di un supermercato online: "'+v.slice(0,400)+'". Individua il punto dell\'URL in cui compare il termine cercato e restituisci il modello con {q} al suo posto. Se non riconosci un termine di ricerca, restituisci una stringa vuota. Rispondi SOLO JSON: {"tpl":"..."}');
-        const j=parseAIJSON(t);if(j&&j.tpl&&String(j.tpl).includes("{q}"))v=String(j.tpl);}catch(e){}
-    }
-    if(!v.includes("{q}"))return dlgAlert("Non riesco a ricavare il modello da questo indirizzo.\n\nRifai la ricerca sul sito del supermercato cercando esattamente «latte», poi incolla qui l\'indirizzo dei risultati: sostituirò io la parola con {q}.");
-  }
-  S.shopTpl=v;save();dlgAlert(v?"Modello salvato: i link 🔗 della lista ora aprono la ricerca del tuo supermercato.":"Modello rimosso: senza modello i link di ricerca non sono attivi.");render("spesa");};
 function shopForMe(){return (S.shopFor||((S.family||[]).length?"fam":"me"))==="me";}
 window.shopForSet=(v)=>{S.shopFor=v;save();render("spesa");
   toast(v==="me"?"Dosi per una persona — rigenera la lista per applicarle":"Dosi per tutta la famiglia — rigenera la lista per applicarle");};
@@ -3610,7 +3687,7 @@ window.resetShop=()=>{S.shop={};save();render("spesa");};
 window.addLink=async ()=>{const n=(await dlgPrompt("Nome prodotto (es. Kefir XYZ 500g)")||"").trim();if(!n)return;
   /* con il modello del supermercato impostato il link si genera da solo,
      esattamente come i 🔗 della lista: niente copia-incolla */
-  let u=S.shopTpl?shopLink(n):"";
+  let u=shopTplNow()?shopLink(n):"";
   if(!u){
     u=safeUrl(await dlgPrompt("Nessun modello di ricerca impostato in cima alla pagina.\nIncolla il link del prodotto sul sito del supermercato"));
     if(!u)return dlgAlert("Link non valido: deve iniziare con http(s)://\n\nIn alternativa imposta il modello di ricerca in cima alla pagina Spesa: da lì i link si creano da soli.");
@@ -3626,7 +3703,9 @@ window.waShop=()=>{let t="🛒 *Spesa della settimana*%0A";
    13. PAGINA SPORT
    ═══════════════════════════════════════════════════════════════ */
 function renderSport(){const el=document.getElementById("pg-sport");const ti=viewIdx();
-  let h=`<div class="card"><h2>Registra un allenamento</h2>
+  let h=`<div class="gsec">Registra</div>`;
+  h+=`<div class="card"><h2>Registra un allenamento</h2>
+  <div class="hint">Segna cosa hai fatto: le calorie bruciate entrano nel bilancio del giorno.</div>
     <label>Giorno</label><select id="wDay">`;
   PLAN.forEach((d,di)=>h+=`<option value="${di}" ${di===ti?"selected":""}>${d.day}</option>`);
   h+=`</select><div class="row3"><div><label>Sport</label><select id="wSport">`;
@@ -3639,14 +3718,17 @@ function renderSport(){const el=document.getElementById("pg-sport");const ti=vie
   // progresso sull'obiettivo settimanale di allenamenti
   {const g=goalWkTotal(),f=workoutsThisWeek();
    if(g>0){const pc=Math.min(100,Math.round(f/g*100));
-     h+=`<div class="card"><h2>🎯 Obiettivo della settimana</h2>
+     h+=`<div class="gsec">A che punto sei</div>`;
+  h+=`<div class="card"><h2>🎯 Obiettivo della settimana</h2>
+  <div class="hint">Quanti allenamenti ti sei dato e a che punto sei. Si imposta in <b>Io → Obiettivi</b>.</div>
      <div class="daytotal" style="border:0;padding:0">Allenamenti: <span>${f} su ${g}</span></div>
      <div style="height:10px;background:var(--linea);border-radius:6px;overflow:hidden;margin:8px 0 6px">
        <div style="height:100%;width:${pc}%;background:${f>=g?"var(--salvia)":"var(--zaff)"}"></div></div>
      <div class="hint">${f>=g?"Obiettivo raggiunto ✓":(g-f)+" da fare entro domenica. L'obiettivo si imposta in Io → Obiettivi e viene usato anche nella proiezione del peso."}</div></div>`;}}
   h+=`<div class="card"><h2>🚶 Passi</h2>
   ${hint2(`I passi di tutti i giorni sono <b>già inclusi</b> nel fabbisogno: non serve inserirli.`,`Contano come <b>passi base</b> (${((+S.profile.baseSteps>0)?+S.profile.baseSteps:3000).toLocaleString("it-IT")}/giorno, modificabili in <b>Io</b>). Se fai una <b>camminata vera</b>, registrala qui sotto come sport: conterà nel bruciato del giorno.`)}</div>`;
-  h+=`<div class="card"><h2>Allenamenti della settimana</h2>`;
+  h+=`<div class="card"><h2>Allenamenti della settimana</h2>
+  <div class="hint">Tutto quello che hai registrato, giorno per giorno. Con ✏️ correggi, con 🗑 elimini.</div>`;
   let tot=0,anyw=false;
   PLAN.forEach((d,di)=>{const ws=S.week.days[di].workouts;if(ws.length){anyw=true;
     h+=`<div style="font-weight:700;color:var(--bosco);font-size:13px;margin-top:6px">${d.day}</div>`;
@@ -3740,10 +3822,19 @@ function cycDefDays(){const n=+S.profile.cycDefDays;return n>0?n:90;}
 function cycMaintDays(){const n=+S.profile.cycMaintDays;return n>0?n:30;}
 function cycOn(){return S.profile.cycPhases!==false;}
 /* Giorni trascorsi nel periodo di dieta aperto (0 se non ce n'è uno) */
-function dietDayNAt(date){
+/* Da quando si contano le fasi deficit/pausa: il periodo di dieta aperto,
+   altrimenti una data fissa (prima pesata o giorno di avvio). NON la
+   settimana in corso, che cambia ogni lunedì e azzererebbe il ciclo. */
+function cycAnchor(){
   const ap=activePeriod();
-  if(!ap||ap.type!=="dieta")return 0;
-  const a=safeDate(ap.start+"T12:00:00");if(!a)return 0;
+  if(ap&&ap.type==="dieta"){const a=safeDate(ap.start+"T12:00:00");if(a)return a;}
+  if(!S.cycStart){
+    const w=(S.profile&&S.profile.weights&&S.profile.weights[0])||null;
+    S.cycStart=(w&&w.d)||iso(new Date());
+  }
+  return safeDate(S.cycStart+"T12:00:00")||new Date();}
+function dietDayNAt(date){
+  const a=cycAnchor();if(!a)return 0;
   const d=new Date(date);d.setHours(12,0,0,0);
   return Math.max(1,Math.round((d-a)/864e5)+1);}
 function dietDayN(){return dietDayNAt(new Date());}
@@ -4102,6 +4193,7 @@ function onbSave(silent){
   save();return true;
 }
 function renderBenvenuto(){
+  if(!S.onboard.done&&!S.onboard.started){S.onboard.started=true;save();}
   const el=document.getElementById("pg-benvenuto");
   const st=S.onboard.step,p=S.profile,D=S.diet;
   const dots=ONB_STEPS.map((n,i)=>`<span class="obd ${i===st?"on":(i<st?"ok":"")}" title="${n}"></span>`).join("");
@@ -4346,29 +4438,16 @@ function rulesCardHTML(){
 
   <div class="gsec">Fabbisogno</div>
   <table class="rules">
-  ${row("Formula del basale","Come si calcola il metabolismo a riposo. <b>Auto</b> usa la massa magra se conosci la percentuale di grasso, altrimenti Mifflin.",
-     sel("rBmrF",bmrFormula(),[["auto","Auto (consigliata)"],["mifflin","Mifflin-St Jeor"],["katch","Katch-McArdle"],["harris","Harris-Benedict"]]))}
   ${row("Basale calcolato","Scende quando cali di peso: aggiorna la pesata in Io e il fabbisogno si abbassa da solo.",out(bmr()+" kcal"))}
   ${row("Attività di base","Moltiplicatore su lavoro e vita quotidiana, allenamenti esclusi.",
      `<select class="rv" id="rAct" onchange="actSteps(this.value,'rSteps')">`+[["1.2","1.2 · molto sedentario"],["1.25","1.25 · sedentario−"],["1.3","1.3 · sedentario, PC"],["1.35","1.35 · poco attivo"],["1.4","1.4 · moderatamente attivo"],["1.45","1.45 · attivo"],["1.55","1.55 · molto attivo"]].map(o=>`<option value="${o[0]}" ${String(p.act)===String(o[0])?"selected":""}>${o[1]}</option>`).join("")+`</select>`)}
   ${row("Passi base","Passi che fai comunque ogni giorno. Il riferimento è 3.000: sopra o sotto, il fabbisogno si corregge.",num("rSteps",r.passi_base,500,0,null,"passi"))}
   ${row("Fabbisogno totale","Basale × attività, corretto sui passi base. Gli allenamenti si sommano a parte.",out(r.tdee_calcolato+" kcal"))}
-  ${row("Prudenza sul fabbisogno","Il moltiplicatore di attività è una stima: se i tuoi giorni sono più fermi di così, il fabbisogno risulta gonfiato. Questa percentuale lo abbassa <b>solo per il calcolo dei target</b>, senza toccare deficit e storico.",num("rPrud",prudence(),1,0,20,"%"))}
   ${row("Fabbisogno usato per i target","Fabbisogno meno la prudenza.",out(tdeeTarget()+" kcal"))}
-  ${row("Verifica sui tuoi dati","Fabbisogno ricavato da quanto hai mangiato e da come è cambiato il peso: è una misura, non una stima.",
-     (function(){const rr=tdeeReal();return rr
-       ?out(rr.tdee+" kcal")+`<br><button class="btn ghost small" style="margin-top:6px" onclick="applyTdeeReal()">Allinea</button>`
-       :`<span class="rout" style="color:var(--grigio);font-weight:500">servono 2 settimane</span>`;})())}
   </table>
 
   <div class="gsec">Allenamenti</div>
   <table class="rules">
-  ${row("Modo di calcolo","<b>Netto</b> = (MET × intensità − 1) × peso × ore: toglie il metabolismo a riposo, già incluso nel fabbisogno. <b>Lordo</b> non lo toglie e restituisce numeri più alti.",
-     sel("rMet",metMode(),[["netto","Netto (consigliato)"],["lordo","Lordo"]]))}
-  ${row("Intensità bassa","Moltiplicatore applicato al MET dichiarato dello sport.",num("rIntB",INT.bassa,.05,.3,2,"×"))}
-  ${row("Intensità media","",num("rIntM",INT.media,.05,.3,2,"×"))}
-  ${row("Intensità alta","",num("rIntA",INT.alta,.05,.3,2,"×"))}
-  ${row("Verifica","Squash 45 minuti a bassa intensità con il tuo peso attuale ("+p.w+" kg).",out(workoutBurnFor("Squash",45,"bassa",p.w)+" kcal"))}
   ${row("Obiettivo settimanale","Allenamenti da fare in una settimana. Il valore parte da quanto hai impostato per singolo sport e resta modificabile qui.",num("rGoalWk",goalWkTotal(),1,0,14,"a sett."))}
   </table>
 
@@ -4390,11 +4469,7 @@ function rulesCardHTML(){
   <table class="rules">
   ${row("Grammi per kg","Riferimenti: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · aumento massa 1,6–2,2. Se non lo tocchi, l'app usa il valore adatto al tuo obiettivo e alla tua attività.",num("rProtKg",r.obiettivo_proteine_g_kg,.1,.8,3,"g/kg"))}
   ${row("Proteine · quale peso","Le proteine si calcolano su <b>"+refWeight()+" kg</b> — "+refWeightWhy()+" — non sul peso della bilancia: il grasso corporeo non richiede proteine, quindi in sovrappeso il peso pieno gonfierebbe il numero. Standard: <b>1,5 g/kg</b>.",out(dayTargetP()+" g al giorno · "+(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())+" g/kg"))}
-  ${row("Peso di riferimento","Non il peso attuale: il grasso non richiede proteine, quindi si usa massa magra, peso obiettivo o peso corretto. <b>Nel tuo caso viene da: "+refWeightWhy()+"</b>."+
-    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:6px 0 0\" onclick=\"askGoalWeight()\">🎯 Imposta il peso obiettivo</button>")+" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi).",out(refWeight()+" kg"))}
   ${row("→ Target proteico del piano","Peso di riferimento × grammi per kg.",out(dayTargetP()+" g"))}
-  ${row("Proteine intoccabili","Ribilanciamenti e recuperi riducono solo carboidrati e grassi.",
-     sel("rProtLock",p.protLock!==false?"si":"no",[["si","Sì, mai ridotte"],["no","No, riducibili"]]))}
   </table>
   <div class="gsec">Fasi della dieta</div>
   <table class="rules">
@@ -4402,11 +4477,9 @@ function rulesCardHTML(){
      sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
   ${row("Giorni in deficit","Quanti giorni si resta in deficit prima della pausa. Scrivi il numero che vuoi."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",cycDefDays(),1,3,365,"giorni"))}
   ${row("Giorni di pausa","Quanto dura il mantenimento: il deficit va a zero, le porzioni risalgono e la spesa si adegua.",num("rCycMaint",cycMaintDays(),1,1,120,"giorni"))}
-  ${row("Allenamenti e tempi dell'obiettivo","Gli allenamenti pianificati ("+goalWkTotal()+" a settimana) bruciano in media <b>"+wkForecastBurn()+" kcal al giorno</b>. Questa energia <b>non alza le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Serve invece a stimare <b>in quanto tempo</b> arrivi all'obiettivo, ed è quello che vedi in Piano → 🔮 Stima risultati.",out(wkForecastBurn()+" kcal/g"))}
   </table>
   <div class="gsec">Il tuo corpo</div>
   <table class="rules">
-  ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
   ${row("Stati fisiologici · come funzionano","Ciclo, allattamento, gravidanza, infortunio e malattia <b>non sono etichette</b>: cambiano le calorie del giorno e le grammature del piano. Il <b>ciclo scade da solo</b>; gli altri restano attivi <b>finché non li togli</b> da Oggi → Come stai. Controlla che siano sempre aggiornati: uno stato acceso per sbaglio sposta il target senza che si veda.",out(physDelta()?((physDelta()>0?"+":"")+physDelta()+" kcal attivi ora"):"nessuno stato attivo"))}
   ${row("Ciclo · durata della fase","Dopo questi giorni la fase luteale si spegne da sola. Lo standard è <b>7 giorni</b>: la settimana prima del flusso, quella in cui il fabbisogno sale davvero.",num("rCycleDays",cycleDaysMax(),1,3,14,"giorni"))}
   ${row("Ciclo · aumento del metabolismo","In fase luteale il metabolismo basale sale di qualche punto percentuale. Queste calorie si <b>sommano</b> al fabbisogno: il target cresce, non si riorganizza. Attiva la fase da <b>Oggi → Come stai</b>."+(cycleDay()?" <b>Attiva ora: giorno "+cycleDay()+" di "+cycleDaysMax()+", +"+cycleKcal()+" kcal.</b>":""),num("rCyclePct",cyclePct(),1,0,15,"%"))}
@@ -4417,9 +4490,39 @@ function rulesCardHTML(){
   ${row("Gravidanza · 3° trimestre","Calorie aggiuntive nel terzo trimestre.",num("rPregT3",(+S.profile.pregT3>0?+S.profile.pregT3:450),10,0,600,"kcal"))}
   ${row("Infortunio · taglio del movimento","Quanto si riduce la quota di fabbisogno dovuta all'<b>attività</b> quando sei fermo per un infortunio. Il metabolismo basale non viene mai toccato."+(injOn()?" <b>Attivo ora: −"+moveCut()+" kcal.</b>":""),num("rInjPct",injPct(),5,0,90,"%"))}
   ${row("Malattia · taglio del movimento","Come sopra, ma per i giorni di malattia. In più, finché la malattia è attiva il <b>deficit resta sospeso</b>: si mangia a mantenimento."+(illOn()?" <b>Attiva ora.</b>":""),num("rIllPct",illPct(),5,0,90,"%"))}
+  </table></div>
+
+  <div class="card"><h2>⚙️ Impostazioni avanzate</h2>
+  <div class="hint">La meccanica fine: come vengono calcolati fabbisogno, allenamenti e recuperi. <b>Non serve toccarla</b> — l'app funziona bene così. Mettici mano solo se sai cosa stai facendo o se te lo indica un professionista.</div>
+  <div class="gsec">Come si calcola il fabbisogno</div>
+  <table class="rules">
+  ${row("Formula del basale","Come si calcola il metabolismo a riposo. <b>Auto</b> usa la massa magra se conosci la percentuale di grasso, altrimenti Mifflin.",
+     sel("rBmrF",bmrFormula(),[["auto","Auto (consigliata)"],["mifflin","Mifflin-St Jeor"],["katch","Katch-McArdle"],["harris","Harris-Benedict"]]))}
+  ${row("Prudenza sul fabbisogno","Il moltiplicatore di attività è una stima: se i tuoi giorni sono più fermi di così, il fabbisogno risulta gonfiato. Questa percentuale lo abbassa <b>solo per il calcolo dei target</b>, senza toccare deficit e storico.",num("rPrud",prudence(),1,0,20,"%"))}
+  ${row("Verifica sui tuoi dati","Fabbisogno ricavato da quanto hai mangiato e da come è cambiato il peso: è una misura, non una stima.",
+     (function(){const rr=tdeeReal();return rr
+       ?out(rr.tdee+" kcal")+`<br><button class="btn ghost small" style="margin-top:6px" onclick="applyTdeeReal()">Allinea</button>`
+       :`<span class="rout" style="color:var(--grigio);font-weight:500">servono 2 settimane</span>`;})())}
+  ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
+  </table>
+  <div class="gsec">Come si contano gli allenamenti</div>
+  <table class="rules">
+  ${row("Modo di calcolo","<b>Netto</b> = (MET × intensità − 1) × peso × ore: toglie il metabolismo a riposo, già incluso nel fabbisogno. <b>Lordo</b> non lo toglie e restituisce numeri più alti.",
+     sel("rMet",metMode(),[["netto","Netto (consigliato)"],["lordo","Lordo"]]))}
+  ${row("Intensità bassa","Moltiplicatore applicato al MET dichiarato dello sport.",num("rIntB",INT.bassa,.05,.3,2,"×"))}
+  ${row("Intensità media","",num("rIntM",INT.media,.05,.3,2,"×"))}
+  ${row("Intensità alta","",num("rIntA",INT.alta,.05,.3,2,"×"))}
+  ${row("Verifica","Squash 45 minuti a bassa intensità con il tuo peso attuale ("+p.w+" kg).",out(workoutBurnFor("Squash",45,"bassa",p.w)+" kcal"))}
+  ${row("Allenamenti e tempi dell'obiettivo","Gli allenamenti pianificati ("+goalWkTotal()+" a settimana) bruciano in media <b>"+wkForecastBurn()+" kcal al giorno</b>. Questa energia <b>non alza le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Serve invece a stimare <b>in quanto tempo</b> arrivi all'obiettivo, ed è quello che vedi in Piano → 🔮 Stima risultati.",out(wkForecastBurn()+" kcal/g"))}
+  </table>
+  <div class="gsec">Proteine e fisiologia</div>
+  <table class="rules">
+  ${row("Peso di riferimento","Non il peso attuale: il grasso non richiede proteine, quindi si usa massa magra, peso obiettivo o peso corretto. <b>Nel tuo caso viene da: "+refWeightWhy()+"</b>."+
+    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:6px 0 0\" onclick=\"askGoalWeight()\">🎯 Imposta il peso obiettivo</button>")+" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi).",out(refWeight()+" kg"))}
+  ${row("Proteine intoccabili","Ribilanciamenti e recuperi riducono solo carboidrati e grassi.",
+     sel("rProtLock",p.protLock!==false?"si":"no",[["si","Sì, mai ridotte"],["no","No, riducibili"]]))}
   ${row("Saldo fisiologico di oggi","Somma di ciò che si aggiunge (ciclo, allattamento, gravidanza) meno ciò che si toglie (movimento ridotto). Riscala le porzioni del piano in proporzione, partendo dalle kcal del tuo piano.",out((physDelta()>0?"+":"")+physDelta()+" kcal"+(physPct(viewIdx())?" · porzioni "+(physPct(viewIdx())>0?"+":"−")+Math.abs(physPct(viewIdx()))+"%":"")))}
   </table>
-  <details class="adv"><summary>⚙️ Impostazioni avanzate — solo se vuoi mettere le mani nei calcoli</summary>
   <div class="gsec">Pasti e ribilanciamento</div>
   <table class="rules">
   ${row("Minimo per pasto","Nessuna proposta può portare un pasto sotto questa soglia, e nessun pasto viene eliminato.",num("rMinMeal",r.kcal_minime_per_pasto,25,100,null,"kcal"))}
@@ -4434,9 +4537,9 @@ function rulesCardHTML(){
   ${row("Tetto · percentuale","Massimo taglio in una giornata, in quota del pianificato.",num("rRgpCap",r.recupero_max_pct_giorno,5,5,50,"%"))}
   ${row("Tetto · massimo","Vale il più basso fra percentuale e massimo. Il resto slitta ai giorni successivi.",num("rRgpCapMax",r.recupero_max_kcal_giorno,50,50,null,"kcal"))}
   ${row("Giorni recuperabili","Quanti giorni indietro possono comparire nel menu Recupero.",num("rRgpDays",(+p.rgpDays||5),1,1,7,"giorni"))}
-  </table>
+  </table></div>
 
-  </details>
+  <div class="card">
   <div class="gsec">Regole aggiuntive per l'AI</div>
   <textarea id="rCustom" placeholder="Scrivi qui regole in linguaggio naturale: es. «niente carne rossa più di una volta a settimana», «cena sempre leggera», «almeno 2 porzioni di pesce a settimana»…">${esc(S.rules.custom||"")}</textarea>
   <div class="hint">Vengono allegate a <b>ogni</b> richiesta all'AI, insieme ai valori qui sopra e alle caratteristiche alimentari.</div>
@@ -5236,6 +5339,7 @@ function extendedRecapHTML(){
       <td class="n">${n?avg("burn"):"–"}</td>
       <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--rosso)"}">${n?((avg("def")>=0?"−":"+")+Math.abs(avg("def"))):"–"}</td></tr>`;});
   return `<div class="card"><h2>📒 Riepilogo esteso</h2>
+  <div class="hint">Il quadro completo del periodo scelto: medie, totali e scostamenti rispetto al piano.</div>
   <div class="mtools">${["settimana","mese"].map(m=>`<button class="chipbtn" style="${RECAP.mode===m?"border-color:var(--salvia);color:var(--salvia);font-weight:700":""}" onclick="setRecapMode('${m}')">${m==="settimana"?"Settimanale":"Mensile"}</button>`).join("")}</div>
   <div style="max-height:320px;overflow-y:auto;border:1px solid var(--linea);border-radius:12px;margin-top:8px">
   <table><tr><th>Periodo</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>${rowsH||`<tr><td colspan="5">Ancora nessun dato.</td></tr>`}</table></div>
@@ -5450,7 +5554,9 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       <td class="n">${burnedOfDay(di)||0}</td>
       <td class="n" title="Pasti che hai segnato come saltati">${d.sk||"–"}</td>
       <td class="n" style="color:${d.def>=0?"var(--salvia)":"var(--rosso)"}">${d.def>=0?"−":"+"}${Math.abs(d.def)}</td></tr>`;});
-    h+=`<div class="card"><h2>Recap della settimana in corso</h2>
+    h+=`<div class="gsec">Questa settimana</div>`;
+  h+=`<div class="card"><h2>Recap della settimana in corso</h2>
+  <div class="hint">Come sta andando la settimana, giorno per giorno, rispetto a quello che avevi pianificato.</div>
     <table><tr><th>Giorno</th><th class="n" title="Scostamento kcal dal pianificato">Mng</th><th class="n" title="Scostamento proteine dal pianificato">Prt</th><th class="n" title="Sonno / relax / umore">😴/😌/🙂</th><th class="n" title="kcal dei soli allenamenti">Spt</th><th class="n" title="Pasti saltati">Slt</th><th class="n" title="Deficit del giorno">Dft</th></tr>${rowsH}</table>
     <div class="hint"><b>Mng</b> e <b>Prt</b> = scostamento da ciò che era pianificato quel giorno · <b>Spt</b> = kcal dei soli allenamenti · <b>Slt</b> = pasti segnati come saltati · <b>Dft</b> = deficit · ⏳ = giornata non ancora completata.</div>
     <div class="stat3"><div><div class="v">${w.avgEat}</div><div class="l">kcal medie</div></div>
@@ -5466,7 +5572,9 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   // Periodi (Dieta 1, Libero 1, …) con metriche e valutazione AI
 
   // Analisi: periodi, grafici multi-metrica, coaching AI
+  h+=`<div class="gsec">I tuoi numeri</div>`;
   h+=`<div class="card"><h2>📊 Analisi</h2>
+  <div class="hint">I tuoi numeri nel tempo: scegli il periodo e cosa mettere sul grafico.</div>
   <div class="row2"><div><label>Periodo</label><select id="anMode" onchange="drawAnalysis()">
   <option value="giorno" ${AN.mode==="giorno"?"selected":""}>Giornaliero</option>
   <option value="settimana" ${AN.mode==="settimana"?"selected":""}>Settimanale</option>
@@ -5509,7 +5617,9 @@ function renderStorico(){const el=document.getElementById("pg-storico");
    const mb={};md.forEach(d=>{(mb[d.date.slice(0,7)]=mb[d.date.slice(0,7)]||[]).push(d);});
    const mkeys=Object.keys(mb).sort().reverse();
    if(mkeys.length){
-     h+=`<div class="card"><h2>Mesi passati</h2><table><tr><th>Mese</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>`;
+     h+=`<div class="gsec">Archivio</div>`;
+  h+=`<div class="card"><h2>Mesi passati</h2>
+  <div class="hint">Le medie mese per mese: servono a vedere la tendenza di fondo, al netto delle oscillazioni di una singola settimana.</div><table><tr><th>Mese</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>`;
      mkeys.forEach(k=>{const arr=mb[k];const n=arr.length;const avg=f=>Math.round(arr.reduce((a,d)=>a+(d[f]||0),0)/n);
        h+=`<tr><td>${new Date(k+"-01T12:00:00").toLocaleDateString("it-IT",{month:"long",year:"numeric"})} <small style="color:var(--grigio)">(${n}g)</small></td>
        <td class="n">${avg("eat")}</td><td class="n">${avg("prot")}g</td><td class="n">${avg("burn")}</td>
@@ -6825,6 +6935,8 @@ ${hint2("Ogni giorno <b>spunti quello che mangi</b> e registri gli allenamenti. 
 <tr><td>😋</td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.<span class="newtag">NEW</span></td></tr>
 <tr><td>💧</td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.<span class="newtag">NEW</span></td></tr>
 <tr><td>🕐</td><td><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.<span class="newtag">NEW</span></td></tr>
+<tr><td>🔗</td><td><b>I tuoi supermercati</b> — la lista dei negozi la costruisci tu, e non è una scorciatoia: gli indirizzi dei siti cambiano di continuo e l'app non può verificarli. Cerchi un alimento sul sito del <b>tuo</b> negozio, incolli l'indirizzo dei risultati e l'app ricava da sola il modello. Da lì ogni 🔗 della lista apre la ricerca di quel prodotto. Puoi tenere più negozi e scegliere quale usare.<span class="newtag">NEW</span></td></tr>
+<tr><td>🏷️</td><td><b>Prima le offerte</b> — con lo stesso metodo: attivi sul sito il filtro <b>offerte</b>, incolli il nuovo indirizzo e l'app impara anche quello. Poi con un interruttore i 🔗 puntano ai prodotti in promozione invece che alla ricerca normale. Se su quel sito il filtro non finisce nell'indirizzo, l'app te lo dice invece di far finta di funzionare.<span class="newtag">NEW</span></td></tr>
 <tr><td>🛒</td><td><b>Spesa su misura</b> — di base la lista riporta le quantità <b>esatte</b> usate dal piano; premendo <b>✨ Ottimizza spesa</b> viene arrotondata ai <b>formati commerciali italiani</b> (ricotta 250 g, tonno 80 g, legumi 400 g) con l'indicazione di come distribuire quello che avanza. Puoi scegliere se la spesa è <b>solo per te o per tutta la famiglia</b>, e i pasti fuori casa contano solo se li prepari tu.<span class="newtag">NEW</span></td></tr>
 <tr><td>🍱</td><td><b>Fuori casa: li porti o li mangi fuori?</b> — la differenza cambia tutto, quindi ora si sceglie: se <b>li prepari tu</b> il piano dà ricette vere con le grammature, pensate per essere trasportabili (buone anche fredde, contenitore unico, niente salse che si separano) e gli ingredienti <b>restano nella spesa</b>; se <b>li mangi fuori</b> il piano descrive come comporre il piatto senza inventare ricette e quegli ingredienti <b>non finiscono nella lista</b>. Si imposta come regola fissa in Regole o solo per la settimana in corso dal Piano.<span class="newtag">NEW</span></td></tr>
 <tr><td>🔁</td><td><b>Pasti fuori casa settimana per settimana</b> (in Piano) — per chi fa <b>turni</b>: imposti i giorni e i pasti fuori casa solo per la settimana in corso, senza toccare la regola fissa. Salvando, l'app propone di rivedere il piano e rigenerare la spesa settimanale di conseguenza. I pasti che porti da casa vengono pensati come <b>schiscetta</b>: buoni anche freddi, in un contenitore unico, senza salse che si separano.<span class="newtag">NEW</span></td></tr>
@@ -6855,7 +6967,7 @@ ${hint2("Ogni giorno <b>spunti quello che mangi</b> e registri gli allenamenti. 
 <tr><td>${seasonEmoji()}</td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata 🌸 Primaverile · ☀️ Estivo · 🍂 Autunnale · ❄️ Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.<span class="newtag">NEW</span></td></tr>
 <tr><td>☀️</td><td><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
 <tr><td>📷</td><td><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con ✏️ e la stima si rifà usando esattamente i tuoi numeri.<span class="newtag">NEW</span> Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
-<tr><td>⚖️</td><td><b>Ribilancia pasti</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
+<tr><td>⚖️</td><td><b>Ribilancia le calorie residue</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
 <tr><td>♻️</td><td><b>Recupero sfori</b> — gli sbagli degli ultimi 5 giorni si spalmano nei giorni dopo con soglie e tetti di sicurezza: mai un giorno di digiuno.</td></tr>
 <tr><td>🍽️</td><td><b>Aiuti sul singolo pasto</b> — ✏️ modifica con ristima, 🎲 alternativa a parità di macro, 🔁 sostituzione ingrediente (anche dalla foto di ciò che hai in casa), 🍲 crea un piatto dal frigo, selezionatore di menù al ristorante, ⭐ piatti salvati riusabili senza AI. I piatti salvati finiscono in <b>⭐ Piatti</b>: da lì li riusi per qualsiasi pasto o come extra, senza consumare AI, e l'AI li considera già graditi quando propone o ribilancia.<span class="newtag">NEW</span></td></tr>
 <tr><td>🛒</td><td><b>Lista della spesa</b> — derivata dal <b>tuo</b> piano (anche appena importato o ritarato)<span class="newtag">NEW</span>, con AI o senza, categorie da supermercato, spunte persistenti, link al tuo negozio, prodotti salvati, invio WhatsApp.</td></tr>
@@ -6889,7 +7001,7 @@ Gli allenamenti non sono dentro: si sommano a parte, con la formula <b>(MET dell
 <br><br>Le proteine si calcolano sul <b>peso di riferimento</b> (massa magra, peso obiettivo o peso corretto), non su quello attuale: il grasso non richiede proteine, e usare il peso pieno gonfia il numero.</p>
 
 <div class="gsec">3 · Ribilanciare la giornata</div>
-<p style="font-size:14.5px;line-height:1.55">⚖️ <b>Ribilancia pasti</b> ragiona a <b>budget</b>: pianificato del giorno meno quello già mangiato. Se i pasti che restano stanno dentro il budget non tocca nulla e te lo dice.
+<p style="font-size:14.5px;line-height:1.55">⚖️ <b>Ribilancia le calorie residue</b> ragiona a <b>budget</b>: pianificato del giorno meno quello già mangiato. Se i pasti che restano stanno dentro il budget non tocca nulla e te lo dice.
 Se invece eccedono, riscrive i pasti <b>ancora da consumare</b>: prima abbassa le grammature, poi — solo se il piatto diventa poco saziante — sostituisce un ingrediente con uno più leggero. Le proteine non si riducono mai, nessun pasto scende sotto il minimo impostato, e le proposte che abbassano solo i numeri lasciando il piatto identico vengono scartate prima di arrivarti sotto gli occhi.</p>
 
 <div class="gsec">4 · Recuperare i giorni passati</div>
@@ -6937,7 +7049,8 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>📸</td><td><b>Analisi</b> (dentro ogni pasto): con <b>📸</b> scatti sul momento, con <b>🖼️</b> scegli una foto già nella galleria (comoda se l'hai scattata prima o se non hai rete) e l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro; la descrizione salvata contiene i pesi, così li correggi con ✏️ e la ristima usa esattamente i tuoi numeri. Al ristorante puoi fotografare <b>una portata alla volta</b> (primo, secondo, dolce): ti chiede se <b>aggiungere</b> al pasto o sostituirlo. La spunta ✓ resta sempre tua.</td></tr>
 <tr><td>🔙</td><td>Appare sui pasti spostati: riporta <b>entrambi</b> i pasti dello scambio al loro giorno di origine, anche quello che da qui non vedi (e anche se è già spuntato). Lo scambio infatti è <b>automatico e bidirezionale</b>.</td></tr>
 <tr><td>📋</td><td><b>Il piano non si muove</b>: ribilanciamenti, foto e correzioni cambiano solo la giornata in Oggi. Il pianificato del giorno resta quello del piano, così il confronto "previsto vs mangiato" ha sempre senso.</td></tr>
-<tr><td>⚖️</td><td><b>Ribilancia pasti</b>: rimette in riga la giornata agendo <b>solo sui pasti non ancora spuntati</b>; se sei già in linea non tocca nulla. Quando taglia usa <b>valori reali</b>: prima abbassa le <b>grammature</b>, poi — solo se il piatto diventa poco saziante — sostituisce ingredienti con alternative più leggere e voluminose. Mai numeri ritoccati a piatto invariato (scartati in automatico), mai pasti eliminati.</td></tr>
+<tr><td>⚖️</td><td><b>Ribilancia le calorie residue</b>: rimette in riga la giornata agendo <b>solo sui pasti non ancora spuntati</b>; se sei già in linea non tocca nulla. Quando taglia usa <b>valori reali</b>: prima abbassa le <b>grammature</b>, poi — solo se il piatto diventa poco saziante — sostituisce ingredienti con alternative più leggere e voluminose. Mai numeri ritoccati a piatto invariato (scartati in automatico), mai pasti eliminati.</td></tr>
+</table>
 <div class="gsec">Colori dei pasti</div><table class="gtable">
 <tr><td>🟩</td><td>Verde = pasto normale del piano.</td></tr>
 <tr><td>🟧</td><td>Arancione = pasto <b>libero</b> (sushi, pizza, aperitivo, cornetto): non obbligatorio, c'è sempre l'opzione normale.</td></tr>
@@ -7061,6 +7174,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <button class="btn" onclick="saveWeighIn()">📌 Registra la pesata</button></div>`;
 
   h+=`<div class="card"><h2>🎯 Obiettivi</h2>
+  <div class="hint">Dove vuoi arrivare e con che ritmo. Da qui l'app calcola il deficit e la proiezione del peso.</div>
   <div class="row2"><div><label>Obiettivo peso (kg)</label><input type="number" step="0.1" id="pGoal" value="${goalWeightSet()||""}" placeholder="facoltativo"></div>
   <div><label>Obiettivo acqua (L al giorno)</label><input type="number" step="0.25" id="pWater" value="${p.waterGoalL||""}" placeholder="proposto: ${waterSuggestL()}"></div></div>
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
@@ -7096,7 +7210,8 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <button class="btn" onclick="saveAttivita()">Salva attività</button></div>`;
 
   // Gestione periodi (inizio/fine dieta o periodo libero)
-  h+=`<div class="card"><h2>Il tuo motore</h2><div class="stat3">
+  h+=`<div class="card"><h2>Il tuo motore</h2>
+  <div class="hint">I numeri che l'app usa per tutto il resto: si aggiornano da soli quando cambi peso, attività o obiettivo.</div><div class="stat3">
   <div><div class="v">${age()||"—"}</div><div class="l">anni</div></div>
   <div><div class="v">${bmr()}</div><div class="l">BMR</div></div>
   <div><div class="v">${tdee()}</div><div class="l">TDEE base</div></div></div>
@@ -7127,6 +7242,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
  "Serve per: foto dei piatti e del frigo, lettura dei menù, stime di sgarri e sport, alternative, ribilanciamento, sostituzioni nella spesa e report settimanali. Senza chiave l'app funziona lo stesso, ma tutto va fatto a mano.")}</div>`;
   // Drive
   h+=`<div class="card"><h2>☁️ Sincronizzazione Google Drive</h2>
+  <div class="hint">Backup automatico su una cartella privata del <b>tuo</b> Drive. Serve una configurazione iniziale su Google Cloud: i passaggi sono qui sotto.</div>
   <label>CLIENT_ID (Google Cloud)</label><input type="text" id="dCid" value="${S.drive.cid||""}" placeholder="xxxx.apps.googleusercontent.com">
   ${hint2("Salva al massimo ogni 15 minuti, e sempre quando chiudi l'app.",
  "Oltre al backup principale tiene una <b>copia al giorno</b> (le ultime sette), così puoi tornare indietro. Se il backup online risulta molto più ricco di quello sul telefono, l'app <b>si ferma e chiede</b> invece di sovrascrivere.")}
@@ -7142,6 +7258,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   // Backup
   h+=`<div class="gsec">I tuoi dati</div>`;
   h+=`<div class="card"><h2>Dati & backup in locale</h2>
+  <div class="hint">I tuoi dati stanno sul telefono. Esporta ogni tanto un backup: se cambi dispositivo o svuoti il browser, è l'unico modo per ritrovarli.</div>
   <button class="btn ghost" onclick="exportData()">Esporta</button>
   <button class="btn ghost" onclick="importData()">Importa</button>
   <button class="btn warn" onclick="wipeAll()">Cancella</button>

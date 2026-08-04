@@ -555,7 +555,8 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
 #zoomOv .zhint{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#fff;font-size:12px;opacity:.8;background:rgba(0,0,0,.35);border-radius:14px;padding:6px 13px}
 #scanbox{display:none;margin-top:10px}
 #scanreader{width:100%;border-radius:14px;overflow:hidden}
-#aiSpin{position:fixed;left:14px;right:86px;transform:none;justify-content:center;bottom:calc(88px + env(safe-area-inset-bottom));z-index:90;background:var(--card);border:1px solid var(--linea);box-shadow:var(--shadow-lift);border-radius:24px;padding:10px 16px;display:none;align-items:center;gap:10px;font-size:13px;color:var(--bosco);font-weight:700}
+#aiSpin{position:fixed;left:50%;transform:translateX(-50%);justify-content:center;
+  max-width:calc(100vw - 110px);bottom:calc(152px + env(safe-area-inset-bottom));z-index:90;background:var(--card);border:1px solid var(--linea);box-shadow:var(--shadow-lift);border-radius:24px;padding:10px 16px;display:none;align-items:center;gap:10px;font-size:13px;color:var(--bosco);font-weight:700}
 #aiSpin.on{display:flex}
 /* rotella dell'AI: unica animazione rimasta, gira SOLO mentre l'AI lavora */
 @keyframes nspin{to{transform:rotate(360deg)}}
@@ -628,6 +629,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
    perché i testi hanno lunghezze diverse e le colonne non tornavano mai. */
 .ckgrid{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
 .ckgrid .ck{width:100%;justify-content:flex-start}
+.freqrow{display:flex;gap:8px;align-items:center}
+.freqsel{flex:0 0 auto;width:auto;min-width:0;max-width:44%;font-size:12px;padding:9px 8px;margin:0}
+.freqsel:disabled{opacity:.4}
 .ck{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--linea);border-radius:13px;padding:10px 13px;font-size:13px;cursor:pointer;background:var(--card);transition:background .2s,border-color .2s}
 .ck input[type=checkbox]{}
 .ck input{width:18px;height:18px;margin:0;accent-color:var(--salvia)}
@@ -847,7 +851,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.10.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.11.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1484,8 +1488,16 @@ async function geminiCall(prompt,imgs){
         const ctrl=new AbortController();
         const to=setTimeout(()=>{timedOut=true;ctrl.abort();},aiTimeoutFor(prompt,imgs));
         let r;
+        /* Se la richiesta prevede una risposta JSON, la si impone al modello:
+           senza, capita che risponda con testo attorno o che tronchi la
+           risposta a metà — e il piano non arriva mai. Il tetto di token
+           alto serve proprio a non far troncare un giorno intero. */
+        const vuoleJSON=/Rispondi SOLO/i.test(prompt)||/\bJSON\b/.test(prompt);
+        const cfg={temperature:0.7,maxOutputTokens:8192};
+        if(vuoleJSON&&!(imgs&&imgs.length))cfg.responseMimeType="application/json";
         try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+encodeURIComponent(key),{
-          method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts}]}),signal:ctrl.signal});}
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({contents:[{parts}],generationConfig:cfg}),signal:ctrl.signal});}
         finally{clearTimeout(to);}
         if(r.status===429){lastErr=new Error("quota");break;}              // quota: cambia modello
         if(r.status===404){lastErr=new Error("modello");break;}            // modello assente: cambia
@@ -1494,8 +1506,15 @@ async function geminiCall(prompt,imgs){
         if(!r.ok)throw new Error("HTTP "+r.status);
         const j=await r.json();
         if(j.promptFeedback&&j.promptFeedback.blockReason)throw new Error("blocked");
-        const txt=(j.candidates&&j.candidates[0]&&j.candidates[0].content.parts.map(p=>p.text||"").join(""))||"";
+        const cand=(j.candidates&&j.candidates[0])||null;
+        /* Una risposta troncata arriva senza parti utilizzabili: va
+           riconosciuta, altrimenti diventa un errore incomprensibile. */
+        if(cand&&cand.finishReason==="MAX_TOKENS"){lastErr=new Error("troncata");await wait(600);continue;}
+        if(cand&&(cand.finishReason==="SAFETY"||cand.finishReason==="RECITATION"))throw new Error("blocked");
+        const pz=(cand&&cand.content&&cand.content.parts)||[];
+        const txt=pz.map(p=>p.text||"").join("");
         trackUsage((j.usageMetadata&&j.usageMetadata.totalTokenCount)||0,false);
+        if(!txt.trim()){lastErr=new Error("vuota");await wait(600);continue;}
         return txt;
       }catch(e){lastErr=e;
         const msg=String(e.message||e);
@@ -1665,6 +1684,23 @@ const NUTRI_RULES_DEF=[
 function nutriRules(){
   const c=S.rules&&S.rules.nutri;
   return (typeof c==="string")?c:NUTRI_RULES_DEF.join(" ");}
+/* Versione compatta delle regole nutrizionali per la generazione del piano.
+   Costruire un giorno richiede già una risposta lunga: caricare anche 3.400
+   caratteri di regole aumenta la probabilità che la risposta venga troncata
+   e che il giorno non arrivi mai. Il senso resta, il peso scende a un quinto. */
+function nutriRulesShort(){
+  if(S.rules&&typeof S.rules.nutri==="string")return S.rules.nutri.slice(0,900);
+  return "Base OMS, adattata alla persona: condizioni di salute e intolleranze dichiarate vincono sempre. "+
+    "Verdura a pranzo e cena, frutta 2-3 volte (400 g al giorno). Zuccheri aggiunti sotto il 10% delle calorie, "+
+    "grassi sotto il 30% (saturi sotto il 10%), sale sotto 5 g, fibra almeno 25 g. Olio extravergine a crudo, "+
+    "frutta secca o semi ogni giorno, cereali integrali quando possibile. "+
+    "Per chi non è vegetariano: pesce 2-3 volte a settimana (una grassa), carne bianca 2-3, carne rossa 1-2, "+
+    "uova 2-4, yogurt greco o ricotta anche ogni giorno. Legumi 2-3 volte come aggiunta, non come sostituto; "+
+    "con colon irritabile 1-2 volte, 60-80 g cotti, lenticchie decorticate. Salumi 1-2 volte al massimo. "+
+    "Varia: mai lo stesso piatto più di due volte a settimana.";}
+function rulesForPlan(){const r=rulesSnapshot();
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRulesShort()+digiunoForAI()+" "+physForAI()+
+    (r.custom?(" Regole della persona: "+r.custom):"");}
 function rulesForAI(){const r=rulesSnapshot();
   return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
     (Object.keys(parseMensa(outThisWeek())).length?" PASTI FUORI CASA questa settimana: "+outThisWeek()+
@@ -1874,7 +1910,41 @@ window.actSteps=(v,id)=>{const e=document.getElementById(id);if(e)e.value=ACT_ST
 /* Motivo in chiaro, per i messaggi dentro i flussi lunghi */
 function aiReason(e){const m=String(e&&e.message||e);
   return {timeout:"tempo scaduto",rete:"rete caduta",quota:"limite Gemini raggiunto",busy:"server occupati",
-    badkey:"chiave non valida",blocked:"risposta bloccata dai filtri",nokey:"chiave mancante"}[m]||m;}
+    badkey:"chiave non valida",blocked:"risposta bloccata dai filtri",nokey:"chiave mancante",
+    troncata:"risposta troppo lunga, tagliata a metà",vuota:"risposta vuota"}[m]||m;}
+/* ═══ DIAGNOSI ══════════════════════════════════════════════════════
+   Quando qualcosa non funziona, indovinare costa tempo a tutti. Questa
+   prova ogni modello uno per uno e dice esattamente cosa succede. */
+window.aiDiagnosi=async()=>{
+  const box=document.getElementById("aiDiag");if(!box)return;
+  box.style.display="block";
+  const key=(S.ai&&S.ai.key||"").trim();
+  if(!key){box.innerHTML="<b>Nessuna chiave impostata.</b> Incollala qui sopra.";return;}
+  box.innerHTML="Provo i modelli uno per uno…";
+  const modelli=gemModels().slice(0,6),righe=[];
+  for(const m of modelli){
+    const t0=Date.now();
+    try{
+      const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent?key="+encodeURIComponent(key),{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({contents:[{parts:[{text:'Rispondi SOLO con questo JSON: {"ok":1}'}]}],
+          generationConfig:{maxOutputTokens:64,responseMimeType:"application/json"}})});
+      const ms=Date.now()-t0;
+      if(!r.ok){
+        let det="";try{const j=await r.json();det=(j.error&&j.error.message)||"";}catch(_){}
+        righe.push("✗ <b>"+esc(m)+"</b> — HTTP "+r.status+(det?": "+esc(det.slice(0,90)):""));
+        continue;}
+      const j=await r.json();
+      const c=(j.candidates&&j.candidates[0])||null;
+      const txt=((c&&c.content&&c.content.parts)||[]).map(p=>p.text||"").join("").trim();
+      righe.push((txt?"✓":"✗")+" <b>"+esc(m)+"</b> — "+(txt?("risponde in "+ms+" ms"):("nessun testo, finishReason: "+esc(String(c&&c.finishReason)))));
+    }catch(e){righe.push("✗ <b>"+esc(m)+"</b> — "+esc(aiReason(e)));}
+  }
+  const ok=righe.filter(r=>r.startsWith("✓")).length;
+  box.innerHTML="<b>"+ok+" modelli su "+modelli.length+" rispondono</b><br>"+righe.join("<br>")+
+    "<div class=\"hint\" style=\"margin-top:9px\">"+(ok
+      ? "La connessione funziona. Se il piano non arriva, il problema è nella lunghezza della risposta: scrivimelo e lo accorcio."
+      : "Nessun modello risponde: la chiave è sbagliata, scaduta, o il limite gratuito è esaurito. Prova a crearne una nuova.")+"</div>";};
 function aiFail(e){const m=String(e&&e.message||e);
   const map={
     nokey:"Chiave Gemini mancante: impostala nella pagina Io.",
@@ -2063,8 +2133,12 @@ function dens(){const v=S.ui&&S.ui.dens;return (v==="full"||v==="expert")?v:"bas
 function densMin(l){const o={base:0,full:1,expert:2};return o[dens()]>=o[l];}
 window.densSet=(v)=>{
   S.ui.dens=v;S.ui.densChiesto=iso(new Date());save();render(cur);
-  const d=DENS.find(x=>x[0]===v);
-  toast(d?d[1]+" · "+d[2]:"Aggiornato");};
+  /* Il livello si cambia in Profilo, ma l'effetto si vede altrove: senza
+     dirlo sembra che il comando non faccia niente. */
+  const dove={base:"Bilancio con 4 numeri · formule nascoste",
+              full:"Bilancio completo con macro e fibre",
+              expert:"Tutto in vista, formule comprese"}[v]||"";
+  toast(dove+" — lo vedi in "+(((S.profile.name||"").trim().split(" ")[0])||"Punto")+" e in Regole");};
 /* Ogni tre settimane: «vuoi vedere di più, o preferisci più semplice?» */
 function densNudge(){
   if(!S.onboard.done)return false;
@@ -4993,7 +5067,7 @@ function onbSave(silent){
     D.varieta=v("obVar")||"media";
     D.budget=v("obBudget");D.alcol=v("obAlcol");
     D.religiose=readTagChecks("ob","R",REL_LIST);
-    D.integratori=readTagChecks("ob","G",INTEG_LIST);
+    D.integratori=readFreqChecks("ob","G",INTEG_LIST);
     D.liberi=v("obOcc");
   }
   if(st===2){const k=v("obKey");if(k)S.ai.key=k;}
@@ -5118,7 +5192,7 @@ function renderBenvenuto(){
         <select id="obAlcol">${["mai","raramente","nel weekend","spesso"].map(o=>`<option value="${o}" ${D.alcol===o?"selected":""}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join("")}</select></div>
     </div>
     ${tagChecksHTML("ob","R",REL_LIST,D.religiose,"Vincoli religiosi o etici","")}
-    ${tagChecksHTML("ob","G",INTEG_LIST,D.integratori,"Integratori che già prendi","Servono all'AI per non proporti doppioni.")}
+    ${freqChecksHTML("ob","G",INTEG_LIST,D.integratori,"Integratori che già prendi","Con che frequenza li prendi: servono all'AI per non proporti doppioni.")}
     <label>Occasioni ricorrenti</label>
     <input type="text" id="obOcc" value="${esc(D.liberi||"")}" placeholder="es. cena fuori il sabato, pranzo in famiglia la domenica, aperitivo del venerdì">
     <div class="obbox">Le <b>occasioni ricorrenti</b> sono gli appuntamenti fissi della tua settimana: l'AI li tiene da conto invece di proporti un piatto da cucinare proprio in quel momento. Tutti questi campi sono facoltativi e modificabili in Regole.</div>
@@ -5215,7 +5289,7 @@ function renderBenvenuto(){
 let OBWK=null;
 function obWkRows(){
   if(!OBWK)OBWK=(S.profile.goalWorkoutList||[]).map(g=>({sport:g.sport||"",perWeek:g.perWeek||"",min:g.min||60}));
-  if(!OBWK.length)OBWK=[{sport:"",perWeek:"",min:45}];
+  if(!OBWK.length)OBWK=[{sport:"",perWeek:"",min:60}];
   return OBWK;}
 window.obWkSync=()=>{const out=[];
   /* obWkRows() ricostruisce l'elenco se è stato azzerato da un salvataggio
@@ -5226,10 +5300,10 @@ window.obWkSync=()=>{const out=[];
   if(out.length)OBWK=out;
   return OBWK||[];};      /* mai null: onbSave ci chiama .filter() sopra */
 window.obWkAdd=()=>{obWkSync();const rows=obWkRows();
-  if(rows.length<8)rows.push({sport:"",perWeek:"",min:45});
+  if(rows.length<8)rows.push({sport:"",perWeek:"",min:60});
   renderBenvenuto();};
 window.obWkDel=i=>{obWkSync();const rows=obWkRows();rows.splice(i,1);
-  if(!rows.length)OBWK=[{sport:"",perWeek:"",min:45}];
+  if(!rows.length)OBWK=[{sport:"",perWeek:"",min:60}];
   renderBenvenuto();};
 window.obGoalUI=()=>{
   const gEl=document.getElementById("obGoal");if(!gEl)return;
@@ -5656,6 +5730,32 @@ const PAT_LIST=[
 const REL_LIST=["niente carne di maiale","niente carne di alcun tipo","halal","kosher","niente alcol"];
 const INTEG_LIST=["vitamina D","magnesio","omega 3","creatina","proteine in polvere","multivitaminico","ferro","vitamina B12","probiotici"];
 const OCC_LIST=["cena fuori il sabato","pranzo in famiglia la domenica","aperitivo del venerdì","pausa dolce al bar","cene di lavoro","allenamento la sera tardi"];
+/* Come tagChecksHTML, ma ogni voce ha anche la frequenza: «vitamina D
+   settimanalmente» e «vitamina D tutti i giorni» sono due cose diverse
+   per chi costruisce il piano. La frequenza si salva accanto al nome. */
+const FREQ=["giornalmente","settimanalmente","mensilmente","al bisogno"];
+function freqChecksHTML(pre,key,list,cur,label,hint){
+  const c=String(cur||"").toLowerCase();
+  const freqDi=(x)=>{const m=c.match(new RegExp(x.toLowerCase()+"\\s*\\(([^)]+)\\)"));return m?m[1].trim():"giornalmente";};
+  let h=`<label>${label}</label><div class="ckgrid">`+list.map((x,i)=>{
+    const on=c.indexOf(x.toLowerCase())>-1, f=freqDi(x);
+    return `<div class="freqrow">
+      <label class="ck" style="flex:1"><input type="checkbox" id="${pre}${key}${i}" ${on?"checked":""} onchange="freqSync('${pre}${key}${i}')"> ${x[0].toUpperCase()+x.slice(1)}</label>
+      <select id="${pre}${key}${i}f" class="freqsel" ${on?"":"disabled"}>${FREQ.map(o=>`<option value="${o}" ${f===o?"selected":""}>${o[0].toUpperCase()+o.slice(1)}</option>`).join("")}</select>
+    </div>`;}).join("")+`</div>`;
+  const extra=parseSlots(cur).filter(x=>!list.some(k=>x.toLowerCase().indexOf(k.toLowerCase())>-1)).join(", ");
+  h+=`<input type="text" id="${pre}${key}txt" value="${esc(extra)}" placeholder="altro, scrivilo tu">`;
+  if(hint)h+=`<div class="hint">${hint}</div>`;
+  return h;}
+window.freqSync=(id)=>{const c=document.getElementById(id),f=document.getElementById(id+"f");
+  if(c&&f)f.disabled=!c.checked;};
+function readFreqChecks(pre,key,list){const out=[];
+  list.forEach((x,i)=>{const e=document.getElementById(pre+key+i);
+    if(e&&e.checked){const f=document.getElementById(pre+key+i+"f");
+      out.push(x+(f&&f.value?" ("+f.value+")":""));}});
+  const t=document.getElementById(pre+key+"txt");
+  if(t&&t.value.trim())t.value.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>out.push(x));
+  return out.join(", ");}
 function tagChecksHTML(pre,key,list,cur,label,hint){
   const c=String(cur||"").toLowerCase();
   let h=`<label>${label}</label><div class="ckgrid">`+list.map((x,i)=>
@@ -5911,7 +6011,7 @@ window.genPlanAI=async()=>{
     for(let i=0;i<7;i++){
       const dayName=DAYS[i][0],mensaOggi=mensa[DAYS[i][1]];
       if(box){box.style.display="block";box.textContent="✨ Giorno "+(i+1)+" di 7 — "+dayName+"…\n⏳ L'AI sta lavorando per rispettare tutte le tue richieste: può volerci qualche minuto, abbi un po' di pazienza.";}
-      const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target del giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForAI()+
+      const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target del giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
         ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
         (mensaOggi?(outTypeIsPorto()
           ? ' Oggi il pasto "'+(mensaOggi==="cena"?"Cena":"Pranzo")+'" lo prepara la persona e se lo porta da casa: scrivilo ESATTAMENTE come gli altri pasti — stessa struttura, stesse grammature, stesso livello di dettaglio — con l\'unico vincolo che sia trasportabile in un contenitore e buono anche freddo o riscaldato. Niente indicazioni speciali, niente ricette elaborate. Usa type "norm" perché gli ingredienti vanno comprati.'
@@ -5958,9 +6058,27 @@ window.genPlanAI=async()=>{
       plan.push(day);
     }
     if(box)box.textContent="";
-    const tot=plan.map(d=>d.meals.reduce((a,m)=>a+m.o[0].k,0));
-    if(!await dlgConfirm("Piano pronto. Calorie per giorno:\n\n"+plan.map((d,i)=>d.day+": ~"+tot[i]+" kcal").join("\n")+
-      "\n\nMedia: ~"+Math.round(tot.reduce((a,b)=>a+b,0)/7)+" kcal (target "+target+")\n\nOK = attiva questo piano"))return;
+    /* ═══ CONTROLLO FINALE ═══════════════════════════════════════
+       Passata di verifica su ciò che è stato costruito, fatta in casa e
+       non dall'AI: nessuna chiamata in più da poter fallire. Segnala i
+       giorni fuori target e le proteine sotto la soglia, così si sa
+       subito se conviene ritarare invece di scoprirlo fra tre giorni. */
+    const tot=plan.map(d=>d.meals.reduce((a,m)=>a+(+m.o[0].k||0),0));
+    const pro=plan.map(d=>d.meals.reduce((a,m)=>a+(+m.o[0].p||0),0));
+    const media=Math.round(tot.reduce((a,b)=>a+b,0)/7);
+    const fuori=[],magri=[];
+    plan.forEach((d,i)=>{
+      if(Math.abs(tot[i]-target)>target*0.12)fuori.push(d.day+" "+tot[i]);
+      if(pro[i]<protG*0.85)magri.push(d.day+" "+pro[i]+" g");});
+    const avvisi=[];
+    if(fuori.length)avvisi.push("⚠️ Giorni lontani dal target: "+fuori.join(", "));
+    if(magri.length)avvisi.push("⚠️ Proteine sotto la soglia: "+magri.join(", "));
+    if(avvisi.length)avvisi.push("Puoi attivarlo lo stesso e poi premere 🎯 Ricalibra, che sistema le grammature senza cambiare i piatti.");
+    if(!await dlgConfirm("Piano pronto — sette giorni completi.\n\n"+
+      plan.map((d,i)=>d.day+": ~"+tot[i]+" kcal · "+pro[i]+" g proteine").join("\n")+
+      "\n\nMedia: ~"+media+" kcal (target "+target+") · proteine obiettivo "+protG+" g"+
+      (avvisi.length?("\n\n"+avvisi.join("\n")):"\n\n✓ Tutti i giorni sono nei limiti.")+
+      "\n\nOK = attiva questo piano"))return;
     snapSave("prima di: piano generato");
     S.customPlan=plan;PLAN=plan;S.permMeals={};S.week=freshWeek();
     S.customShop=null;S.shop={};      /* la spesa riparte dagli ingredienti del nuovo piano */
@@ -8193,7 +8311,8 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <select id="gModel">${(function(){const d=gemDiscovered()||[];
     const list=["auto"].concat(d,GEM_ALL.filter(m=>m!=="auto"&&d.indexOf(m)<0));
     return list.map(m=>`<option ${S.ai.model===m?"selected":""}>${m}</option>`).join("");})()}</select>
-  <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="gemRefreshModels()">🔄 Cerca modelli nuovi</button></div>
+  <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="aiDiagnosi()">🩺 Prova la connessione</button><button class="btn ghost small" onclick="gemRefreshModels()">🔄 Cerca modelli nuovi</button></div>
+  <div class="aibox" id="aiDiag" style="display:none"></div>
   <div class="hint">Con <b>auto</b> non serve aggiornare l'app quando Google pubblica un modello nuovo: l'elenco si aggiorna da solo a ogni apertura (o subito con il pulsante) e l'app usa il più recente disponibile, scendendo agli altri se non risponde.${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString("it-IT")+" · "+S.ai.models.list.length+" modelli.":""}</div>
   <div class="hint">Con la chiave gratuita usi i modelli <b>Flash</b> (auto = prova 3.5-flash → 3.1-flash-lite → 2.5). I <b>Pro</b> in fondo alla lista funzionano solo con fatturazione attiva: se li scegli senza, l'app ripiega da sola sui Flash.</div>
   <button class="btn" onclick="saveAI()">Salva impostazioni AI</button>

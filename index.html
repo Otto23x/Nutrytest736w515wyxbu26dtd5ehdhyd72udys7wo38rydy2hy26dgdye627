@@ -46,7 +46,7 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
   /* Chiaro come impostazione: dà l'idea di leggerezza, che è il punto.
      Superfici più fredde e meno sature del verde precedente, linee più
      tenui, ombre quasi assenti: l'aria fa il lavoro che facevano i bordi. */
-  --bosco:#0B3D2C; --salvia:#16A34A; --menta:#EAF4EE; --crema:#F3F6F3; --card:#FFFFFF;
+  --bosco:#0B3D2C; --azione:#14603F; --salvia:#16A34A; --menta:#EAF4EE; --crema:#F3F6F3; --card:#FFFFFF;
   --ink:#0C1F17; --grigio:#6B7B71; --linea:#E4EAE5;
   --zaff:#E09112; --zaffbg:#FFF6E6; --mensa:#5B7FE0; --mensabg:#EEF2FD;
   --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
@@ -78,7 +78,12 @@ html[data-theme="dark"]{
    Niente barre laterali: tutto si adatta alla larghezza dello schermo.
    Le tre regole sotto sono la rete di sicurezza — se un elemento futuro
    dovesse sforare, si stringe invece di spingere fuori la pagina. */
-html,body{overflow-x:hidden;max-width:100%}
+/* overflow-x:hidden su <html> crea un contenitore di scorrimento e ANNULLA
+   position:sticky dell'intestazione. Si usa clip, che taglia il traboccamento
+   senza creare il contenitore; hidden resta come ripiego sul solo body. */
+html{overflow-x:clip;max-width:100%}
+body{overflow-x:clip;max-width:100%}
+@supports not (overflow:clip){body{overflow-x:hidden}}
 img,canvas,table,pre,iframe,video{max-width:100%}
 input,select,textarea,button{max-width:100%}
 html{scroll-behavior:smooth}
@@ -116,7 +121,10 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .datebar button{border:1px solid var(--linea);background:var(--card);color:var(--grigio);border-radius:50%;width:30px;height:30px;flex:none;font-size:15px;cursor:pointer;transition:transform .18s var(--ease),background .2s}
 .datebar button:hover{background:var(--menta);color:var(--bosco);transform:scale(1.1)}
 .datebar button:active{transform:scale(.88)}
-.datebar .dt{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.015em;text-transform:capitalize;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;cursor:pointer;transition:opacity .2s}
+.datebar .dnav{border:0;background:none;color:var(--grigio);font-size:22px;line-height:1;
+  padding:2px 8px;cursor:pointer;opacity:.55;transition:opacity .2s,transform .15s var(--ease)}
+.dnav:active{opacity:1;transform:scale(.88)}
+.dt{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.015em;text-transform:capitalize;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;cursor:pointer;transition:opacity .2s}
 .datebar .dt:hover{opacity:.85}
 .datebar .dt small{display:block;font-size:10px;opacity:.8}
 /* ══ PAGINE: transizione slide+fade ══ */
@@ -219,7 +227,7 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 /* ══ ASSISTENTE ══ */
 .fab{
   position:fixed;right:16px;bottom:82px;z-index:70;width:56px;height:56px;border-radius:50%;
-  border:0;background:var(--bosco);color:#fff;cursor:pointer;display:grid;place-items:center;
+  border:0;background:var(--azione);color:#fff;cursor:pointer;display:grid;place-items:center;
   box-shadow:0 10px 26px -8px rgba(11,61,44,.65);transition:transform .2s var(--ease);
 }
 .fab:active{transform:scale(.94)}
@@ -352,7 +360,7 @@ textarea:focus,input:focus,select:focus{border-color:var(--bosco);background:var
 textarea{min-height:54px;resize:vertical}
 label{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--grigio);display:block;margin:15px 0 6px}
 /* ══ BOTTONI: gradiente + lift ══ */
-.btn{display:inline-block;border:0;background:var(--bosco);color:#fff;border-radius:15px;
+.btn{display:inline-block;border:0;background:var(--azione);color:#fff;border-radius:15px;
   padding:13px 20px;font-size:14.5px;font-weight:700;letter-spacing:-.005em;cursor:pointer;margin-top:8px;
   box-shadow:0 6px 16px -8px rgba(11,61,44,.55);
   transition:transform .22s var(--ease),box-shadow .25s,filter .2s;position:relative;overflow:hidden}
@@ -419,10 +427,7 @@ html[data-theme="dark"] .btn{color:#04170B}
   background:var(--card);color:var(--ink);font-size:13px;font-weight:600;padding:9px 0;cursor:pointer}
 .famrow .fdob{flex:1 1 128px;min-width:0;font-size:12.5px;padding-left:6px;padding-right:6px}
 .famrow .fbadge{flex:0 0 auto;font-size:12px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
-.ckrow2{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:6px 0 10px}
-.ckrow2 .ck{justify-content:center;align-items:center;padding:8px 3px;font-size:clamp(9.5px,2.8vw,12.5px);min-width:0;text-align:center;line-height:1.15;white-space:nowrap}
 .ckrow3 .ck{justify-content:center;align-items:center;padding:8px 3px;font-size:clamp(9.5px,2.8vw,12.5px);min-width:0;text-align:center;line-height:1.15;white-space:nowrap}
-.ckrow3 .ck,.ckrow2 .ck{min-height:44px}
 .water span:hover{transform:translateY(-3px)}
 .water span.f{background:linear-gradient(180deg,#EAF4FF,#C8E1FB);border-color:var(--mensa);transform:translateY(-3px);box-shadow:0 6px 12px -4px rgba(37,99,235,.35)}
 
@@ -459,22 +464,28 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .wzbar{display:flex;gap:8px;margin:8px 0 2px;flex-wrap:wrap}
 .wzbar .btn{flex:1 1 104px;min-width:0;margin-top:0;text-align:center}
 .wzval{margin:8px 0 0;padding:9px 11px;overflow-wrap:anywhere;line-height:1.5;border:1px dashed var(--linea);border-radius:12px;font-size:13px;color:var(--bosco);font-weight:600;background:var(--menta)}
-.ctlrow{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:7px 11px;border-radius:14px;
-  background:var(--card);border:1px solid var(--linea);font-size:12.5px;flex-wrap:wrap}
-.ctlrow .cl{font-weight:700;color:var(--grigio);flex-shrink:0;display:inline-flex;align-items:center;gap:7px;
-  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+/* Etichetta e comando su una riga sola quando ci stanno, altrimenti il
+   comando scende sotto ALLINEATO A SINISTRA invece di lasciare un vuoto:
+   prima il pulsante andava a capo da solo e la riga restava alta e sguarnita. */
+.ctlrow{display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:11px 14px;border-radius:16px;
+  background:var(--card);border:0;font-size:12.5px;flex-wrap:wrap;
+  box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 22px -18px rgba(12,31,23,.22)}
+.ctlrow .cl{font-weight:700;color:var(--grigio);flex:1 1 auto;min-width:0;display:inline-flex;align-items:center;gap:8px;
+  font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;line-height:1.3}
 .ctlrow .cl svg.ico{flex:0 0 auto}
-.ctlrow .cv{margin-left:auto;color:var(--bosco);font-weight:700;font-size:12.5px}
+.ctlrow .cv{margin-left:auto;flex:0 0 auto;color:var(--bosco);font-weight:700;font-size:12.5px;white-space:nowrap}
 .ctlrow.tap{cursor:pointer}
 .ctlrow.tap:active{background:var(--menta)}
-.ctlrow .coff{margin-left:auto;color:var(--grigio);font-size:12px}
+.ctlrow .coff{margin-left:auto;flex:0 0 auto;color:var(--grigio);font-size:12px;white-space:nowrap}
+.ctlrow select{flex:1 1 150px;width:auto;min-width:0;max-width:100%}
+.ctlrow .vbtn{margin-left:0}
+/* Quando qualcosa va a capo, i comandi restano insieme sulla stessa riga */
+.ctlrow .cend{display:flex;align-items:center;gap:9px;margin-left:auto;flex:0 0 auto}
 .ctlrow select{max-width:132px;min-width:0;flex:1 1 96px;font-size:12px;padding:5px 6px;margin:0}
 .ctlrow .ck{display:flex;align-items:center;gap:4px;color:var(--grigio);flex-shrink:0}
 .ctlrow .ck input{width:19px;height:19px;margin:0}
 /* Il quadratino deve stare sulla stessa linea del testo, non più in alto */
 .ck input[type=checkbox],.ck input[type=radio]{width:19px;height:19px;margin:0;flex:0 0 auto;accent-color:var(--bosco)}
-.ckrow3 .ck,.ckrow2 .ck{justify-content:flex-start;gap:7px;padding:11px 10px}
-.ckrow3 .ck input,.ckrow2 .ck input{margin:0}
 .ctlrow .ck input:disabled+span{opacity:.45}
 .lnk{color:var(--salvia);font-weight:700;text-decoration:underline;text-underline-offset:2px}
 .wtab{font-size:12.5px;width:100%;table-layout:auto}
@@ -489,7 +500,7 @@ html[data-theme="dark"] .water span.f{background:#1E3350}
 .ckline input{width:20px;height:20px;margin:0}
 .ckline small{color:var(--grigio);font-weight:400}
 .ctlrow .coff{color:var(--grigio);opacity:.6;flex-shrink:0}
-.ctlrow .vbtn{flex-shrink:0;margin-left:auto;border:0;background:var(--bosco);color:#fff;
+.ctlrow .vbtn{flex-shrink:0;margin-left:auto;border:0;background:var(--azione);color:#fff;
   font-family:inherit;font-size:12.5px;font-weight:700;padding:9px 15px;border-radius:12px;
   cursor:pointer;line-height:1.1;display:inline-flex;align-items:center;gap:6px}
 .ctlrow .vbtn.done{background:var(--menta);color:var(--bosco)}
@@ -544,13 +555,20 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
 #zoomOv .zhint{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#fff;font-size:12px;opacity:.8;background:rgba(0,0,0,.35);border-radius:14px;padding:6px 13px}
 #scanbox{display:none;margin-top:10px}
 #scanreader{width:100%;border-radius:14px;overflow:hidden}
-#aiSpin{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:90;background:var(--card);border:1px solid var(--linea);box-shadow:var(--shadow-lift);border-radius:24px;padding:10px 16px;display:none;align-items:center;gap:10px;font-size:13px;color:var(--bosco);font-weight:700}
+#aiSpin{position:fixed;left:14px;right:86px;transform:none;justify-content:center;bottom:calc(88px + env(safe-area-inset-bottom));z-index:90;background:var(--card);border:1px solid var(--linea);box-shadow:var(--shadow-lift);border-radius:24px;padding:10px 16px;display:none;align-items:center;gap:10px;font-size:13px;color:var(--bosco);font-weight:700}
 #aiSpin.on{display:flex}
 /* rotella dell'AI: unica animazione rimasta, gira SOLO mentre l'AI lavora */
 @keyframes nspin{to{transform:rotate(360deg)}}
-#aiSpin .sp{width:17px;height:17px;border-radius:50%;border:2.5px solid var(--linea);border-top-color:var(--salvia);animation:nspin .8s linear infinite}
+#aiSpin .sp{position:relative;width:18px;height:18px;border-radius:50%;
+  border:2.5px solid var(--linea);border-top-color:var(--azione);
+  animation:nspin .9s linear infinite}
+/* Anello interno in senso ORARIO OPPOSTO: l'occhio lo coglie subito e
+   distingue «sto lavorando» da un semplice caricamento. */
+.sp::after{content:"";position:absolute;inset:2px;border-radius:50%;
+  border:2px solid transparent;border-bottom-color:var(--salvia);
+  animation:nspin 1.3s linear infinite reverse}
 @media(prefers-reduced-motion:reduce){#aiSpin .sp{animation:none}}
-#toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px) scale(.9);top:78px;z-index:96;background:var(--grad);color:#fff;border-radius:22px;padding:11px 20px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:all .4s var(--ease);box-shadow:0 12px 30px -8px rgba(22,163,74,.6)}
+#toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px) scale(.9);top:78px;z-index:96;max-width:calc(100vw - 32px);background:var(--azione);color:#fff;border-radius:22px;padding:11px 20px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:all .4s var(--ease);box-shadow:0 12px 30px -8px rgba(22,163,74,.6)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:97;overflow:hidden}
 #confetti span{position:absolute;width:9px;height:9px;border-radius:2px;top:-12px}
@@ -606,7 +624,10 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
   .card,.histweek{box-shadow:none;border:1px solid #ccc;background:#fff}
 }
 #printreport{display:none}
-.ckgrid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+/* Una casella per riga: appaiate a due a due sembravano disallineate,
+   perché i testi hanno lunghezze diverse e le colonne non tornavano mai. */
+.ckgrid{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+.ckgrid .ck{width:100%;justify-content:flex-start}
 .ck{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--linea);border-radius:13px;padding:10px 13px;font-size:13px;cursor:pointer;background:var(--card);transition:background .2s,border-color .2s}
 .ck input[type=checkbox]{}
 .ck input{width:18px;height:18px;margin:0;accent-color:var(--salvia)}
@@ -645,7 +666,9 @@ body.onb{padding-bottom:0}
   <div class="hrow">
     <span class="logo-badge"><span id="hTitle">Nutry</span></span>
     <div class="datebar">
+      <button class="dnav" onclick="shiftDay(-1)" aria-label="Giorno precedente">‹</button>
       <div class="dt" id="hDate" onclick="goToday()" title="Tocca per tornare a oggi"></div>
+      <button class="dnav" onclick="shiftDay(1)" aria-label="Giorno successivo">›</button>
     </div>
     <div class="hbtns">
       <button class="hbtn" id="hMore" onclick="moreOpen()" title="Altre sezioni" aria-label="Altre sezioni">⋯</button>
@@ -824,7 +847,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.8.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.10.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -909,7 +932,7 @@ S.periods=S.periods||[];
    Sono fabbisogni AGGIUNTIVI: si sommano al target, non ci stanno dentro.
    In fase luteale il metabolismo basale sale di qualche punto percentuale;
    l'allattamento costa energia vera (~500 kcal al giorno se esclusivo). */
-S.phys=Object.assign({cycleOn:false,cycleStart:null,lact:"no",preg:"no",inj:false,ill:false},S.phys||{});
+S.phys=Object.assign({cycleOn:false,cycleStart:null,lact:"no",preg:"no",inj:false,ill:false,digiuno:false},S.phys||{});
 /* Ciclo: la fase dura 7 giorni (era 14 nelle versioni fino alla 9.0: chi
    aveva lasciato il valore di default viene riportato al nuovo standard) */
 if(+S.profile.cycleDays===14)S.profile.cycleDays=7;
@@ -1401,8 +1424,9 @@ function trackUsage(tok,err){const t=new Date().toISOString().slice(0,10);
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 /* Indicatore "elaborazione in corso" per ogni chiamata AI */
 let AIBUSY=0;
-function aiBusy(){AIBUSY++;const e=document.getElementById("aiSpin");if(e)e.classList.add("on");}
-function aiDone(){AIBUSY=Math.max(0,AIBUSY-1);if(AIBUSY===0){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
+let AILAST=0;
+function aiBusy(){AIBUSY++;AILAST=Date.now();const e=document.getElementById("aiSpin");if(e)e.classList.add("on");}
+function aiDone(){AILAST=Date.now();AIBUSY=Math.max(0,AIBUSY-1);if(AIBUSY===0){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
 /* Sblocco manuale: se una richiesta resta appesa (rete che cade, risposta
    mai arrivata) l'indicatore resterebbe acceso per sempre e i pulsanti
    sembrerebbero morti. Toccandolo si azzera tutto e si può riprovare. */
@@ -1413,16 +1437,19 @@ window.aiReset=()=>{
     if(/⏳|sta lavorando|Giorno \d+ di 7/i.test(b.textContent||""))b.style.display="none";});
   try{if(typeof PLANGEN!=="undefined")PLANGEN=false;}catch(_){}
   toast("Richiesta annullata: puoi riprovare");};
-/* Rete di sicurezza: se dopo 3 minuti l'indicatore è ancora acceso,
-   qualcosa è andato storto e si sblocca da solo. */
+/* Rete di sicurezza contro l'indicatore che resta appeso.
+   ATTENZIONE: generare un piano richiede una richiesta per ogni giorno e
+   può durare parecchi minuti. Non si guarda quindi da quanto è acceso
+   l'indicatore, ma da quanto tempo NON arriva una risposta: finché l'AI
+   risponde, per quanto lentamente, non si interrompe nulla. */
 setInterval(()=>{
   const e=document.getElementById("aiSpin");
   if(!e||!e.classList.contains("on"))return;
-  AISPIN_T=(AISPIN_T||0)+1;
-  if(AISPIN_T>=18){AISPIN_T=0;AIBUSY=0;e.classList.remove("on");
-    try{toast("La richiesta non è arrivata a destinazione: riprova");}catch(_){}}
-},10000);
-let AISPIN_T=0;
+  if(!AILAST)return;
+  if((Date.now()-AILAST)/1000<240)return;      /* 4 minuti di silenzio vero */
+  AIBUSY=0;e.classList.remove("on");
+  try{toast("Nessuna risposta da qualche minuto: puoi riprovare");}catch(_){}
+},15000);
 let toastT=null;
 function toast(msg){const e=document.getElementById("toast");if(!e)return;
   e.textContent=msg;e.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("on"),2600);}
@@ -1605,6 +1632,8 @@ function rulesSnapshot(){return{
   obiettivo_allenamenti_settimana:goalWkTotal(),
   obiettivo_proteine_g_kg:(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())
 };}
+function digiunoForAI(){
+  return digiunoOn()?" La persona sta osservando un DIGIUNO RELIGIOSO: rispetta gli orari e le restrizioni tipiche del periodo, concentra i pasti nelle finestre consentite e non proporre alimenti esclusi. Non ridurre il fabbisogno: ridistribuiscilo.":"";}
 function physForAI(){
   if(!physBonus())return "";
   let t=" CONDIZIONE FISIOLOGICA: ";
@@ -1637,7 +1666,7 @@ function nutriRules(){
   const c=S.rules&&S.rules.nutri;
   return (typeof c==="string")?c:NUTRI_RULES_DEF.join(" ");}
 function rulesForAI(){const r=rulesSnapshot();
-  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
     (Object.keys(parseMensa(outThisWeek())).length?" PASTI FUORI CASA questa settimana: "+outThisWeek()+
       (outTypeIsPorto()
         ? ". Questi pasti li prepara e li porta da casa: sono pasti NORMALI come tutti gli altri, con la stessa struttura e le stesse grammature, con l'unico vincolo di essere trasportabili in un contenitore e buoni anche freddi o riscaldati. I loro ingredienti vanno nella lista della spesa."
@@ -3798,9 +3827,10 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
       <option value="no" ${pregOn()==="no"?"selected":""}>— nessuna —</option>
       ${Object.keys(PREG_LBL).map(k=>`<option value="${k}" ${pregOn()===k?"selected":""}>${PREG_LBL[k]}</option>`).join("")}
     </select>`;})()}
-    <div class="ckrow2" style="margin-top:8px">
-      <label class="ck"><input type="checkbox" id="phInj" ${injOn()?"checked":""} onchange="injSet(this.checked)"> 🩼 Infortunio</label>
-      <label class="ck"><input type="checkbox" id="phIll" ${illOn()?"checked":""} onchange="illSet(this.checked)"> 🤒 Malattia</label>
+    <div class="ckgrid" style="margin-top:8px">
+      <label class="ck"><input type="checkbox" id="phInj" ${injOn()?"checked":""} onchange="injSet(this.checked)"> 🩼 Infortunio: mi muovo meno</label>
+      <label class="ck"><input type="checkbox" id="phIll" ${illOn()?"checked":""} onchange="illSet(this.checked)"> 🤒 Malattia: deficit sospeso</label>
+      <label class="ck"><input type="checkbox" id="phDig" ${digiunoOn()?"checked":""} onchange="digiunoSet(this.checked)"> 🕊️ Digiuno religioso in corso</label>
     </div>
     ${physDelta()?`<div class="hint" style="color:var(--bosco);font-weight:600;margin-top:8px">${physDelta()>0?"➕":"➖"} ${physNote()} — target di oggi <b>${dayTargetK()} kcal</b>${physPct(di)?`, porzioni del piano riscalate del <b>${physPct(di)>0?"+":"−"}${Math.abs(physPct(di))}%</b> sulle kcal del tuo piano (spegnendo lo stato tornano quelle di base)`:""}.</div>`:`${hint2("Attivandoli, il target del giorno cambia e le porzioni si adeguano.",
  "Ciclo, allattamento e gravidanza <b>aggiungono</b> calorie; infortunio e malattia le <b>tolgono</b>, perché ti muovi meno. Le porzioni del piano si riscalano in proporzione partendo dalle kcal del tuo piano, quindi il piano di base va tenuto <b>neutro</b>, cioè scritto senza avere già conteggiato queste calorie. I valori si cambiano in Regole.")}`}
@@ -3881,8 +3911,8 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         ${["","Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party","Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"].map(o=>`<option value="${o}" ${ev===o?"selected":""}>${o||"— nessuno —"}</option>`).join("")}
       </select></div>
     <div class="ctlrow">
-      <span class="cl">${ic("regole",16)} Ribilancia giorni precedenti</span>
-      ${today?rgpControlHTML(di):`<span class="coff" title="Il recupero si può fare solo sulla giornata di oggi">solo oggi</span>`}
+      <span class="cl">${ic("regole",16)} Ribilancia i giorni prima</span>
+      <span class="cend">${today?rgpControlHTML(di):`<span class="coff" title="Il recupero si può fare solo sulla giornata di oggi">solo oggi</span>`}</span>
       <button class="vbtn${evOK?" done":""}" title="Registra l'evento di questa giornata"
         onclick="applyCtl('${_vd}',${di},${today?1:0})">${evOK?"Registrato":"Conferma"}</button>
     </div>`;}
@@ -4492,7 +4522,7 @@ function renderSport(){const el=document.getElementById("pg-sport");const ti=vie
   PLAN.forEach((d,di)=>h+=`<option value="${di}" ${di===ti?"selected":""}>${d.day}</option>`);
   h+=`</select><div class="row3"><div><label>Sport</label><select id="wSport">`;
   allSports().forEach(s=>h+=`<option>${esc(s.name)}</option>`);
-  h+=`</select></div><div><label>Minuti</label><input type="number" id="wMin" value="45" min="5"></div>
+  h+=`</select></div><div><label>Minuti</label><input type="number" id="wMin" value="60" min="5"></div>
   <div><label>Intensità</label><select id="wInt"><option value="bassa">Bassa</option><option value="media" selected>Media</option><option value="alta">Alta</option></select></div></div>
   <button class="btn" onclick="addW()">Aggiungi allenamento</button>
   <button class="btn ghost" onclick="addSportType()">+ Nuovo sport</button>
@@ -4579,9 +4609,10 @@ function activePeriod(){return S.periods.find(p=>!p.end)||null;}
    dimagrimento che lo segue: non esiste uno schema giusto per tutti. */
 const CYC_PRESETS=[
   ["cost",   0,  0, "Sempre in deficit"],
-  ["21_7",  21,  7, "3 settimane + 1"],
-  ["42_14", 42, 14, "6 settimane + 2"],
-  ["63_21", 63, 21, "9 settimane + 3"]
+  ["21_7",  21,  7, "3 settimane di deficit + 1 di mantenimento"],
+  ["42_14", 42, 14, "6 settimane di deficit + 2 di mantenimento"],
+  ["63_21", 63, 21, "9 settimane di deficit + 3 di mantenimento"],
+  ["pers",   0,  0, "Altro — scelgo io le settimane"]
 ];
 /* Quale preset corrisponde alla configurazione attuale (o "pers.") */
 function cycPresetNow(){
@@ -5035,7 +5066,7 @@ function renderBenvenuto(){
     <p class="obp">Da qui esce il target dei tuoi pasti. Il ritmo che scegli decide quanto sarà stretto il deficit — e gli allenamenti che prevedi entrano nel conto.</p>
     <label>Cosa vuoi ottenere?</label>
     <select id="obGoal" onchange="obGoalUI()">
-      ${["dimagrimento graduale","dimagrimento deciso","mantenimento","aumento di massa"].map(o=>`<option ${p.goal===o?"selected":""}>${o}</option>`).join("")}
+      ${["dimagrimento graduale","dimagrimento deciso","mantenimento","aumento di massa"].map(o=>`<option value="${o}" ${p.goal===o?"selected":""}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join("")}
     </select>
     <div class="grid2">
       <div><label>A che peso vuoi arrivare? (kg)</label><input type="number" id="obTargetW" step="0.5" value="${goalWeightSet()||""}" placeholder="facoltativo"></div>
@@ -5082,9 +5113,9 @@ function renderBenvenuto(){
     <div class="obbox"><b>I pasti fuori casa si contano da soli</b> dalle spunte qui sopra: adesso sono <b>${fuoriCount(D.mensaGiorni)}</b> a settimana. Non sono "pasti liberi": per quelli l'AI descrive come comporre il piatto invece di darti una ricetta da cucinare.</div>
     <div class="grid2">
       <div><label>Budget spesa</label>
-        <select id="obBudget">${["basso","medio","alto"].map(o=>`<option ${D.budget===o?"selected":""}>${o}</option>`).join("")}</select></div>
+        <select id="obBudget">${["basso","medio","alto"].map(o=>`<option value="${o}" ${D.budget===o?"selected":""}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join("")}</select></div>
       <div><label>Alcol</label>
-        <select id="obAlcol">${["mai","raramente","nel weekend","spesso"].map(o=>`<option ${D.alcol===o?"selected":""}>${o}</option>`).join("")}</select></div>
+        <select id="obAlcol">${["mai","raramente","nel weekend","spesso"].map(o=>`<option value="${o}" ${D.alcol===o?"selected":""}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join("")}</select></div>
     </div>
     ${tagChecksHTML("ob","R",REL_LIST,D.religiose,"Vincoli religiosi o etici","")}
     ${tagChecksHTML("ob","G",INTEG_LIST,D.integratori,"Integratori che già prendi","Servono all'AI per non proporti doppioni.")}
@@ -5145,7 +5176,7 @@ function renderBenvenuto(){
     <div class="obchoice">
       <div class="obcard">
         <h3>✨ Generalo con l'AI</h3>
-        <p>Sette giorni completi costruiti su fabbisogno, obiettivo e le tue risposte. Poi correggi quello che non ti convince.</p>
+        <p><b>Piano settimanale completo</b>: sette giorni che si ripetono, costruiti su fabbisogno, obiettivo e le tue risposte. Poi correggi quello che non ti convince.</p>
         <button class="btn small" ${aiOn()?"":"disabled title='Serve la chiave Gemini'"} onclick="onbFinish('ai')">Genera il piano</button>
         ${aiOn()?"":`<div class="obwhere">Serve la chiave Gemini (passo 3 del percorso): puoi incollarla anche dopo da Io → Configurazione API.</div>`}
       </div>
@@ -5183,7 +5214,7 @@ function renderBenvenuto(){
    OBWK è lo stato temporaneo del passo, letto dal DOM prima di ogni modifica. */
 let OBWK=null;
 function obWkRows(){
-  if(!OBWK)OBWK=(S.profile.goalWorkoutList||[]).map(g=>({sport:g.sport||"",perWeek:g.perWeek||"",min:g.min||45}));
+  if(!OBWK)OBWK=(S.profile.goalWorkoutList||[]).map(g=>({sport:g.sport||"",perWeek:g.perWeek||"",min:g.min||60}));
   if(!OBWK.length)OBWK=[{sport:"",perWeek:"",min:45}];
   return OBWK;}
 window.obWkSync=()=>{const out=[];
@@ -5311,7 +5342,7 @@ function rulesCardHTML(){
   <div class="gsec">Fasi della dieta</div>
   <table class="rules">
   ${row("Schema","Ogni tanto una pausa di mantenimento aiuta a non adattarsi al deficit. Scegli uno schema o scrivi i tuoi giorni nelle due righe qui sotto."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
-     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]).concat([["pers","Personalizzato"]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
+     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
   ${row("Settimane in deficit","Quante settimane si resta in deficit prima della pausa. Scrivi il numero che vuoi."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",Math.round(cycDefDays()/7),1,1,52,"settimane"))}
   ${row("Settimane di pausa","Quanto dura il mantenimento: il deficit va a zero, le porzioni risalgono e la spesa si adegua.",num("rCycMaint",Math.round(cycMaintDays()/7),1,1,16,"settimane"))}
   </table>
@@ -5619,7 +5650,10 @@ const PAT_LIST=[
  {k:"celiachia",l:"Celiachia",ai:"nessun alimento con glutine, attenzione alle contaminazioni: usare solo prodotti certificati senza glutine"}
 ];
 /* Le voci più comuni a spunte, più il campo libero per tutto il resto */
-const REL_LIST=["niente carne di maiale","niente carne di alcun tipo","halal","kosher","niente alcol","quaresima / digiuni religiosi"];
+/* I vincoli qui sono PERMANENTI. Un digiuno (Quaresima, Ramadan) dura
+   qualche settimana e si spegne: sta fra gli stati temporanei, in Oggi →
+   Come stai, insieme a ciclo, infortunio e malattia. */
+const REL_LIST=["niente carne di maiale","niente carne di alcun tipo","halal","kosher","niente alcol"];
 const INTEG_LIST=["vitamina D","magnesio","omega 3","creatina","proteine in polvere","multivitaminico","ferro","vitamina B12","probiotici"];
 const OCC_LIST=["cena fuori il sabato","pranzo in famiglia la domenica","aperitivo del venerdì","pausa dolce al bar","cene di lavoro","allenamento la sera tardi"];
 function tagChecksHTML(pre,key,list,cur,label,hint){
@@ -7239,6 +7273,14 @@ function pregKcal(){
    (quella dovuta all'attività), mai al basale stesso. */
 function injOn(){return !!(S.phys&&S.phys.inj);}
 function illOn(){return !!(S.phys&&S.phys.ill);}
+/* Digiuno religioso: non cambia le calorie, cambia COME si distribuiscono
+   e cosa si può mangiare. Se ne occupa l'AI, non il calcolo. */
+function digiunoOn(){return !!(S.phys&&S.phys.digiuno);}
+window.digiunoSet=async(on)=>{
+  if(on&&!digiunoOn()){
+    if(!await dlgConfirm("🕊️ Periodo di digiuno religioso?\n\nFinché resta attivo l'AI ne tiene conto quando costruisce i pasti: orari, alimenti da evitare, distribuzione della giornata.\n\nIl fabbisogno e il target NON cambiano — cambia come vengono composti i piatti. Ricordati di spegnerlo quando il periodo finisce.")){render(cur);return;}}
+  S.phys.digiuno=!!on;save();render(cur);
+  toast(on?"Digiuno attivo · l'AI ne terrà conto":"Digiuno disattivato");};
 function injPct(){const n=+S.profile.injPct;return n>0?Math.min(90,n):50;}
 function illPct(){const n=+S.profile.illPct;return n>0?Math.min(90,n):30;}
 function movePct(){ /* se coesistono, comanda il taglio maggiore: non si sommano */

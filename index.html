@@ -864,7 +864,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.13.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.14.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -3738,6 +3738,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     <button class="btn ghost small" onclick="seasonalizePlan()">${seasonEmoji()} Alternativa stagionale</button>
     <button class="btn ghost small" onclick="genPlanAI()">✨ Genera nuovo piano</button>
     <button class="btn ghost small" onclick="importPlanPhotos()">📸 Importa da foto</button>
+    <button class="btn ghost small" onclick="vaiScontrino()">🧾 Cucina dalla spesa</button>
     <button class="btn ghost small" onclick="planForecast()">🔮 Stima risultati</button>
   </div>
   ${hint2("Da qui gestisci il piano: modificarlo, generarne uno nuovo, importarne uno che hai già.",
@@ -3745,6 +3746,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   ${seasonEmoji()} <b>Alternativa stagionale</b> — aggiunge un'opzione di stagione, senza toccare il piano base.<br>
   ✨ <b>Genera nuovo piano</b> — l'AI costruisce sette giorni su misura.<br>
   📸 <b>Importa da foto</b> — fotografa un piano su carta o PDF e l'AI lo trascrive.<br>
+  🧾 <b>Cucina dalla spesa</b> — fotografi lo scontrino e costruisco i pasti con quello che hai comprato, finché il cibo basta.<br>
   🔮 <b>Stima risultati</b> — quanto perdi a settimana e quando arrivi all'obiettivo.`)}
   ${(function(){const d=planWeightDrift();
     if(Math.abs(d)<1)return "";
@@ -4079,7 +4081,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   h+=`</div><div class="hint">Obiettivo: ${goal} bicchieri da <b>250 ml</b> (~${(goal/4).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
   // Sonno & Stress
    {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
-  h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
+    h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
    <div class="hint">${wk.length
      ? wk.length+(wk.length===1?" allenamento":" allenamenti")+" registrati · <b>"+br+" kcal</b> bruciate, già contate nel bilancio."
      : "Nessun allenamento oggi. Se ti muovi, registralo: entra nel bilancio della giornata."}</div>
@@ -4352,6 +4354,19 @@ window.scontrinoScan=async()=>{
 /* ── I pasti da quello che hai in casa ─────────────────────────────
    Non si pretende di coprire la settimana: si copre quello che si può,
    e allo scontrino successivo si va avanti. È il modo onesto di farlo. */
+/* Da Piano si arriva alla dispensa: la funzione vive in Spesa, ma è lì
+   che uno la cerca quando pensa "cosa mangio questa settimana". */
+window.vaiScontrino=()=>{
+  show("spesa");
+  setTimeout(()=>{
+    const c=[...document.querySelectorAll("#pg-spesa .card h2")].find(x=>/Scontrino e dispensa/.test(x.textContent));
+    if(!c)return;
+    const card=c.closest(".card");
+    card.scrollIntoView({block:"center",behavior:"smooth"});
+    card.style.transition="box-shadow .4s";
+    card.style.boxShadow="0 0 0 3px var(--menta),0 10px 26px -18px rgba(12,31,23,.3)";
+    setTimeout(()=>{card.style.boxShadow="";},1800);
+  },260);};
 window.pantryCucina=async()=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   const p=pantry();
@@ -4681,6 +4696,35 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   <div class="mtools"><button class="btn small" onclick="marketAdd()">+ Aggiungi supermercato</button></div>
   ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:10px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)"> 🏷️ Mostra prima i prodotti in <b>offerta</b></label>`:""}
   ${markets().length&&!markets().some(m=>m.p)?`<div class="hint" style="margin-top:8px">Vuoi vedere prima le <b>offerte</b>? Tocca ➕🏷️ accanto al negozio: ti guido in due passaggi.</div>`:""}</div>
+<div class="gsec">La spesa che hai fatto</div>
+  <div class="card"><h2>Scontrino e dispensa</h2>
+  ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
+   "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
+  ${(function(){
+    const v=spesaVoto();
+    if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
+    const f=spesaFaccia(v.v);
+    return `<div class="svoto">
+      <div class="sfaccia">${f[0]}</div>
+      <div class="sdett">
+        <div class="stit">${f[1]}</div>
+        <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
+        <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
+      </div></div>
+    ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
+    ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
+    ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
+  <div class="mtools">
+    <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
+    ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
+  </div>
+  <div class="aibox" id="scoOut" style="display:none"></div>
+  ${pantry().items.length?`
+    <label>In dispensa · ${pantry().items.length} prodotti</label>
+    <div class="pantry">${pantry().items.map((i,k)=>
+      `<span class="pchip">${esc(i.n)}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
+    <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
+  </div>
   <div class="card"><h2>Lista della spesa</h2>
   <div class="hint">☐ spunta · 🔗 cerca sul sito della spesa · 🤖 alternativa se esaurito · ✕ rimuovi. Le spunte restano salvate.</div>
   ${(S.family||[]).length?`<label>Per chi fai la spesa?</label>
@@ -4715,35 +4759,6 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   if(S.customShop)h+=`<button class="btn ghost small" onclick="resetShopToPlan()">↩️ Ripristina dal piano</button>`;
   h+=`</div>`;
   // Prodotti salvati del supermercato
-  h+=`<div class="gsec">La spesa che hai fatto</div>`;
-  h+=`<div class="card"><h2>Scontrino e dispensa</h2>
-  ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
-   "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
-  ${(function(){
-    const v=spesaVoto();
-    if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
-    const f=spesaFaccia(v.v);
-    return `<div class="svoto">
-      <div class="sfaccia">${f[0]}</div>
-      <div class="sdett">
-        <div class="stit">${f[1]}</div>
-        <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
-        <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
-      </div></div>
-    ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
-    ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
-    ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
-  <div class="mtools">
-    <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
-    ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
-  </div>
-  <div class="aibox" id="scoOut" style="display:none"></div>
-  ${pantry().items.length?`
-    <label>In dispensa · ${pantry().items.length} prodotti</label>
-    <div class="pantry">${pantry().items.map((i,k)=>
-      `<span class="pchip">${esc(i.n)}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
-    <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
-  </div>`;
   h+=`<div class="gsec">I tuoi prodotti</div>`;
   h+=`<div class="card" style="margin-top:14px"><h2>I miei prodotti salvati</h2>
   <div class="hint">Salva i link diretti dei tuoi prodotti preferiti per ritrovarli al volo.</div>`;

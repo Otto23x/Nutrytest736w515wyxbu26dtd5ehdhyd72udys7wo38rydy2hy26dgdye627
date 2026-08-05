@@ -144,6 +144,19 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
 .obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
 .obpl{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
+/* ══ VOTO ALLA SPESA ══ */
+.svoto{display:flex;align-items:center;gap:15px;margin-top:14px}
+.sfaccia{font-size:40px;line-height:1;flex:0 0 auto}
+.sdett{flex:1;min-width:0}
+.stit{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--ink)}
+.sbar{height:8px;border-radius:99px;background:var(--linea);overflow:hidden;margin:8px 0 6px}
+.sbar i{display:block;height:100%;border-radius:99px;transition:width .5s var(--ease)}
+.snum{font-size:11.5px;color:var(--grigio);font-variant-numeric:tabular-nums}
+.pantry{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.pchip{display:inline-flex;align-items:center;gap:6px;background:var(--crema);border-radius:99px;
+  padding:7px 8px 7px 12px;font-size:12.5px;color:var(--ink);max-width:100%}
+.pchip b{font-weight:700;color:var(--grigio);font-variant-numeric:tabular-nums}
+.pchip button{border:0;background:none;color:var(--grigio);font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
 /* ══ RECAP DELLA SETTIMANA ══
    Sette colonne di sigle erano illeggibili su un telefono: una riga per
    giorno, con una barra che si capisce senza legenda. */
@@ -851,7 +864,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.11.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.13.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -3723,7 +3736,6 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   <div class="btngrid2">
     <button class="btn small" onclick="wizEditCurrent()">✏️ Gestisci piano</button>
     <button class="btn ghost small" onclick="seasonalizePlan()">${seasonEmoji()} Alternativa stagionale</button>
-    <button class="btn ghost small" onclick="restartOnboarding()">🧭 Percorso guidato</button>
     <button class="btn ghost small" onclick="genPlanAI()">✨ Genera nuovo piano</button>
     <button class="btn ghost small" onclick="importPlanPhotos()">📸 Importa da foto</button>
     <button class="btn ghost small" onclick="planForecast()">🔮 Stima risultati</button>
@@ -3731,7 +3743,6 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   ${hint2("Da qui gestisci il piano: modificarlo, generarne uno nuovo, importarne uno che hai già.",
  `✏️ <b>Gestisci</b> — modifica pasti, orari, tipo e alternative.<br>
   ${seasonEmoji()} <b>Alternativa stagionale</b> — aggiunge un'opzione di stagione, senza toccare il piano base.<br>
-  🧭 <b>Percorso guidato</b> — rifai gli otto passi con i dati già compilati.<br>
   ✨ <b>Genera nuovo piano</b> — l'AI costruisce sette giorni su misura.<br>
   📸 <b>Importa da foto</b> — fotografa un piano su carta o PDF e l'AI lo trascrive.<br>
   🔮 <b>Stima risultati</b> — quanto perdi a settimana e quando arrivi all'obiettivo.`)}
@@ -4226,15 +4237,162 @@ window.genShop=async(silent)=>{
     const meals=shopWindow().map(w=>{
       const o=shopOptOf(w.d,w.m);return o?o.d:null;}).filter(Boolean);
     if(!meals.length)return silent?null:dlgAlert("Non ci sono pasti da comprare nei prossimi 7 giorni.");
+    /* Due tentativi anche sulla LETTURA della risposta: il piano riprova
+       giorno per giorno, la spesa faceva un tentativo solo e al primo
+       formato storto si arrendeva. */
+    let arr=null,ultimo=null;
+    for(let att=0;att<2&&!arr;att++){
+      try{
     const t=await aiAsk("Da questi pasti dei prossimi 7 giorni ("+shopWindowLabel()+") crea la lista della spesa SETTIMANALE"+((!shopForMe()&&(S.family||[]).length)?" per "+(Math.round(famUnits()*100)/100)+" porzioni di riferimento (donna adulta=1, uomo=1,25, adolescente=1,10, bambino=0,75, infante=0,50)":" per UNA persona")+
       " con le quantita totali stimate. Sono già esclusi i pasti in mensa e quelli fuori casa: non aggiungere nulla per quelli. Raggruppa gli stessi ingredienti in una voce sola con la quantità totale della settimana. "+
       "IMPORTANTE — SPESA SENZA SPRECHI: arrotonda ai FORMATI COMMERCIALI italiani realmente in vendita (ricotta 250 g, yogurt 125 g, mozzarella 125 g, tonno 80 g, legumi in scatola 400 g, latte 1 l, uova da 6) e, quando un formato avanza, indica fra parentesi come si distribuisce (es. «Ricotta 250 g (metà lunedì, metà mercoledì)»). Non far comprare 130 g di un prodotto che si vende solo da 250. "+dietStr()+" Non inserire alimenti incompatibili con l'impostazione alimentare, le intolleranze o le esclusioni dichiarate. Usa ESCLUSIVAMENTE queste categorie, nell'ordine dato, saltando quelle vuote: "+JSON.stringify(SHOP_CATS)+". Ogni prodotto va nella categoria giusta per la sua natura (es. lo yogurt in 'Uova e latticini', il pane in 'Cereali, pane e derivati', le patate in 'Verdura'). Rispondi SOLO con un JSON array di coppie [categoria, [prodotti]]. Pasti: "+JSON.stringify(meals));
-    const arr=parseAIJSON(t);
-    if(!Array.isArray(arr)||!arr.length)throw new Error("formato non valido");
-    S.customShop=arr.filter(x=>Array.isArray(x)&&x.length>=2&&Array.isArray(x[1])&&x[1].length)
+    const o=parseAIJSON(t);
+    if(!Array.isArray(o)||!o.length)throw new Error("formato non valido");
+    const pulita=o.filter(x=>Array.isArray(x)&&x.length>=2&&Array.isArray(x[1])&&x[1].length)
       .map(x=>[String(x[0]),x[1].map(String)]);
-    S.shop={};save();render("spesa");toast("Lista della spesa generata ✓");
-  }catch(e){aiFail(e);}};
+    if(!pulita.length)throw new Error("formato non valido");
+    arr=pulita;
+      }catch(e){ultimo=e;if(att===0)await wait(900);}
+    }
+    if(!arr)throw (ultimo||new Error("formato non valido"));
+    S.customShop=arr;
+    S.shop={};save();render("spesa");if(!silent)toast("Lista della spesa generata ✓");
+  }catch(e){return shopRipiego(e,silent);}};
+
+/* ═══ LA SPESA CHE HAI FATTO ════════════════════════════════════════
+   Fotografi lo scontrino, l'app riconosce i prodotti e li mette in
+   dispensa. Da lì costruisce i pasti finché il cibo basta, dà un voto
+   alla spesa rispetto alle linee guida OMS e dice cosa manca.
+   Gli scontrini si sommano: ogni nuova spesa allunga la copertura. */
+const SPESA_CAT=["verdura","frutta","proteine","cereali","latticini","grassi buoni","dispensa","dolci e snack","bevande","altro"];
+function pantry(){
+  S.pantry=Object.assign({items:[],voti:[]},S.pantry||{});
+  if(!Array.isArray(S.pantry.items))S.pantry.items=[];
+  if(!Array.isArray(S.pantry.voti))S.pantry.voti=[];
+  return S.pantry;}
+function pantryKey(n){return String(n||"").toLowerCase().trim().replace(/\s+/g," ");}
+/* Somma le quantità dei prodotti uguali invece di duplicarli */
+function pantryAdd(list){
+  const p=pantry(),oggi=iso(new Date());
+  (list||[]).forEach(x=>{
+    const n=String(x.nome||"").trim();if(!n)return;
+    const k=pantryKey(n);
+    const ex=p.items.find(i=>pantryKey(i.n)===k);
+    const q=parseFloat(String(x.qta).replace(",","."))||0;
+    if(ex){ex.q=Math.round(((+ex.q||0)+q)*100)/100;ex.d=oggi;}
+    else p.items.push({n:n,q:q,u:String(x.unita||"").trim()||"pz",cat:SPESA_CAT.includes(x.categoria)?x.categoria:"altro",d:oggi});
+  });
+  save();}
+window.pantryDel=(i)=>{const p=pantry();p.items.splice(i,1);save();render("spesa");};
+window.pantrySvuota=async()=>{
+  if(!await dlgConfirm("Svuoto la dispensa?\n\nI prodotti registrati dagli scontrini verranno rimossi. Gli scontrini futuri ripartiranno da zero.",{ok:"Svuota",ko:"Annulla"}))return;
+  const p=pantry();p.items=[];save();render("spesa");toast("Dispensa svuotata");};
+
+/* ── Il voto alla spesa ────────────────────────────────────────────
+   Non è un giudizio morale: è la distanza fra quello che hai comprato
+   e le proporzioni che l'OMS raccomanda. Serve a imparare a fare la
+   spesa, che è dove la dieta si decide davvero. */
+function spesaVoto(){
+  const p=pantry();
+  if(!p.items.length)return null;
+  const n=(c)=>p.items.filter(x=>x.cat===c).length;
+  const tot=p.items.length;
+  const q=(c)=>Math.round(n(c)/tot*100);
+  const vf=q("verdura")+q("frutta"), pr=q("proteine"), ce=q("cereali");
+  const dolci=q("dolci e snack"), gb=q("grassi buoni"), lat=q("latticini");
+  let v=50;
+  /* frutta e verdura: l'OMS ne vuole 400 g al giorno, in un carrello
+     sano sono la voce più numerosa */
+  v+= vf>=35?25:(vf>=25?15:(vf>=15?5:-15));
+  v+= (pr>=15&&pr<=30)?12:(pr>0?4:-10);
+  v+= (ce>=8&&ce<=25)?8:0;
+  v+= gb>0?7:-3;
+  v+= lat>0?4:0;
+  v-= dolci>=20?20:(dolci>=12?10:(dolci>=6?3:0));
+  v=Math.max(0,Math.min(100,Math.round(v)));
+  const piu=[],meno=[];
+  if(vf<35)piu.push("verdura e frutta");
+  if(pr<15)piu.push("fonti proteiche (pesce, uova, legumi, carne bianca)");
+  if(gb===0)piu.push("olio extravergine, frutta secca o semi");
+  if(ce<8)piu.push("cereali, meglio integrali");
+  if(dolci>=12)meno.push("dolci e snack confezionati");
+  if(q("bevande")>=15)meno.push("bevande, se sono zuccherate");
+  return {v:v,vf:vf,pr:pr,dolci:dolci,piu:piu,meno:meno,tot:tot};}
+function spesaFaccia(v){
+  return v>=85?["🤩","Spesa da manuale"]:v>=70?["😀","Buona spesa"]:
+         v>=55?["🙂","Si può migliorare"]:v>=40?["😐","Sbilanciata"]:["😕","Da rivedere"];}
+
+/* ── Lettura dello scontrino ──────────────────────────────────── */
+window.scontrinoScan=async()=>{
+  if(!aiOn())return aiFail(new Error("nokey"));
+  if(!await dlgConfirm("🧾 Fotografa lo scontrino della spesa.\n\nRiconosco i prodotti e le quantità e li metto in dispensa. Da lì posso costruire i pasti finché il cibo basta, e dirti com'è andata la spesa.\n\nLo scontrino resta sul telefono: viene inviata solo la foto a Gemini con la tua chiave, e non ne conservo copia."))return;
+  const gal=!await dlgConfirm("Da dove prendo la foto?",{ok:"📷 Scatto ora",ko:"🖼️ Dalla galleria"});
+  let img=null;
+  try{img=await pickPhoto({gallery:gal,multi:false});}catch(e){return;}
+  if(!img)return;
+  const box=document.getElementById("scoOut");
+  if(box){box.style.display="block";box.textContent="🧾 Leggo lo scontrino…";}
+  try{
+    const t=await aiAsk("Questa è la foto di uno scontrino della spesa italiano. Estrai SOLO i prodotti ALIMENTARI, ignorando detersivi, articoli per la casa, totali, sconti e codici. "+
+      "Per ogni prodotto: il nome in italiano corrente (non la sigla del supermercato: «PT CRUDO 100G» diventa «prosciutto crudo»), la quantità e l'unità. "+
+      "Se la quantità non è leggibile usa 1 e unità «pz». Assegna a ciascuno UNA categoria fra: "+JSON.stringify(SPESA_CAT)+". "+
+      "Rispondi SOLO con questo JSON: {\"prodotti\":[{\"nome\":\"\",\"qta\":0,\"unita\":\"\",\"categoria\":\"\"}]}",[img]);
+    const j=parseAIJSON(t);
+    const list=(j&&Array.isArray(j.prodotti))?j.prodotti:null;
+    if(!list||!list.length)throw new Error("Non sono riuscito a leggere prodotti da questa foto");
+    pantryAdd(list);
+    if(box)box.style.display="none";
+    render("spesa");
+    const v=spesaVoto(),fa=v?spesaFaccia(v.v):null;
+    dlgAlert("🧾 Letti <b>"+list.length+"</b> prodotti e aggiunti alla dispensa."+
+      (fa?("<br><br>"+fa[0]+" <b>"+fa[1]+"</b> — voto "+v.v+"/100"):"")+
+      "<br><br>Ora puoi chiedere i pasti con <b>Cucina quello che ho</b>: userò quello che c'è, finché basta.");
+  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+
+/* ── I pasti da quello che hai in casa ─────────────────────────────
+   Non si pretende di coprire la settimana: si copre quello che si può,
+   e allo scontrino successivo si va avanti. È il modo onesto di farlo. */
+window.pantryCucina=async()=>{
+  if(!aiOn())return aiFail(new Error("nokey"));
+  const p=pantry();
+  if(!p.items.length)return dlgAlert("La dispensa è vuota: fotografa uno scontrino per riempirla.");
+  const box=document.getElementById("scoOut");
+  if(box){box.style.display="block";box.textContent="🍳 Costruisco i pasti con quello che hai…";}
+  try{
+    const lista=p.items.map(i=>i.n+(i.q?" "+i.q+" "+i.u:"")).join(", ");
+    const t=await aiAsk("Ho in casa questi alimenti: "+lista+". "+
+      "Costruisci quanti più GIORNI COMPLETI riesci (colazione, pranzo, cena e spuntini) usando SOLO questi alimenti, "+
+      "con circa "+dayTargetK()+" kcal e almeno "+dayTargetP()+" g di proteine al giorno. "+
+      "Fermati quando gli alimenti non bastano più: è normale coprire meno di sette giorni, NON inventare alimenti che non ho. "+
+      "Indica sempre le grammature. Poi dimmi cosa manca per arrivare a sette giorni. "+rulesForPlan()+
+      " Rispondi SOLO con questo JSON: {\"giorni\":[{\"n\":1,\"pasti\":[{\"nome\":\"\",\"piatto\":\"\",\"kcal\":0,\"prot\":0}]}],\"manca\":[\"\"],\"nota\":\"\"}");
+    const j=parseAIJSON(t);
+    if(!j||!Array.isArray(j.giorni)||!j.giorni.length)throw new Error("Non sono riuscito a costruire i pasti");
+    let h="<b>"+j.giorni.length+(j.giorni.length===1?" giorno coperto":" giorni coperti")+" con quello che hai.</b><br><br>";
+    j.giorni.forEach(g=>{
+      h+="<b>Giorno "+(g.n||"")+"</b><br>";
+      (g.pasti||[]).forEach(m=>{h+="· "+esc(m.nome||"")+": "+esc(m.piatto||"")+" <span style=\"color:var(--grigio)\">("+Math.round(m.kcal||0)+" kcal, "+Math.round(m.prot||0)+" g P)</span><br>";});
+      h+="<br>";});
+    if(Array.isArray(j.manca)&&j.manca.length)
+      h+="<b>Per arrivare a sette giorni ti manca:</b><br>"+j.manca.map(x=>"· "+esc(x)).join("<br>")+"<br><br>";
+    if(j.nota)h+="<div style=\"color:var(--grigio)\">"+esc(j.nota)+"</div>";
+    if(box){box.style.display="block";box.innerHTML=h;}
+  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+
+/* ═══ RETE DI SICUREZZA DELLA SPESA ═══════════════════════════════
+   La lista NON deve dipendere dall'AI. Se la richiesta fallisce, la si
+   calcola dagli ingredienti del piano: quantità meno raffinate e nessun
+   arrotondamento ai formati del supermercato, ma la lista c'è. Restare
+   senza spesa perché un server è occupato non è accettabile. */
+async function shopRipiego(e,silent){
+  const locale=(function(){try{return buildShopFromPlan();}catch(_){return [];}})();
+  if(!locale.length){if(!silent)aiFail(e);return;}
+  const perche=aiReason(e);
+  if(!silent&&!await dlgConfirm("L'AI non è riuscita a preparare la lista ("+esc(perche)+").\n\n"+
+    "Posso calcolarla dagli ingredienti del piano: le quantità sono esatte ma non arrotondate ai formati del supermercato. Con ✨ Ottimizza le sistemi quando l'AI torna disponibile.",
+    {ok:"Calcolala così",ko:"Annulla"}))return;
+  S.customShop=locale;S.shop={};save();render("spesa");
+  toast("Lista calcolata dal piano · senza AI");}
 
 /* ═══════════════════════════════════════════════════════════════
    SPESA DAL PIANO (senza AI): calcola la lista considerando per ogni
@@ -4557,6 +4715,35 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   if(S.customShop)h+=`<button class="btn ghost small" onclick="resetShopToPlan()">↩️ Ripristina dal piano</button>`;
   h+=`</div>`;
   // Prodotti salvati del supermercato
+  h+=`<div class="gsec">La spesa che hai fatto</div>`;
+  h+=`<div class="card"><h2>Scontrino e dispensa</h2>
+  ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
+   "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
+  ${(function(){
+    const v=spesaVoto();
+    if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
+    const f=spesaFaccia(v.v);
+    return `<div class="svoto">
+      <div class="sfaccia">${f[0]}</div>
+      <div class="sdett">
+        <div class="stit">${f[1]}</div>
+        <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
+        <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
+      </div></div>
+    ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
+    ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
+    ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
+  <div class="mtools">
+    <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
+    ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
+  </div>
+  <div class="aibox" id="scoOut" style="display:none"></div>
+  ${pantry().items.length?`
+    <label>In dispensa · ${pantry().items.length} prodotti</label>
+    <div class="pantry">${pantry().items.map((i,k)=>
+      `<span class="pchip">${esc(i.n)}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
+    <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
+  </div>`;
   h+=`<div class="gsec">I tuoi prodotti</div>`;
   h+=`<div class="card" style="margin-top:14px"><h2>I miei prodotti salvati</h2>
   <div class="hint">Salva i link diretti dei tuoi prodotti preferiti per ritrovarli al volo.</div>`;
@@ -8397,6 +8584,10 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   ${hint2(((S.tel.url||TEL_URL)?"Con «Sì, invia» parte da solo una volta al giorno: non devi fare nulla.":"L'invio automatico non è ancora attivo: per ora puoi mandarlo a mano con il pulsante qui sopra."),
    "Il pulsante ✉️ apre la tua app di posta con il pacchetto già scritto: parte solo se premi invia. Serve se vuoi segnalare qualcosa e allegare i numeri d'uso.")}
   </div>`;
+  h+=`<div class="card"><h2>Rifai il percorso guidato</h2>
+  ${hint2("Ripercorri i nove passi con i dati che hai già inserito.",
+   "Serve quando cambia qualcosa di grosso: obiettivo, abitudini, allenamenti. Nulla viene cancellato — trovi tutti i campi già compilati e cambi solo ciò che serve.")}
+  <div class="mtools"><button class="btn ghost small" onclick="restartOnboarding()">Ricomincia il percorso</button></div></div>`;
   h+=`<div class="gsec">Aiuto</div>`;
   h+=`<div class="card"><h2>Segnala un bug o un'idea</h2>
   <div class="hint">Hai trovato qualcosa che non funziona, o ti è venuta un'idea per migliorare Nutry? Scrivila qui: si apre la tua email già pronta per lo sviluppatore.</div>

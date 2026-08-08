@@ -144,6 +144,13 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
 .obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
 .obpl{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
+/* ══ INVITI ══
+   Erano strisce con il bordo colorato a sinistra e i pulsanti in fila
+   sulla stessa riga del testo: si stringevano e andavano a capo male.
+   Ora hanno la forma delle altre schede, con l'etichetta in alto. */
+.card.invito{border-left:3px solid var(--zaff)}
+.card.invito .ik{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--zaff)}
+.card.invito .it{font-size:14px;line-height:1.45;color:var(--ink);margin-top:6px}
 /* ══ LA GIORNATA ══
    Stessa forma degli stati del corpo: nome, effetto sotto, comando a
    destra. Prima erano tre strisce con il bordo, l'unico elemento
@@ -156,7 +163,9 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .gl small{display:block;font-size:11.5px;color:var(--grigio);margin-top:3px;line-height:1.4}
 .grow.on .gl b{color:var(--bosco)}
 .gc{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
-.gc select{width:auto;min-width:0;max-width:150px;font-size:12.5px;padding:9px 10px;margin:0}
+.gc select{width:auto;min-width:0;max-width:170px;font-size:12.5px;padding:9px 10px;margin:0}
+/* Il menù si sceglie e basta: si registra da solo, senza un secondo tocco */
+.gc .gsel{border-color:transparent;background:var(--crema);font-weight:600;color:var(--bosco)}
 .gc .btn{margin:0}
 .gv{font-size:12.5px;font-weight:700;color:var(--grigio);white-space:nowrap}
 .gv.link{color:var(--bosco)}
@@ -473,7 +482,6 @@ html[data-theme="dark"] .btn{color:#04170B}
 .water span{flex:1 1 0;min-width:0;max-width:34px;height:36px;border:2px solid #B7CFEA;border-radius:8px 8px 12px 12px;cursor:pointer;font-size:clamp(11px,3.4vw,16px);text-align:center;line-height:33px;transition:all .28s var(--ease)}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 .duo .stars{font-size:19px;gap:3px}
-.ckrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}
 .famrow{display:flex;gap:6px;align-items:center;margin-bottom:8px}
 .famrow input,.famrow select{margin:0;min-width:0}
 .famrow .fnome{flex:1 1 auto}
@@ -482,7 +490,6 @@ html[data-theme="dark"] .btn{color:#04170B}
   background:var(--card);color:var(--ink);font-size:13px;font-weight:600;padding:9px 0;cursor:pointer}
 .famrow .fdob{flex:1 1 128px;min-width:0;font-size:12.5px;padding-left:6px;padding-right:6px}
 .famrow .fbadge{flex:0 0 auto;font-size:12px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
-.ckrow3 .ck{justify-content:center;align-items:center;padding:8px 3px;font-size:clamp(9.5px,2.8vw,12.5px);min-width:0;text-align:center;line-height:1.15;white-space:nowrap}
 .water span:hover{transform:translateY(-3px)}
 .water span.f{background:linear-gradient(180deg,#EAF4FF,#C8E1FB);border-color:var(--mensa);transform:translateY(-3px);box-shadow:0 6px 12px -4px rgba(37,99,235,.35)}
 
@@ -887,7 +894,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.19.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.21.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -3163,13 +3170,18 @@ window.coupleFork=async(di)=>{
 /* ═══ ⚡ SENSORE DI ABBIOCCO ═══════════════════════════════════════ */
 const CRASH_SLOTS=[["mattina","🌅 Mattina"],["pomeriggio","🌇 Pomeriggio"],["sera","🌆 Sera"]];
 const CRASH_H={mattina:9,pomeriggio:16,sera:21,"dopo-pranzo":14.5,notte:23};
+/* Tre caselle affiancate su uno schermo stretto si sovrapponevano e i
+   quadratini finivano fuori posto. Una per riga, come gli altri stati. */
 function crashHTML(di){
   const d=S.week.days[di]||{};const set=d.crash||[];
-  return `<div style="border-top:1px solid var(--linea);margin-top:12px;padding-top:10px">
-    <label>⚡ Cali di energia</label>
-    <div class="ckrow3">`+CRASH_SLOTS.map(([k,l])=>
-      `<label class="ck" style="${set.indexOf(k)>-1?"border-color:var(--zaff);background:var(--zaffbg)":""}"><input type="checkbox" ${set.indexOf(k)>-1?"checked":""} onchange="crashTog(${di},'${k}')"> ${l}</label>`).join("")+
-    `</div><div class="hint">Tocca il momento del calo di energia: l'AI lo lega al pasto precedente e, se lo schema si ripete, riduce i carboidrati raffinati di quel pasto.</div></div>`;}
+  return `<div style="border-top:1px solid var(--linea);margin-top:16px;padding-top:14px">
+    <label>Cali di energia</label>
+    <div class="statolist">`+CRASH_SLOTS.map(([k,l])=>{
+      const on=set.indexOf(k)>-1;
+      return `<label class="stato ${on?"on":""}">
+        <input type="checkbox" ${on?"checked":""} onchange="crashTog(${di},'${k}')">
+        <span class="sl"><b>${l}</b><small>${{mattina:"Sonnolenza o fame dopo colazione",pomeriggio:"Il classico crollo del primo pomeriggio",sera:"Stanchezza o voglia di dolce dopo cena"}[k]||""}</small></span></label>`;}).join("")+
+    `</div><div class="hint">L'AI lega il calo al pasto precedente e, se lo schema si ripete, riduce i carboidrati raffinati di quel pasto.</div></div>`;}
 window.crashTog=(di,k)=>{
   const d=S.week.days[di];d.crash=d.crash||[];
   const i=d.crash.indexOf(k);
@@ -3927,10 +3939,9 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         <div class="gl"><b>Evento del giorno</b>
           <small>${ev?"L'AI ne tiene conto nel ribilanciare":"Compleanno, cena fuori, giornata no…"}</small></div>
         <div class="gc">
-          <select onchange="setDayEvent('${_vd}',this.value)">
+          <select class="gsel" onchange="setDayEvent('${_vd}',this.value);applyCtl('${_vd}',${di},${today?1:0})">
             ${["","Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party","Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"].map(o=>`<option value="${o}" ${ev===o?"selected":""}>${o||"— nessuno —"}</option>`).join("")}
           </select>
-          <button class="btn small${evOK?" ghost":""}" onclick="applyCtl('${_vd}',${di},${today?1:0})">${evOK?"Registrato":"Conferma"}</button>
         </div>
       </div>
       ${densMin("expert")?`<div class="grow">
@@ -4014,11 +4025,12 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   ${(function(){
     const dis=!physAllowed(),d=dis?" disabled":"";
     let g="";
-    if(!isFemale())g+=`<div class="hint" style="background:var(--menta);padding:10px 12px;border-radius:12px;margin:10px 0">Ciclo, allattamento e gravidanza riguardano il profilo femminile. Il genere si imposta in <b>Profilo → Anagrafica</b>.</div>`;
+    if(dis)g+=`<div class="hint" style="background:var(--menta);padding:10px 12px;border-radius:12px;margin:10px 0">Ciclo, allattamento e gravidanza sono attivi solo sul profilo femminile: qui sotto li vedi spenti.
+      <div class="mtools" style="margin-top:10px"><button class="btn ghost small" onclick="vaiGenere()">Cambia il genere del profilo</button></div></div>`;
     const riga=(id,on,lab,desc,ev)=>`<label class="stato ${on?"on":""} ${dis?"off":""}">
       <input type="checkbox" id="${id}" ${on?"checked":""}${d} onchange="${ev}">
       <span class="sl"><b>${lab}</b><small>${desc}</small></span></label>`;
-    if(isFemale()||physAllowed()){
+    {
       g+=`<div class="statolist">`
       +riga("phCycle",!!cycleDay(),"🩸 Ciclo"+(cycleDay()?" · giorno "+cycleDay():""),"Si spegne da solo dopo "+cycleDaysMax()+" giorni","cycleToggle()")
       +riga("phLactF",S.phys.lact==="esclusivo","🤱 Allattamento esclusivo","+"+(+S.profile.lactFull||500)+" kcal al giorno","lactSet(this.checked?'esclusivo':'no')")
@@ -4029,29 +4041,23 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         <option value="no" ${pregOn()==="no"?"selected":""}>— nessuna —</option>
         ${Object.keys(PREG_LBL).map(k=>`<option value="${k}" ${pregOn()===k?"selected":""}>${PREG_LBL[k]}</option>`).join("")}
       </select>`;}
+    /* Questi tre non c'entrano nulla con il genere: bloccarli era un
+       errore, e li rendeva grigi e intoccabili per metà degli utenti. */
+    const rigaLibera=(id,on,lab,desc,ev)=>`<label class="stato ${on?"on":""}">
+      <input type="checkbox" id="${id}" ${on?"checked":""} onchange="${ev}">
+      <span class="sl"><b>${lab}</b><small>${desc}</small></span></label>`;
     g+=`<div class="statolist" style="margin-top:12px">`
-      +riga("phInj",injOn(),"🩼 Infortunio","Mi muovo meno del solito: −"+injPct()+"% sulla quota attività","injSet(this.checked)")
-      +riga("phIll",illOn(),"🤒 Malattia","Deficit sospeso: si mangia a mantenimento","illSet(this.checked)")
-      +riga("phDig",digiunoOn(),"🕊️ Digiuno religioso","Stessi numeri, pasti distribuiti diversamente","digiunoSet(this.checked)")
+      +rigaLibera("phInj",injOn(),"🩼 Infortunio","Mi muovo meno del solito: −"+injPct()+"% sulla quota attività","injSet(this.checked)")
+      +rigaLibera("phIll",illOn(),"🤒 Malattia","Deficit sospeso: si mangia a mantenimento","illSet(this.checked)")
+      +rigaLibera("phDig",digiunoOn(),"🕊️ Digiuno religioso","Stessi numeri, pasti distribuiti diversamente","digiunoSet(this.checked)")
       +`</div>`;
     return g;})()}
   ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:11px 13px;border-radius:12px;margin-top:12px">Nei giorni del ciclo è normale pesare <b>1-2 kg in più</b>: è acqua, non grasso. Non toccare il piano per questo — passa da sé.</div>`:""}
   ${physDurationNote()}
+  <div class="hint" style="margin-top:14px">Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.</div>
+  <div class="mtools"><button class="btn ghost small" onclick="recalibrate()">Ricalibra la settimana</button></div>
   </div>`;
 
-  h+=`<div class="card"><h2>Nota del giorno</h2>
-  <div class="hint">Fame, digestione, imprevisti: quello che i numeri non dicono.</div>
-  <textarea id="dayNote" rows="3" placeholder="Com'è andata?" onchange="setNote(${di},this.value)">${esc(cap(S.week.days[di].note||""))}</textarea>
-  <div class="hint">Finisce nell'esportazione e nell'analisi dei pattern.</div>
-  </div>`;
-
-  h+=`<div class="card"><h2>Ritara la giornata</h2>
-  ${hint2("Ricalcola le grammature sui numeri di adesso, senza cambiare i piatti.",
-   "«Oggi» tocca solo i pasti che restano da consumare. «La settimana» rifà i 7 giorni da oggi e rigenera la spesa, ma vale <b>solo per questa settimana</b>: il piano di base resta quello che è.")}
-  <div class="mtools">
-    <button class="btn small" onclick="recalibrateToday()">Ricalibra oggi</button>
-    <button class="btn ghost small" onclick="recalibrate()">Ricalibra la settimana</button></div>
-  </div>`;
   }
   // Pasti
   if(planIsEmpty()){h+=`<div class="card" style="text-align:center">
@@ -4074,10 +4080,13 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     <button class="btn ghost small" onclick="show('io')">Incollala</button>
     <button class="ibtn" onclick="S.ui.dismissAI=1;save();render('oggi')" title="Nascondi">✕</button></div>`;
   if(needMorningBanner()){const p=pendingReviewDays()[0];
-    h+=`<div class="card" style="border-left:4px solid var(--zaff);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <div style="flex:1;font-size:13.5px">🌅 Ieri hai segnato tutti i <b>pasti</b>, l'<b>acqua</b> e lo <b>sport</b>?</div>
-    <button class="btn ghost small" onclick="goReview(${p.di})">Apri ieri</button>
-    <button class="btn small" onclick="reviewDone('${p.dISO}')">Fatto</button></div>`;}
+    h+=`<div class="card invito">
+    <div class="ik">Ieri</div>
+    <div class="it">Hai segnato tutti i pasti, l'acqua e lo sport?</div>
+    <div class="mtools">
+      <button class="btn small" onclick="goReview(${p.di})">Apri ieri</button>
+      <button class="btn ghost small" onclick="reviewDone('${p.dISO}')">Era tutto a posto</button>
+    </div></div>`;}
   /* Cambio di fase del ciclo dieta: si avvisa una volta sola, e da lì si
      ritarano piano e spesa sulle nuove calorie. */
   if(!S.ui.vacanza&&cycPhase()&&cycPhaseDay()<=3&&S.ui.cycSeen!==cycPhaseKey()){
@@ -4098,10 +4107,13 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         : `<button class="btn small" onclick="densSet('base')">Semplifica</button>`}
       <button class="btn ghost small" onclick="densNudgeNo()">Va bene così</button>
     </div></div>`;
-  if(telNudge())h+=`<div class="card" style="border-left:4px solid var(--zaff);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <div style="flex:1;min-width:180px;font-size:13.5px">📊 <b>Un favore da 1 secondo.</b> Mi mandi le statistiche di quanto usi Nutry? <b>Nessun dato personale o della tua dieta.</b></div>
-    <button class="btn small" onclick="telNudgeSend()">✉️ Mandali</button>
-    <button class="ibtn" onclick="telNudgeLater()" title="Più tardi">✕</button></div>`;
+  if(telNudge())h+=`<div class="card invito">
+    <div class="ik">Un favore da 1 secondo</div>
+    <div class="it">Mi mandi le statistiche di quanto usi Nutry? <b>Nessun dato personale o della tua dieta.</b></div>
+    <div class="mtools">
+      <button class="btn small" onclick="telNudgeSend()">Mandali</button>
+      <button class="btn ghost small" onclick="telNudgeLater()">Più tardi</button>
+    </div></div>`;
   // v5.1: nessun banner automatico di ribilanciamento — si usa il tasto RGP
   h+=`<div class="mtools" style="margin-top:16px"><button class="btn" style="flex:1" onclick="show('oggi')">Passa a Oggi e segna i pasti</button></div>`;
   el.innerHTML=h;
@@ -4137,6 +4149,12 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   // Acqua con obiettivo dinamico
   const goal=waterGoal(di);
   const _vd=iso(VIEW);
+  h+=`<div class="card"><h2>Nota del giorno</h2>
+  <div class="hint">Fame, digestione, imprevisti: quello che i numeri non dicono.</div>
+  <textarea id="dayNote" rows="3" placeholder="Com'è andata?" onchange="setNote(${di},this.value)">${esc(cap(S.week.days[di].note||""))}</textarea>
+  <div class="hint">Finisce nell'esportazione e nell'analisi dei pattern.</div>
+  </div>`;
+
   h+=`<div class="gsec">Il bilancio della giornata</div>`;
   if(S.ui.vacanza){
   h+=`<div class="gaugecard"><div style="font-size:40px">🏖️</div><h2>Modalità vacanza</h2>
@@ -4460,6 +4478,20 @@ window.scontrinoScan=async()=>{
    che uno la cerca quando pensa "cosa mangio questa settimana". */
 /* Dal Punto al pasto vero, in Oggi: si apre la giornata e si va dritti
    alla card di quel pasto, evidenziata, dove ci sono tutte le funzioni. */
+/* Scorciatoia al campo del genere: da «Il tuo corpo» ci si arriva in un
+   tocco invece di cercarlo in Profilo. Il campo si illumina e prende il
+   fuoco, così si vede subito dov'è. */
+window.vaiGenere=()=>{
+  show("io");
+  setTimeout(()=>{
+    const e=document.getElementById("pGen");if(!e)return;
+    const card=e.closest(".card")||e;
+    card.scrollIntoView({block:"center",behavior:"smooth"});
+    e.style.transition="box-shadow .4s";
+    e.style.boxShadow="0 0 0 3px var(--menta)";
+    try{e.focus();}catch(_){}
+    setTimeout(()=>{e.style.boxShadow="";},2000);
+  },260);};
 window.vaiPasto=(pdi,mi)=>{
   show("oggi");
   setTimeout(()=>{
@@ -9375,11 +9407,9 @@ window.addEventListener("error",function(ev){
   try{renderHeader();}catch(e){}
   try{tryDriveAuto();}catch(e){}
   let start="oggi";
-  try{/* La prima apertura del giorno porta al Punto — è il momento in cui si
-       fa il punto della situazione. Dalla seconda in poi si va a Oggi. */
-    const _oggiISO=iso(new Date()),_prima=(S.ui.ultimaApertura!==_oggiISO);
-    S.ui.ultimaApertura=_oggiISO;try{save();}catch(e){}
-    start=S.onboard.done?(S.profile.dob?(_prima?"punto":"oggi"):"io"):"benvenuto";}catch(e){}
+  try{/* Si apre SEMPRE sul Punto: è la pagina che dice come stai e cosa ti
+       aspetta. Da lì si passa a Oggi con un tocco. */
+    start=S.onboard.done?(S.profile.dob?"punto":"io"):"benvenuto";}catch(e){}
   try{show(start);}
   catch(e){
     try{

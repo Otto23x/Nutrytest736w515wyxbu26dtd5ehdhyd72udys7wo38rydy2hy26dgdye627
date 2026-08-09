@@ -137,6 +137,16 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
 .obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
 .obpl{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
+/* ══ AVANZAMENTO DELLA GENERAZIONE ══
+   Un riquadro fisso in fondo, per quando la pagina Piano non c'è —
+   tipicamente alla fine dell'onboarding, che è proprio la prima volta
+   in cui l'utente aspetta e non sa se sta succedendo qualcosa. */
+.genfloat{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));
+  z-index:95;background:var(--card);border-radius:var(--r-lg);padding:15px 17px;
+  box-shadow:0 1px 2px rgba(12,31,23,.06),0 18px 40px -20px rgba(12,31,23,.4);
+  font-size:13.5px;line-height:1.5;max-height:46vh;overflow:auto;
+  opacity:0;transform:translateY(14px);transition:opacity .25s,transform .25s var(--ease)}
+.genfloat.on{opacity:1;transform:none}
 /* ══ ACQUA NEL PUNTO ══
    Bicchieri da toccare, non un promemoria scritto: se bere costa un
    tocco lo si fa, se costa aprire un'altra pagina non lo fa nessuno. */
@@ -149,6 +159,10 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .ag.on{background:#5BB8E8;border-color:#5BB8E8}
 .ag:active{transform:scale(.9)}
 .af{font-size:var(--t-xs);color:var(--grigio)}
+/* ══ AVANZAMENTO DELLA GENERAZIONE ══ */
+.gday{font-size:13.5px;padding:6px 0;color:var(--grigio);font-variant-numeric:tabular-nums}
+.gday.ok{color:var(--bosco);font-weight:600}
+.gday.now{color:var(--ink);font-weight:600}
 /* ══ INVITI ══
    Erano strisce con il bordo colorato a sinistra e i pulsanti in fila
    sulla stessa riga del testo: si stringevano e andavano a capo male.
@@ -613,14 +627,17 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
 #aiSpin.on{display:flex}
 /* rotella dell'AI: unica animazione rimasta, gira SOLO mentre l'AI lavora */
 @keyframes nspin{to{transform:rotate(360deg)}}
-#aiSpin .sp{position:relative;width:18px;height:18px;border-radius:50%;
-  border:2.5px solid var(--linea);border-top-color:var(--azione);
-  animation:nspin .9s linear infinite}
+#aiSpin /* Una ciambella che si riempie e ricomincia: mostra un avanzamento
+   invece di un moto perpetuo, e si capisce che sta lavorando. */
+@property --gr{syntax:"<percentage>";inherits:false;initial-value:0%}
+.sp{position:relative;width:20px;height:20px;border-radius:50%;flex:0 0 auto;
+  background:conic-gradient(var(--azione) var(--gr,0%),var(--linea) 0);
+  animation:nfill 1.8s linear infinite}
+.sp::before{content:"";position:absolute;inset:3.5px;border-radius:50%;background:var(--card)}
+@keyframes nfill{from{--gr:0%}to{--gr:100%}}
 /* Anello interno in senso ORARIO OPPOSTO: l'occhio lo coglie subito e
    distingue «sto lavorando» da un semplice caricamento. */
-.sp::after{content:"";position:absolute;inset:2px;border-radius:50%;
-  border:2px solid transparent;border-bottom-color:var(--salvia);
-  animation:nspin 1.3s linear infinite reverse}
+
 @media(prefers-reduced-motion:reduce){#aiSpin .sp{animation:none}}
 #toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px) scale(.9);top:78px;z-index:96;max-width:calc(100vw - 32px);background:var(--azione);color:#fff;border-radius:22px;padding:11px 20px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:all .4s var(--ease);box-shadow:0 12px 30px -8px rgba(22,163,74,.6)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
@@ -904,7 +921,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.23.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.24.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1418,8 +1435,15 @@ function bumpStreak(){const y=new Date();y.setDate(y.getDate()-1);y.setHours(12,
    ═══════════════════════════════════════════════════════════════ */
 /* Catena modelli Gemini aggiornata (giu 2026): 2.0/1.5 sono stati spenti.
    "auto" prova in ordine; un modello scelto a mano viene provato per primo. */
-const GEM_CHAIN=["gemini-3.5-flash","gemini-3.1-flash-lite","gemini-2.5-flash","gemini-2.5-flash-lite"];
-const GEM_ALL=["auto"].concat(GEM_CHAIN,["gemini-2.5-pro"]).filter((m,i,a)=>a.indexOf(m)===i);
+/* Nomi noti al momento della scrittura: non sono un limite, perché
+   l'elenco vero viene chiesto a Google e i modelli scoperti hanno la
+   precedenza. Per questo l'app funziona con modelli usciti dopo. */
+const GEM_CHAIN=["gemini-3.6-flash","gemini-3.5-flash","gemini-3.1-flash-lite","gemini-2.5-flash","gemini-2.5-flash-lite"];
+/* L'elenco del selettore. Prima conteneva solo «auto»: i modelli noti
+   restavano invisibili finché la ricerca automatica non andava a buon
+   fine, ed è per questo che Flash 3.6 non si poteva scegliere. */
+const GEM_ALL=["auto","gemini-3.6-flash","gemini-3.6-pro","gemini-3.5-flash",
+               "gemini-3.1-flash-lite","gemini-2.5-pro","gemini-2.5-flash","gemini-2.5-flash-lite"].concat(GEM_CHAIN,["gemini-3.6-pro","gemini-2.5-pro"]).filter((m,i,a)=>a.indexOf(m)===i);
 /* I modelli nuovi non richiedono un aggiornamento dell'app: l'elenco vero
    viene chiesto a Google e i più recenti finiscono in cima alla catena.
    Il controllo si fa da solo una volta a settimana, e si può forzare da Io. */
@@ -1889,6 +1913,14 @@ window.telSet=async(v)=>{
   if(v&&!telOn()){
     if(!await dlgConfirm("📊 Un favore da 1 secondo\n\nMi mandi le statistiche di quanto usi Nutry?\n\n<b>Nessun dato personale o della tua dieta</b>: né peso, né cibo, né nome, né note. Escono solo da quanti giorni ce l'hai, quanti giorni l'hai aperta e quante spunte hai fatto.\n\nIl pacchetto esatto lo vedi qui sotto, e lo spegni quando vuoi.",
       {ok:"Va bene, aiutami a migliorarla",ko:"No grazie"})){S.tel.on=false;save();render("io");return;}
+    /* Non basta il consenso: bisogna dire cosa succede in pratica,
+       altrimenti uno accetta e poi non capisce perché non parte nulla. */
+    await dlgAlert("Grazie. Ecco cosa succede adesso:<br><br>"+
+      "· <b>Non parte nulla da solo.</b> L'app conta i giorni d'uso e basta.<br>"+
+      "· <b>Ogni 30 giorni</b> ti chiedo se me li mandi, con un pulsante.<br>"+
+      "· Quel pulsante apre la <b>tua app di posta</b> con il messaggio già scritto: lo leggi prima di inviarlo, e se non ti va lo chiudi.<br>"+
+      "· Puoi spegnere tutto in <b>Profilo → Dati d'uso</b>, quando vuoi.<br><br>"+
+      "Il pacchetto è visibile lì: otto numeri, nessuna parola.");
   }
   S.tel.on=!!v;save();render("io");
   toast(v?"Grazie: aiuta a capire cosa non funziona":"Invio disattivato");};
@@ -3062,7 +3094,7 @@ window.calibraGiornata=async()=>{
     "\n\nRiorganizzo i "+items.length+" pasti che devi ancora fare — stesse calorie totali, distribuzione diversa.",
     {ok:"Calibra",ko:"Lascia com'è"}))return;
   const box=document.getElementById("caliOut");
-  if(box){box.style.display="block";box.textContent="🕐 Riorganizzo i pasti che restano…";}
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🕐 Riorganizzo i pasti che restano…";}
   try{
     const lista=items.map(it=>{const o=mealOpt(it.pdi,it.mi);return {pdi:it.pdi,mi:it.mi,slot:it.slot,d:o.d,k:o.k,p:o.p};});
     const t=await aiAsk('Riorganizza questi pasti ancora da consumare oggi MANTENENDO invariato il totale di calorie e proteine: cambia solo la distribuzione e la composizione.'+ctx+' '+rulesForAI()+
@@ -3075,7 +3107,7 @@ window.calibraGiornata=async()=>{
     arr.forEach(x=>{h+='• <b>'+esc(x.slot||"")+'</b>: '+esc(x.nuovo)+' — ~'+Math.round(x.kcal||0)+' kcal · '+Math.round(x.prot||0)+' g prot'+(x.perche?'\n  <i>'+esc(x.perche)+'</i>':'')+'\n';});
     h+='\n<div class="btngrid2"><button class="btn small" onclick="calibraApply()">Applica ai pasti di oggi</button><button class="btn ghost small" onclick="calibraGiornata()">🔄 Riprova</button></div>';
     if(box)box.innerHTML=h;
-  }catch(e){if(box)box.textContent="";aiFail(e);}};
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 let CALI=null;
 window.calibraApply=()=>{if(!CALI)return;
   CALI.forEach(x=>{const pdi=+x.pdi,mi=+x.mi;
@@ -4062,7 +4094,13 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           </div>`:""}
       </div>`;})();
   {const nf=notifOra(di);
-   if(nf)h+=`<div class="nbanner" data-k="${esc(nf.k)}">
+   /* Il promemoria del pasto ripeteva la card «Il prossimo pasto», con
+      gli stessi due pulsanti: due riquadri per la stessa cosa. Restano
+      gli altri momenti, che dicono cose diverse. */
+   /* La chiave è «data_momento», non «momento»: il confronto secco non
+      scattava mai e il riquadro doppio restava. */
+   if(nf&&/_pasto$/.test(nf.k))nf.salta=true;
+   if(nf&&!nf.salta)h+=`<div class="nbanner" data-k="${esc(nf.k)}">
      <div class="nb-t">${esc(nf.t)}</div>
      <div class="nb-d">${nf.d}${nf.d2?` <b>${nf.d2}</b>`:""}</div>
      ${nf.a?`<div class="nb-a"><button class="btn small" onclick="notifVisto('${esc(nf.k)}',1);${nf.a[1]}">${esc(nf.a[0])}</button></div>`:""}
@@ -4089,12 +4127,12 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   ${(function(){
     const dis=!physAllowed(),d=dis?" disabled":"";
     let g="";
-    if(dis)g+=`<div class="hint" style="background:var(--menta);padding:10px 12px;border-radius:12px;margin:10px 0">Ciclo, allattamento e gravidanza sono attivi solo sul profilo femminile: qui sotto li vedi spenti.
-      <div class="mtools" style="margin-top:10px"><button class="btn ghost small" onclick="vaiGenere()">Cambia il genere del profilo</button></div></div>`;
+    /* Se non si applicano non si mostrano: righe grigie e intoccabili
+       occupano spazio e fanno solo chiedere perché ci sono. */
     const riga=(id,on,lab,desc,ev)=>`<label class="stato ${on?"on":""} ${dis?"off":""}">
       <input type="checkbox" id="${id}" ${on?"checked":""}${d} onchange="${ev}">
       <span class="sl"><b>${lab}</b><small>${desc}</small></span></label>`;
-    {
+    if(!dis){
       g+=`<div class="statolist">`
       +riga("phCycle",!!cycleDay(),"🩸 Ciclo"+(cycleDay()?" · giorno "+cycleDay():""),"Si spegne da solo dopo "+cycleDaysMax()+" giorni","cycleToggle()")
       +riga("phLactF",S.phys.lact==="esclusivo","🤱 Allattamento esclusivo","+"+(+S.profile.lactFull||500)+" kcal al giorno","lactSet(this.checked?'esclusivo':'no')")
@@ -4154,14 +4192,12 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     </div></div>`;}
   /* Cambio di fase del ciclo dieta: si avvisa una volta sola, e da lì si
      ritarano piano e spesa sulle nuove calorie. */
+  /* Cambio di fase: non un riquadro in mezzo alla pagina, ma un avviso
+     che compare UNA volta. Si legge, si preme OK e l'app si ritara da
+     sola: è un fatto compiuto, non una cosa da ricordarsi di fare. */
   if(!S.ui.vacanza&&cycPhase()&&cycPhaseDay()<=3&&S.ui.cycSeen!==cycPhaseKey()){
-    const mant=cycMaintOn();
-    h+=`<div class="card" style="border-left:4px solid var(--${mant?"zaff":"salvia"});display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-      <div style="flex:1;font-size:13.5px">${mant?"⏸️":"📉"} <b>${mant?"Inizia il mese di mantenimento":"Riparte la fase di deficit"}</b> — ${mant
-        ?"dopo "+cycDefDays()+" giorni di deficit il metabolismo ha bisogno di una pausa: per "+cycMaintDays()+" giorni si mangia a mantenimento (+"+Math.abs(Math.round(tdeeTarget()*defPct()/100))+" kcal circa al giorno). Non è un passo indietro: serve proprio a far funzionare il prossimo blocco."
-        :"la pausa è finita: si torna in deficit per "+cycDefDays()+" giorni."} Ritaro piano e spesa?</div>
-      <button class="btn small" onclick="cycApply()">Ritara ora</button>
-      <button class="ibtn" onclick="cycDismiss()" title="Più tardi">✕</button></div>`;}
+    setTimeout(()=>cycAvvisoFase(),400);
+  }
   if(densNudge())h+=`<div class="card" style="border-left:4px solid var(--salvia)">
     <div style="font-size:13.5px">${dens()==="base"
       ? "Stai usando Nutry da "+(+S.tel.giorni||0)+" giorni. Vuoi vedere <b>qualcosa in più</b> — macro, fibre, fasi della dieta — o va bene così?"
@@ -4519,7 +4555,7 @@ window.scontrinoScan=async()=>{
   try{img=await pickPhoto({gallery:gal,multi:false});}catch(e){return;}
   if(!img)return;
   const box=document.getElementById("scoOut");
-  if(box){box.style.display="block";box.textContent="🧾 Leggo lo scontrino…";}
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🧾 Leggo lo scontrino…";}
   try{
     const t=await aiAsk("Questa è la foto di uno scontrino della spesa italiano. Estrai SOLO i prodotti ALIMENTARI, ignorando detersivi, articoli per la casa, totali, sconti e codici. "+
       "Per ogni prodotto: il nome in italiano corrente (non la sigla del supermercato: «PT CRUDO 100G» diventa «prosciutto crudo»), la quantità e l'unità. "+
@@ -4529,13 +4565,13 @@ window.scontrinoScan=async()=>{
     const list=(j&&Array.isArray(j.prodotti))?j.prodotti:null;
     if(!list||!list.length)throw new Error("Non sono riuscito a leggere prodotti da questa foto");
     pantryAdd(list);
-    if(box)box.style.display="none";
+    if(box)box.style.display="none";genBoxVia();
     render("spesa");
     const v=spesaVoto(),fa=v?spesaFaccia(v.v):null;
     dlgAlert("🧾 Letti <b>"+list.length+"</b> prodotti e aggiunti alla dispensa."+
       (fa?("<br><br>"+fa[0]+" <b>"+fa[1]+"</b> — voto "+v.v+"/100"):"")+
       "<br><br>Ora puoi chiedere i pasti con <b>Cucina quello che ho</b>: userò quello che c'è, finché basta.");
-  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+  }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
 
 /* ── I pasti da quello che hai in casa ─────────────────────────────
    Non si pretende di coprire la settimana: si copre quello che si può,
@@ -4634,7 +4670,7 @@ window.pantryCucina=async()=>{
   const p=pantry();
   if(!p.items.length)return dlgAlert("La dispensa è vuota: fotografa uno scontrino per riempirla.");
   const box=document.getElementById("scoOut");
-  if(box){box.style.display="block";box.textContent="🍳 Costruisco i pasti con quello che hai…";}
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🍳 Costruisco i pasti con quello che hai…";}
   try{
     const lista=p.items.map(i=>i.n+(i.q?" "+i.q+" "+i.u:"")).join(", ");
     const t=await aiAsk("Ho in casa questi alimenti: "+lista+". "+
@@ -4653,8 +4689,8 @@ window.pantryCucina=async()=>{
     if(Array.isArray(j.manca)&&j.manca.length)
       h+="<b>Per arrivare a sette giorni ti manca:</b><br>"+j.manca.map(x=>"· "+esc(prodottoPrima(x))).join("<br>")+"<br><br>";
     if(j.nota)h+="<div style=\"color:var(--grigio)\">"+esc(j.nota)+"</div>";
-    if(box){box.style.display="block";box.innerHTML=h;}
-  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+    if(box){box.style.display="block";genBoxMostra(box);box.innerHTML=h;}
+  }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
 
 /* ═══ RETE DI SICUREZZA DELLA SPESA ═══════════════════════════════
    La lista NON deve dipendere dall'AI. Se la richiesta fallisce, la si
@@ -5158,12 +5194,31 @@ function cycPresetNow(){
   const p=CYC_PRESETS.find(x=>x[1]===cycDefDays()&&x[2]===cycMaintDays());
   return p?p[0]:"pers";}
 window.cycPresetSet=(v)=>{
-  if(v==="pers")return;
+  /* «Altro» non applica uno schema: accende i campi delle settimane,
+     che prima non comparivano mai — la voce era una scelta che non
+     portava da nessuna parte. */
+  if(v==="pers"){S.profile.cycPhases=true;S.ui.cycPers=true;save();render(cur);
+    return toast("Scegli tu quante settimane");}
+  S.ui.cycPers=false;
   if(v==="cost"){S.profile.cycPhases=false;save();render("regole");
     return toast("Deficit costante: nessuna pausa programmata");}
   const p=CYC_PRESETS.find(x=>x[0]===v);if(!p)return;
   S.profile.cycPhases=true;S.profile.cycDefDays=p[1];S.profile.cycMaintDays=p[2];
   save();render("regole");toast(p[3]+" ✓");};
+/* Nell'onboarding i campi compaiono e spariscono con la scelta, senza
+   ridisegnare la pagina: ridisegnare farebbe perdere quello che si sta
+   scrivendo negli altri campi. */
+window.obCycUI=(v)=>{
+  const b=document.getElementById("obCycPers");
+  if(b)b.style.display=(v==="pers")?"block":"none";
+  S.ui.cycPers=(v==="pers");};
+window.cycPersSave=()=>{
+  const d=Math.round(+((document.getElementById("cycDefW")||{}).value)||0);
+  const m=Math.round(+((document.getElementById("cycMaiW")||{}).value)||0);
+  if(!(d>=1&&m>=1))return toast("Servono almeno una settimana per parte");
+  S.profile.cycPhases=true;S.profile.cycDefDays=d*7;S.profile.cycMaintDays=m*7;
+  save();render(cur);
+  toast(d+" settimane di deficit + "+m+" di mantenimento ✓");};
 function cycDefDays(){const n=+S.profile.cycDefDays;return n>0?n:90;}
 function cycMaintDays(){const n=+S.profile.cycMaintDays;return n>0?n:30;}
 function cycOn(){return S.profile.cycPhases!==false;}
@@ -5213,6 +5268,19 @@ function cycPhaseKey(){
   const tot=cycDefDays()+cycMaintDays();
   return Math.floor((n-1)/tot)+"_"+cycPhase();}
 window.cycDismiss=()=>{S.ui.cycSeen=cycPhaseKey();save();render("oggi");};
+let CYC_AVVISO=false;
+async function cycAvvisoFase(){
+  if(CYC_AVVISO)return;                 /* uno alla volta */
+  if(S.ui.cycSeen===cycPhaseKey())return;
+  CYC_AVVISO=true;
+  const mant=cycMaintOn();
+  const testo=mant
+    ? "⏸️ <b>Inizia la pausa di mantenimento</b><br><br>Dopo "+Math.round(cycDefDays()/7)+" settimane di deficit il metabolismo ha bisogno di respirare: per "+Math.round(cycMaintDays()/7)+" settimane si mangia a mantenimento, circa <b>+"+Math.abs(Math.round(tdeeTarget()*defPct()/100))+" kcal al giorno</b>.<br><br>Non è un passo indietro: serve a far funzionare il blocco successivo. Premi OK e ritaro piano e spesa."
+    : "📉 <b>Riparte il deficit</b><br><br>La pausa è finita: si torna in deficit per "+Math.round(cycDefDays()/7)+" settimane.<br><br>Premi OK e ritaro piano e spesa sulle nuove calorie.";
+  try{await dlgAlert(testo);}catch(e){}
+  S.ui.cycSeen=cycPhaseKey();save();
+  try{await cycApply();}catch(e){}
+  CYC_AVVISO=false;}
 window.cycApply=async()=>{
   S.ui.cycSeen=cycPhaseKey();save();
   if(!aiOn())return dlgAlert("Serve la chiave AI per ritarare il piano.\n\nIl target è già cambiato: le grammature del piano puoi adeguarle a mano.");
@@ -5484,6 +5552,11 @@ function onbSave(silent){
     setGoalWeight(v("obTargetW"));              /* unico punto di scrittura */
     {const cv=v("obCyc"),pr=CYC_PRESETS.find(x=>x[0]===cv);
      if(cv==="cost")p.cycPhases=false;
+     else if(cv==="pers"){
+       /* «Altro»: valgono i due numeri scritti dall'utente, non lo schema */
+       const dd=Math.round(+v("obCycDefW")||0),mm=Math.round(+v("obCycMaiW")||0);
+       if(dd>=1&&mm>=1){p.cycPhases=true;p.cycDefDays=dd*7;p.cycMaintDays=mm*7;}
+       else{p.cycPhases=true;p.cycDefDays=21;p.cycMaintDays=7;}}
      else if(pr){p.cycPhases=true;p.cycDefDays=pr[1];p.cycMaintDays=pr[2];}}
     D.ritmo=v("obRitmo")||"";
     if(D.ritmo)p.defMode="ritmo";      /* il ritmo scelto guida davvero il deficit */
@@ -5594,9 +5667,17 @@ function renderBenvenuto(){
     </div>
     <div class="obbox" id="obRitmoHint"></div>
     <label>Come vuoi affrontarla?</label>
-    <select id="obCyc">
+    <select id="obCyc" onchange="obCycUI(this.value)">
       ${CYC_PRESETS.map(x=>`<option value="${x[0]}" ${cycPresetNow()===x[0]?"selected":""}>${x[3]}</option>`).join("")}
     </select>
+    <div id="obCycPers" style="display:${(cycPresetNow()==="pers"||S.ui.cycPers)?"block":"none"}">
+      <div class="duo" style="margin-top:12px">
+        <div><label>Settimane in deficit</label>
+          <input type="number" id="obCycDefW" min="1" max="52" value="${Math.round(cycDefDays()/7)}"></div>
+        <div><label>Settimane di mantenimento</label>
+          <input type="number" id="obCycMaiW" min="1" max="26" value="${Math.round(cycMaintDays()/7)}"></div>
+      </div>
+    </div>
     <div class="obbox">Ogni tanto una <b>pausa di mantenimento</b> — si mangia di più e si resta fermi di peso — aiuta a continuare più a lungo. Se non sai cosa scegliere, <b>3 settimane + 1</b> va bene per quasi tutti. Si cambia quando vuoi.</div>
     <label>Ti alleni? Se sì, quanto</label>
     <div class="wkhead"><span style="flex:2">Sport</span><span style="flex:1">Minuti</span><span style="flex:1">Volte</span><span style="width:30px"></span></div>
@@ -5862,7 +5943,16 @@ function rulesCardHTML(){
   <div class="gsec">Fasi della dieta</div>
   <table class="rules">
   ${row("Schema","Ogni tanto una pausa di mantenimento aiuta a non adattarsi al deficit. Scegli uno schema o scrivi i tuoi giorni nelle due righe qui sotto."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":""),
-     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]))+`<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`)}
+     sel("rCycPreset",cycPresetNow(),CYC_PRESETS.map(x=>[x[0],x[3]]))+
+    `<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`+
+    ((cycPresetNow()==="pers"||S.ui.cycPers)?`
+      <div class="duo" style="margin-top:12px">
+        <div><label>Settimane in deficit</label>
+          <input type="number" id="cycDefW" min="1" max="52" value="${Math.round(cycDefDays()/7)}"></div>
+        <div><label>Settimane di mantenimento</label>
+          <input type="number" id="cycMaiW" min="1" max="26" value="${Math.round(cycMaintDays()/7)}"></div>
+      </div>
+      <div class="mtools"><button class="btn small" onclick="cycPersSave()">Salva le settimane</button></div>`:""))}
   ${row("Settimane in deficit","Quante settimane si resta in deficit prima della pausa. Scrivi il numero che vuoi."+(cycPhase()?" <b>Ora: "+cycPhase()+", giorno "+cycPhaseDay()+" di "+cycPhaseLen()+".</b>":" (Serve un periodo di dieta aperto in Storico.)"),num("rCycDef",Math.round(cycDefDays()/7),1,1,52,"settimane"))}
   ${row("Settimane di pausa","Quanto dura il mantenimento: il deficit va a zero, le porzioni risalgono e la spesa si adegua.",num("rCycMaint",Math.round(cycMaintDays()/7),1,1,16,"settimane"))}
   </table>
@@ -6431,6 +6521,29 @@ async function goalHealthCheck(){
     "\n\nLo trovi anche in Io → Obiettivi. Adesso rianalizzo.");
   return goalHealthCheck();          /* rianalisi immediata del nuovo obiettivo */
 }
+/* ═══ DOVE MOSTRARE L'AVANZAMENTO ═══════════════════════════════════
+   «planOut» esiste solo nella pagina Piano. Al termine dell'onboarding
+   quella pagina non c'è, quindi il riquadro con i giorni completati non
+   aveva dove comparire e si vedeva solo «L'AI sta lavorando». Qui si
+   cerca il contenitore giusto e, se non c'è, se ne crea uno fisso in
+   fondo allo schermo: generare un piano dura minuti, e restare senza
+   segnali per minuti fa pensare che si sia bloccato tutto. */
+function genBoxMostra(el){
+  if(el&&el.id==="genFloat")requestAnimationFrame(()=>el.classList.add("on"));}
+function genBox(){
+  const q=document.getElementById("planOut")||document.getElementById("rulesOut");
+  if(q&&q.closest(".page")&&q.closest(".page").classList.contains("active"))return q;
+  let f=document.getElementById("genFloat");
+  if(!f){
+    f=document.createElement("div");
+    f.id="genFloat";f.className="genfloat";
+    document.body.appendChild(f);
+  }
+  return f;}
+/* si toglie da sé quando il lavoro finisce */
+function genBoxVia(){
+  const f=document.getElementById("genFloat");
+  if(f){f.classList.remove("on");setTimeout(()=>{try{f.remove();}catch(_){}} ,260);}}
 window.genPlanAI=async()=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   if(!await goalHealthCheck()){show("io");return toast("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano");}
@@ -6450,13 +6563,20 @@ window.genPlanAI=async()=>{
     (Object.keys(mensa).length?"\n• mensa: "+D.mensaGiorni:"")+
     "\n\n⏳ Ci vuole un po' di tempo, in genere qualche minuto: l'AI costruisce un giorno alla volta e fa del suo meglio per rispettare TUTTE le tue richieste (intolleranze, gusti, mensa, target). Abbi un po' di pazienza e non chiudere l'app."+
     "\n\n⚠️ È una proposta generata automaticamente, non una prescrizione: falla validare da un medico o da un nutrizionista prima di seguirla a lungo. Sostituirà il piano attuale (le settimane già salvate restano intatte)."))return;
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
+  const box=genBox();
   const DAYS=[["Lunedì","lun"],["Martedì","mar"],["Mercoledì","mer"],["Giovedì","gio"],["Venerdì","ven"],["Sabato","sab"],["Domenica","dom"]];
   const plan=[],usati=[];
   try{
     for(let i=0;i<7;i++){
       const dayName=DAYS[i][0],mensaOggi=mensa[DAYS[i][1]];
-      if(box){box.style.display="block";box.textContent="✨ Giorno "+(i+1)+" di 7 — "+dayName+"…\n⏳ L'AI sta lavorando per rispettare tutte le tue richieste: può volerci qualche minuto, abbi un po' di pazienza.";}
+      /* Un elenco che si riempie: senza, sette minuti di attesa sembrano
+         un blocco. Vedere «Lunedì fatto» dice che si sta andando avanti. */
+      if(box){box.style.display="block";genBoxMostra(box);
+        box.innerHTML=DAYS.map((d,k)=>
+            k<i ? `<div class="gday ok">✓ ${d[0]}</div>`
+          : k===i? `<div class="gday now">◍ ${d[0]} — ci sto lavorando…</div>`
+          :        `<div class="gday">○ ${d[0]}</div>`).join("")+
+          `<div class="hint" style="margin-top:10px">Un giorno alla volta, per rispettare tutte le tue richieste. Può volerci qualche minuto.</div>`;}
       const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target del giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
         ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
         (mensaOggi?(outTypeIsPorto()
@@ -6482,12 +6602,12 @@ window.genPlanAI=async()=>{
         }
         if(d)break;
         /* niente lavoro buttato: si riprova solo il giorno che non è arrivato */
-        if(box)box.textContent="";
+        if(box)box.textContent="";genBoxVia();
         const msg="Il giorno "+dayName+" non è arrivato"+(lastE?" ("+aiReason(lastE)+")":"")+
           ".\n\nI "+i+" giorni già costruiti sono al sicuro: riprovo solo questo?";
         if(!await dlgConfirm(msg,{ok:"Riprova "+dayName,ko:"Interrompi tutto"}))
-          {if(box)box.textContent="";return;}
-        if(box){box.style.display="block";box.textContent="✨ Riprovo il giorno "+(i+1)+" di 7 — "+dayName+"…";}
+          {if(box)box.textContent="";genBoxVia();return;}
+        if(box){box.style.display="block";genBoxMostra(box);box.textContent="✨ Riprovo il giorno "+(i+1)+" di 7 — "+dayName+"…";}
         await wait(1200);
       }
       const day={day:dayName,ctx:d.ctx||"",meals:(d.meals||[]).map(m=>({
@@ -6503,7 +6623,7 @@ window.genPlanAI=async()=>{
       day.meals.forEach(m=>{if(m.type==="norm"&&m.o[0].d)usati.push(m.n+": "+String(m.o[0].d).slice(0,60));});
       plan.push(day);
     }
-    if(box)box.textContent="";
+    if(box)box.textContent="";genBoxVia();
     /* ═══ CONTROLLO FINALE ═══════════════════════════════════════
        Passata di verifica su ciò che è stato costruito, fatta in casa e
        non dall'AI: nessuna chiamata in più da poter fallire. Segnala i
@@ -6533,12 +6653,12 @@ window.genPlanAI=async()=>{
     /* la lista della spesa deve essere giusta subito: la costruisce l'AI
        dagli stessi pasti appena generati, come farebbe "Rigenera" */
     if(aiOn()){
-      if(box){box.style.display="block";box.textContent="🛒 Preparo la lista della spesa dal piano…";}
+      if(box){box.style.display="block";genBoxMostra(box);box.textContent="🛒 Preparo la lista della spesa dal piano…";}
       try{await genShop(true);}catch(e){}
-      if(box)box.textContent="";
+      if(box)box.textContent="";genBoxVia();
     }
     dlgAlert("Piano attivato ✓\n\nPuoi correggere ogni pasto dal Piano con ✏️, e le modifiche restano permanenti.\n\nRicorda: fallo validare da un nutrizionista. Se il piano indica integratori (proteine, vitamine…), anche quelli vanno concordati con un nutrizionista, non presi di propria iniziativa.");
-  }catch(e){if(box)box.textContent="";aiFail(e);}};
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 /* ═══ IMPORT DEL PIANO DA FOTO ═══════════════════════════════════
    Chi ha già un piano (nutrizionista, foglio, PDF) lo fotografa:
    l'AI trascrive giorni, pasti e ALTERNATIVE, stima kcal/macro e
@@ -6554,8 +6674,8 @@ window.importPlanPhotos=async()=>{
       (Array.isArray(got)?got:[got]).forEach(x=>photos.push(x));
     }while(await dlgConfirm("Pagine acquisite: "+photos.length+" ✓\n\nNe aggiungo altre?"));
   }catch(e){if(!photos.length)return;}
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
-  if(box){box.style.display="block";box.textContent="📸 Sto leggendo il piano da "+photos.length+" foto…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.";}
+  const box=genBox();
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="📸 Sto leggendo il piano da "+photos.length+" foto…\n⏳ L'AI sta trascrivendo giorni, pasti e alternative: può volerci qualche minuto, abbi un po' di pazienza.";}
   try{
     const q='Queste '+photos.length+' FOTO mostrano un piano alimentare settimanale scritto (tabella, foglio o quaderno). TRASCRIVILO FEDELMENTE: per ogni giorno i pasti nell\'ordine in cui compaiono, con le grammature scritte; se un pasto ha più alternative (es. separate da "oppure", "o", righe alternative), riportale TUTTE come opzioni dello stesso pasto, prima quella principale. NON inventare piatti: se una parte non è leggibile, omettila. Stima kcal e macro REALI di ogni opzione dalle grammature scritte (porzioni tipiche italiane solo dove il peso manca). Se il piano copre meno di 7 giorni, completa la settimana ripetendo i giorni disponibili e segnalandolo nel ctx. Rispondi SOLO con un JSON array di 7 oggetti da Lunedì a Domenica: [{"day":"Lunedì","ctx":"","meals":[{"n":"Colazione","t":"","type":"norm","o":[{"d":"descrizione con grammature","k":numero,"p":numero,"c":numero,"f":numero,"fib":numero,"z":numero}]}]}] — "o" contiene una voce per OGNI alternativa del pasto; type vale "norm", "mensa" oppure "free".';
     let arr=null;
@@ -6572,7 +6692,7 @@ window.importPlanPhotos=async()=>{
         d:String(o.d),k:Math.round(o.k)||0,p:Math.round(o.p)||0,c:Math.round(o.c)||0,f:Math.round(o.f)||0,
         fib:Math.round(o.fib)||estFiberOf(o.d),z:Math.round(o.z)||estSugarOf(o.d)}))}))}));
     if(plan.some(d=>!d.meals.length||d.meals.some(m=>!m.o.length)))throw new Error("alcuni giorni o pasti sono rimasti vuoti: riprova con foto più nitide");
-    if(box)box.textContent="";
+    if(box)box.textContent="";genBoxVia();
     const tot=plan.map(d=>d.meals.reduce((a,m)=>a+m.o[0].k,0));
     const nAlt=plan.reduce((a,d)=>a+d.meals.reduce((x,m)=>x+Math.max(0,m.o.length-1),0),0);
     if(!await dlgConfirm("Piano letto dalle foto ✓\n\n"+plan.map((d,i)=>d.day+": "+d.meals.length+" pasti · ~"+tot[i]+" kcal").join("\n")+"\n\nAlternative trovate: "+nAlt+"\n\nControlla che i numeri abbiano senso (potrai correggere ogni pasto con ✏️).\n\nOK = attiva questo piano"))return;
@@ -6582,7 +6702,7 @@ window.importPlanPhotos=async()=>{
     toast("Piano importato dalle foto ✓");
     await planForecast(true);
     await genShop(true);
-  }catch(e){if(box)box.textContent="";aiFail(e);}};
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 /* ═══ STIMA DEI RISULTATI ════════════════════════════════════════
    Bilancio matematico del piano (media kcal vs fabbisogno + allenamenti
    pianificati) → kg/settimana e data stimata dell'obiettivo; poi, se
@@ -6628,12 +6748,12 @@ window.planForecast=async(afterImport,noRetune)=>{
     return;
   }
   if(!aiOn())return;
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
-  if(box){box.style.display="block";box.textContent="🤖 Giudizio dell'AI sul piano in arrivo…";}
+  const box=genBox();
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🤖 Giudizio dell'AI sul piano in arrivo…";}
   try{
     const t2=await aiAsk('Valuta in modo onesto questo piano alimentare rispetto all\'obiettivo della persona. '+rulesForAI()+' Dati: media del piano '+avg+' kcal/giorno; fabbisogno per i target '+t+' kcal; allenamenti pianificati '+goalWkTotal()+' a settimana (~'+burn+' kcal/giorno); obiettivo: '+(p.goal||"—")+(goalW?'; peso '+p.w+' → '+goalW+' kg':'')+(defMode()==="ritmo"?'; ritmo desiderato '+ratePerWeek()+' kg/settimana'+(rateCapped()?' (ridotto a '+rateEffective()+' kg/settimana dal tetto di sicurezza)':''):'')+'. In massimo 130 parole: quanto è realistico raggiungere l\'obiettivo con questo piano e questi allenamenti, i 2-3 punti deboli principali (proteine, fibre, varietà, sostenibilità) e 2 consigli concreti. Chiudi ricordando la validazione da parte di un nutrizionista. Testo semplice, niente markdown.');
     if(box)box.textContent="🤖 "+t2;
-  }catch(e){if(box)box.textContent="";if(!afterImport)aiFail(e);}};
+  }catch(e){if(box)box.textContent="";genBoxVia();if(!afterImport)aiFail(e);}};
 /* ═══ RITARATURA DEL PIANO ═══════════════════════════════════════
    Quando la stima dice che l'obiettivo non è raggiungibile, l'utente può
    far ritarare il piano: i piatti restano gli stessi, cambiano SOLO le
@@ -6643,7 +6763,7 @@ window.retunePlan=async()=>{
   const target=dayTargetK(),protG=dayTargetP();
   snapSave("prima di: ritaratura del piano");
   if(!S.customPlan){S.customPlan=JSON.parse(JSON.stringify(PLAN));PLAN=S.customPlan;}
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
+  const box=genBox();
   /* La settimana da ritarare parte da OGGI, non dal lunedì: la ricalibratura
      si fa quando serve, anche di mercoledì, e deve coprire i 7 giorni
      successivi nell'ordine in cui verranno davvero vissuti. */
@@ -6651,7 +6771,7 @@ window.retunePlan=async()=>{
   try{
     for(let n=0;n<7;n++){
       const di=(start+n)%7;
-      if(box){box.style.display="block";box.textContent="⚖️ Ritaro il giorno "+(n+1)+" di 7 — "+PLAN[di].day+" verso ~"+target+" kcal…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza: l'AI mantiene i tuoi piatti e cambia solo le quantità.";}
+      if(box){box.style.display="block";genBoxMostra(box);box.textContent="⚖️ Ritaro il giorno "+(n+1)+" di 7 — "+PLAN[di].day+" verso ~"+target+" kcal…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza: l'AI mantiene i tuoi piatti e cambia solo le quantità.";}
       const idx=[],list=[];
       PLAN[di].meals.forEach((m,mi)=>{
         /* i pasti in mensa/fuori si ritarano solo se li prepari tu:
@@ -6674,10 +6794,10 @@ window.retunePlan=async()=>{
     }
     S.customShop=null;S.shop={};   /* la spesa va ricalcolata sulle nuove grammature */
     save();render("piano");
-    if(box)box.textContent="";
+    if(box)box.textContent="";genBoxVia();
     toast("Piano ritarato sulle nuove grammature ✓");
     return true;
-  }catch(e){if(box)box.textContent="";aiFail(e);return false;}};
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);return false;}};
 /* ═══ STAGIONALIZZAZIONE ═════════════════════════════════════════
    Il piano base resta generico ("verdura di stagione"); qui l'AI aggiunge
    ai pasti principali un'ALTERNATIVA marcata 🍂 con piatti e ingredienti
@@ -6696,8 +6816,8 @@ window.seasonalizePlan=async()=>{
   if(planIsEmpty())return dlgAlert("Il piano è vuoto: prima creane o importane uno.");
   const sea=seasonNow();
   if(!await dlgConfirm(seasonEmoji(sea)+" Stagionalizzo il piano — stagione attuale: "+sea+".\n\nIl piano base resta com'è: per i pasti principali l'AI aggiunge un'ALTERNATIVA marcata "+seasonEmoji(sea)+" "+seasonLabel(sea)+" con piatti e ingredienti di stagione (es. niente polenta e spezzatino d'estate, niente insalatone fredde d'inverno). Potrai scegliere l'opzione che preferisci pasto per pasto.\n\nLe alternative stagionali precedenti, di qualunque stagione, vengono sostituite.\n\n⏳ Può volerci qualche minuto."))return;
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
-  if(box){box.style.display="block";box.textContent=seasonEmoji(sea)+" Sto preparando le alternative di stagione ("+sea+")…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza.";}
+  const box=genBox();
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent=seasonEmoji(sea)+" Sto preparando le alternative di stagione ("+sea+")…\n⏳ Può volerci qualche minuto, abbi un po' di pazienza.";}
   try{
     const list=[];
     PLAN.forEach(d=>d.meals.forEach(m=>{
@@ -6720,9 +6840,9 @@ window.seasonalizePlan=async()=>{
         fib:Math.round(v.fib)||estFiberOf(v.d),z:Math.round(v.z)||estSugarOf(v.d)});n++;});
     if(!n)throw new Error("nessuna variante applicabile");
     save();render("piano");
-    if(box)box.textContent="";
+    if(box)box.textContent="";genBoxVia();
     dlgAlert(seasonEmoji(sea)+" Aggiunte "+n+" alternative "+seasonLabel(sea).toLowerCase()+" ("+sea+") ✓\n\nLe riconosci dall'etichetta "+seasonEmoji(sea)+" "+seasonLabel(sea)+" tra le opzioni dei pasti: scegli quella che preferisci dal Piano o da Oggi. Il piano base resta intatto.");
-  }catch(e){if(box)box.textContent="";aiFail(e);}};
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 /* Tutte le note scritte nel diario, dalla più recente: le note esistono da
    sempre (finiscono nell'esportazione e nell'analisi), ma non c'era un posto
    per rileggerle tutte insieme. */
@@ -7396,15 +7516,15 @@ function correlationsSummaryHtml(){
   return rows.map(r=>`<div style="margin-top:6px;font-size:13px">${r}</div>`).join("");}
 window.askCorrelations=async()=>{
   const box=document.getElementById("corrAI");const c=computeCorrelations();
-  if(!c.enough){if(box){box.style.display="block";box.textContent="Servono almeno ~6 giorni con pasti registrati (esclusi i difficili) per trovare correlazioni.";}return;}
+  if(!c.enough){if(box){box.style.display="block";genBoxMostra(box);box.textContent="Servono almeno ~6 giorni con pasti registrati (esclusi i difficili) per trovare correlazioni.";}return;}
   if(!aiOn())return aiFail(new Error("nokey"));
-  if(box){box.style.display="block";box.textContent="🔎 Sto cercando i pattern…";}
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🔎 Sto cercando i pattern…";}
   try{
     const t=await aiAsk("Sei un coach dati. Da questi confronti (medie di deficit e sgarri per gruppi di giorni: sonno alto/basso, con/senza allenamento, umore alto/basso) trova i PATTERN più utili e spiegali come CORRELAZIONI, non come causa certa. Italiano, max 5-6 frasi, niente elenchi puntati né markdown. Dati: "+JSON.stringify(c)+". Concludi con UN suggerimento pratico. Se un gruppo ha pochi giorni (n<3) dichiara che è solo un indizio."+
       (function(){const n=flattenDiet().filter(d=>d.note&&String(d.note).trim()).slice(-14);
         return n.length?" Note scritte dalla persona nei giorni recenti, usale per interpretare i numeri: "+n.map(d=>d.date+": "+String(d.note).slice(0,120)).join(" | "):"";})());
     if(box)box.textContent=t;
-  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+  }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
 /* 🤖 Analisi dei progressi: SOLO testo/suggerimenti, nessuna modifica automatica ai parametri */
 window.askProgress=async()=>{
   if(!aiOn())return aiFail(new Error("nokey"));
@@ -7436,14 +7556,14 @@ window.askProgress=async()=>{
     peso_inizio_periodo:wrows.length?wrows[0].w:null,peso_fine_periodo:wrows.length?wrows[wrows.length-1].w:null,
     sonno_medio:avg("sleep")||null,relax_medio:avg("relax")||null,umore_medio:avg("feel")||null,
     allenamenti_per_tipo:workoutsCount,note_recenti:notes,resoconti_settimanali_precedenti:weekReports};
-  const box=document.getElementById("anAI");if(box){box.style.display="block";box.textContent="🧑‍⚕️ Sto analizzando i tuoi progressi…";}
+  const box=document.getElementById("anAI");if(box){box.style.display="block";genBoxMostra(box);box.textContent="🧑‍⚕️ Sto analizzando i tuoi progressi…";}
   try{
     const t=await aiAsk("Sei un coach nutrizionale onesto e diretto. Analizza questi dati del periodo scelto dall'utente: "+JSON.stringify(payload)+
       ". Considera insieme: alimentazione (kcal/macro/deficit), andamento del peso, come si sente (sonno/relax/umore) e attività fisica svolta. Rispondi in italiano, MASSIMO 5-6 frasi, diretto e concreto, senza elenchi puntati e senza markdown. "+
       "Per stime/proiezioni sul tempo per raggiungere l'obiettivo (1 kg grasso ≈ 7700 kcal): BASE dal deficit dieta = dieta_pianificata.deficit_dieta_giorno (TDEE − intake) se i dati reali sono pochi (meno di ~7 giorni con pasti); con abbastanza dati reali usa il ritmo di peso osservato o dati_reali.deficit_medio_reale. Aggiungi lo sport SOLO come dieta_pianificata.sport_passi_media_giornaliera_kcal (media giornaliera già pronta) e solo se campione_sport_sufficiente è true, mai col dato grezzo di un singolo giorno. "+
       "Se noti che i risultati non stanno arrivando, PROPONI (mai imporre) un possibile aggiustamento generico, lasciando all'utente la decisione se e dove applicarlo nell'app; se i dati sono pochi per giudicare, dillo chiaramente invece di inventare conclusioni.");
     S.progressLog.push({t:new Date().toISOString(),period:AN.mode,text:t});save();renderProgressBox();
-  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+  }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
 /* Mostra solo l'ultima analisi; le precedenti restano in un menu a tendina */
 function renderProgressBox(){
   const box=document.getElementById("anAI");if(!box)return;
@@ -7534,10 +7654,10 @@ function buildDiaryContext(){
 window.askDiaryQuestion=async()=>{
   const ta=document.getElementById("diaryQ");const box=document.getElementById("diaryQA");
   const q=(ta&&ta.value||"").trim();
-  if(!q){if(box){box.style.display="block";box.textContent="Scrivi prima una domanda.";}return;}
+  if(!q){if(box){box.style.display="block";genBoxMostra(box);box.textContent="Scrivi prima una domanda.";}return;}
   if(!aiOn())return aiFail(new Error("nokey"));
   const ctx=buildDiaryContext();
-  if(box){box.style.display="block";box.textContent="🤔 Sto pensando…";}
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🤔 Sto pensando…";}
   try{
     const t=await aiAsk("Sei l'assistente del diario alimentare/sportivo dell'utente. Rispondi alla sua domanda usando SOLO i dati qui sotto: "+JSON.stringify(ctx)+
       ". DOMANDA: \""+q+"\". REGOLE GENERALI: se la domanda NON riguarda alimentazione, peso, deficit, macronutrienti, allenamenti, obiettivi o progressi, rispondi ESATTAMENTE con la sola parola NON_PERTINENTE (in maiuscolo, senza altro). Altrimenti rispondi in italiano, massimo 5-6 frasi, diretta e concreta, senza elenchi puntati e senza markdown. "+
@@ -7547,7 +7667,7 @@ window.askDiaryQuestion=async()=>{
       if(box)box.textContent="⚠️ Posso rispondere solo a domande sui tuoi dati: alimentazione, peso, allenamenti, obiettivi e progressi.";
       return;}
     if(box)box.textContent=t;
-  }catch(e){if(box)box.style.display="none";aiFail(e);}};
+  }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
 window.closeWeek=async()=>{ // chiusura manuale (usata solo dai flussi legacy)
   if(!await dlgConfirm("Salvo la settimana nello storico e azzero la nuova?\n\nℹ️ La settimana salvata resta comunque modificabile in seguito da Storico → Settimane passate → ✏️ Modifica."))return;
   return closeWeekCore(false);};
@@ -8085,8 +8205,8 @@ async function outMealsRewrite(v){
     return {di:x.di,mi:x.mi,giorno:PLAN[x.di].day,slot:m.n,d:o.d,k:o.k,p:o.p};});
   if(!list.length)return false;
   snapSave("prima di: adattamento pasti fuori casa");
-  const box=document.getElementById("planOut")||document.getElementById("rulesOut");
-  if(box){box.style.display="block";box.textContent="🍱 Adatto i pasti fuori casa…";}
+  const box=genBox();
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="🍱 Adatto i pasti fuori casa…";}
   try{
     const t=await aiAsk((v==="porto"
       ?'Questi pasti li prepara la persona e se li porta da casa. Riscrivili ESATTAMENTE come un normale pasto del piano — stessa struttura, stesse grammature, stesso livello di dettaglio degli altri pasti — con l\'unico vincolo che siano trasportabili in un contenitore e buoni anche freddi o riscaldati. Niente ricette elaborate. Mantieni per ogni pasto circa le stesse kcal e proteine indicate. '
@@ -8096,8 +8216,8 @@ async function outMealsRewrite(v){
     if(Array.isArray(arr))arr.forEach(x=>{const m=PLAN[+x.di]&&PLAN[+x.di].meals[+x.mi];if(!m||!x.d)return;
       m.o=[{d:String(x.d),k:Math.round(x.k)||((m.o[0]||{}).k||0),p:Math.round(x.p)||((m.o[0]||{}).p||0),
         c:Math.round(x.c)||0,f:Math.round(x.f)||0,fib:estFiberOf(x.d),z:estSugarOf(x.d)}];});
-    save();render(cur);if(box)box.textContent="";toast("Pasti fuori casa adattati ✓");return true;
-  }catch(e){if(box)box.textContent="";aiFail(e);return false;}}
+    save();render(cur);if(box)box.textContent="";genBoxVia();toast("Pasti fuori casa adattati ✓");return true;
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);return false;}}
 window.outTypeSet=async(v,perSettimana)=>{
   if(perSettimana){S.weekOutTipo=S.weekOutTipo||{};S.weekOutTipo[weekOutKey()]=v;}
   else S.diet.fuoriTipo=v;

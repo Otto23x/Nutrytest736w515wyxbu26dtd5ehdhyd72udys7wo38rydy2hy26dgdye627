@@ -514,7 +514,17 @@ html[data-theme="dark"] .btn{color:#04170B}
 .wline:last-child{border-bottom:0}
 .wline .del{color:var(--rosso);cursor:pointer;font-weight:700;padding:0 7px;transition:transform .15s var(--ease)}
 .wline .del:hover{transform:scale(1.25)}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+/* Le celle si allungano tutte quanto la più alta, e i campi restano
+   ancorati in basso: così due etichette di lunghezza diversa — «Settimane
+   in deficit» e «Settimane di mantenimento» — non sfalsano i riquadri. */
+/* I campi affiancati si allineano in BASSO: quando un'etichetta va su
+   due righe («Settimane di mantenimento») la sua casella scendeva e le
+   due risultavano sfalsate. */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.duo>div{display:flex;flex-direction:column;justify-content:flex-end}
+.duo label{min-height:2.6em;display:flex;align-items:flex-end}
+.duo>div{display:flex;flex-direction:column;justify-content:flex-end}
+.duo>div>label{margin-top:0}
 .duo .stars{font-size:19px;gap:3px}
 .famrow{display:flex;gap:6px;align-items:center;margin-bottom:8px}
 .famrow input,.famrow select{margin:0;min-width:0}
@@ -934,7 +944,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.26.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.27.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1530,9 +1540,19 @@ function trackUsage(tok,err){const t=new Date().toISOString().slice(0,10);
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 /* Indicatore "elaborazione in corso" per ogni chiamata AI */
 let AIBUSY=0;
-let AILAST=0;
+let AILAST=0,AILUNGO=0;
+/* Operazione lunga in corso: l'indicatore resta acceso anche fra una
+   richiesta e l'altra. Senza, durante la generazione del piano spariva
+   e riappariva sette volte, e sembrava che si fosse bloccato. */
+function aiLungoOn(){AILUNGO++;AILAST=Date.now();
+  const e=document.getElementById("aiSpin");if(e)e.classList.add("on");}
+function aiLungoOff(){AILUNGO=Math.max(0,AILUNGO-1);
+  if(!AILUNGO&&!AIBUSY){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
 function aiBusy(){AIBUSY++;AILAST=Date.now();const e=document.getElementById("aiSpin");if(e)e.classList.add("on");}
-function aiDone(){AILAST=Date.now();AIBUSY=Math.max(0,AIBUSY-1);if(AIBUSY===0){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
+/* L'indicatore si spegne solo quando NON resta lavoro in corso: prima
+   bastava la fine di una singola richiesta per spegnerlo, anche se il
+   piano stava ancora generando gli altri sei giorni. */
+function aiDone(){AILAST=Date.now();AIBUSY=Math.max(0,AIBUSY-1);if(AILUNGO)return;if(AIBUSY===0){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
 /* Sblocco manuale: se una richiesta resta appesa (rete che cade, risposta
    mai arrivata) l'indicatore resterebbe acceso per sempre e i pulsanti
    sembrerebbero morti. Toccandolo si azzera tutto e si può riprovare. */
@@ -3952,7 +3972,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   ${(function(){const d=planWeightDrift();
     if(Math.abs(d)<1)return "";
     return `<div class="hint" style="color:var(--zaff);font-weight:600">⚖️ Il piano è stato costruito a ${S.planW} kg, oggi ne pesi ${S.profile.w}: ${d>0?"−":"+"}${Math.abs(d)} kg.${Math.abs(d)>=PLANW_TRIGGER?` Il fabbisogno è cambiato: conviene <b>ritararlo</b> sui numeri di adesso.`:" Ancora nessuna differenza rilevante."}</div>`;})()}
-  <div class="aibox" id="planOut" style="display:none"></div></div>`;
+  <div class="aibox genout" id="planOut" style="display:none"></div></div>`;
   h+=weekOutCardHTML();
   h+=`<div class="card" style="display:none">
   <div class="mtools" style="margin-top:8px">
@@ -4490,6 +4510,7 @@ window.buildShop=async()=>{
   if(planIsEmpty())return dlgAlert("Non c'è ancora un piano da cui calcolare la spesa.\n\nGenera o carica un piano dalla pagina Piano, poi torna qui.");
   return syncShopFromPlan();};
 window.genShop=async(silent)=>{
+  aiLungoOn();   /* l'indicatore resta acceso fino alla fine */
   if(!aiOn())return silent?null:aiFail(new Error("nokey"));
   if(!silent&&!await dlgConfirm("Genero la lista della spesa dal piano attuale? Sostituisce quella corrente."))return;
   try{
@@ -5815,6 +5836,7 @@ function renderBenvenuto(){
         <h3>✨ Generalo con l'AI</h3>
         <p><b>Piano settimanale completo</b>: sette giorni che si ripetono, costruiti su fabbisogno, obiettivo e le tue risposte. Poi correggi quello che non ti convince.</p>
         <button class="btn small" ${aiOn()?"":"disabled title='Serve la chiave Gemini'"} onclick="onbFinish('ai')">Genera il piano</button>
+        <div class="aibox genout" id="genOut" style="display:none"></div>
         ${aiOn()?"":`<div class="obwhere">Serve la chiave Gemini (passo 3 del percorso): puoi incollarla anche dopo da Io → Configurazione API.</div>`}
       </div>
       <div class="obcard">
@@ -6275,7 +6297,8 @@ function readMensaChecks(pre){const out=[];
    chiedono piu a mano (era un doppio inserimento che confondeva). */
 function fuoriCount(str){const m=parseMensa(str);let n=0;
   Object.keys(m).forEach(k=>{n+=(m[k]==="entrambi")?2:1;});return n;}
-const INTOL_LIST=["lattosio","glutine","nichel","uova","frutta a guscio","pesce e crostacei","soia"];
+const INTOL_LIST=["lattosio","glutine","nichel","istamina","cibi acidi",
+                  "uova","frutta a guscio","pesce e crostacei","soia"];
 /* Condizioni legate all'alimentazione: etichetta + indicazione operativa che
    viene passata all'AI. Non sono terapie: sono i criteri dietetici che un
    nutrizionista applicherebbe, così il piano nasce già sensato. */
@@ -6557,6 +6580,12 @@ async function goalHealthCheck(){
     "\n\nLo trovi anche in Io → Obiettivi. Adesso rianalizzo.");
   return goalHealthCheck();          /* rianalisi immediata del nuovo obiettivo */
 }
+/* Tornando sull'app dopo averla messa via, l'indicatore deve essere
+   ancora lì se il lavoro non è finito. */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  const e=document.getElementById("aiSpin");
+  if(e)e.classList.toggle("on",AIBUSY>0);});
 /* ═══ DOVE MOSTRARE L'AVANZAMENTO ═══════════════════════════════════
    «planOut» esiste solo nella pagina Piano. Al termine dell'onboarding
    quella pagina non c'è, quindi il riquadro con i giorni completati non
@@ -6566,9 +6595,33 @@ async function goalHealthCheck(){
    segnali per minuti fa pensare che si sia bloccato tutto. */
 function genBoxMostra(el){
   if(el&&el.id==="genFloat")requestAnimationFrame(()=>el.classList.add("on"));}
+/* L'elenco dei passaggi: i sette giorni più le due cose che vengono
+   dopo. Vederli tutti fin dall'inizio dice quanto manca — un elenco che
+   si allunga a sorpresa fa sembrare l'attesa più lunga di quanto sia. */
+const GEN_GIORNI=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+const GEN_PASSI=["Lista della spesa","Controllo di uniformità"];
+function genPassi(box,fatti,extra){
+  if(!box)return;
+  /* I nomi si tengono qui: «DAYS» vive dentro la funzione di generazione
+     e da fuori non esiste — chiamare genPassi altrove andava in errore. */
+  const tutti=GEN_GIORNI.concat(GEN_PASSI);
+  const n=(extra===undefined)?fatti:(GEN_GIORNI.length+extra);
+  box.style.display="block";genBoxMostra(box);
+  box.innerHTML=tutti.map((nome,k)=>
+      k<n  ? `<div class="gday ok">✓ ${esc(nome)}</div>`
+    : k===n? `<div class="gday now">◍ ${esc(nome)} — ci sto lavorando…</div>`
+    :        `<div class="gday">○ ${esc(nome)}</div>`).join("")+
+    `<div class="hint" style="margin-top:10px">Un passo alla volta, per rispettare tutte le tue richieste. Può volerci qualche minuto: puoi anche mettere via il telefono, il lavoro continua.</div>`;}
 function genBox(){
-  const q=document.getElementById("planOut")||document.getElementById("rulesOut");
-  if(q&&q.closest(".page")&&q.closest(".page").classList.contains("active"))return q;
+  /* L'avanzamento sta DENTRO la scheda da cui è partito il lavoro, non
+     in una finestra che copre la pagina: chi ha premuto «Genera il
+     piano» vuole vedere cosa succede lì. Il riquadro fisso resta solo
+     come ultima possibilità, se nessun contenitore è visibile. */
+  const attiva=(el)=>el&&el.closest(".page")&&el.closest(".page").classList.contains("active");
+  const cand=[document.getElementById("genOut"),
+              document.getElementById("planOut"),
+              document.getElementById("rulesOut")];
+  for(const q of cand) if(attiva(q))return q;
   let f=document.getElementById("genFloat");
   if(!f){
     f=document.createElement("div");
@@ -6578,9 +6631,14 @@ function genBox(){
   return f;}
 /* si toglie da sé quando il lavoro finisce */
 function genBoxVia(){
+  /* Il lavoro lungo è finito: l'indicatore può spegnersi. Si aggancia
+     qui perché genBoxVia viene chiamata in TUTTI i punti di uscita —
+     successo, errore e annullamento — e non se ne dimentica nessuno. */
+  try{aiLungoOff();}catch(_){}
   const f=document.getElementById("genFloat");
   if(f){f.classList.remove("on");setTimeout(()=>{try{f.remove();}catch(_){}} ,260);}}
 window.genPlanAI=async()=>{
+  aiLungoOn();   /* l'indicatore resta acceso fino alla fine */
   if(!aiOn())return aiFail(new Error("nokey"));
   if(!await goalHealthCheck()){show("io");return toast("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano");}
   const p=S.profile,D=S.diet,t=tdee();
@@ -6607,12 +6665,7 @@ window.genPlanAI=async()=>{
       const dayName=DAYS[i][0],mensaOggi=mensa[DAYS[i][1]];
       /* Un elenco che si riempie: senza, sette minuti di attesa sembrano
          un blocco. Vedere «Lunedì fatto» dice che si sta andando avanti. */
-      if(box){box.style.display="block";genBoxMostra(box);
-        box.innerHTML=DAYS.map((d,k)=>
-            k<i ? `<div class="gday ok">✓ ${d[0]}</div>`
-          : k===i? `<div class="gday now">◍ ${d[0]} — ci sto lavorando…</div>`
-          :        `<div class="gday">○ ${d[0]}</div>`).join("")+
-          `<div class="hint" style="margin-top:10px">Un giorno alla volta, per rispettare tutte le tue richieste. Può volerci qualche minuto.</div>`;}
+      if(box)genPassi(box,i);
       const q='Costruisci UN SOLO GIORNO ('+dayName+') di un piano alimentare italiano, sano ed equilibrato. Persona: '+age()+' anni, '+(p.gender==="m"?"uomo":"donna")+', '+p.h+' cm, '+p.w+' kg, obiettivo: '+goal+'. Target del giorno: circa '+target+' kcal (tolleranza ±5%) e almeno '+protG+' g di proteine, distribuiti sui pasti. '+rulesForPlan()+
         ' Pasti da prevedere, in questo ordine esatto: '+slots.join(", ")+'.'+
         (mensaOggi?(outTypeIsPorto()
@@ -6689,8 +6742,15 @@ window.genPlanAI=async()=>{
     /* la lista della spesa deve essere giusta subito: la costruisce l'AI
        dagli stessi pasti appena generati, come farebbe "Rigenera" */
     if(aiOn()){
-      if(box){box.style.display="block";genBoxMostra(box);box.textContent="🛒 Preparo la lista della spesa dal piano…";}
+      genPassi(box,0,0);                       /* ◍ Lista della spesa */
       try{await genShop(true);}catch(e){}
+      genPassi(box,0,1);                       /* ✓ spesa · ◍ controllo */
+      await wait(400);
+      genPassi(box,0,2);                       /* tutto fatto */
+      await wait(600);
+      if(box)box.textContent="";genBoxVia();
+    }else{
+      genPassi(box,0,2);await wait(400);
       if(box)box.textContent="";genBoxVia();
     }
     dlgAlert("Piano attivato ✓\n\nPuoi correggere ogni pasto dal Piano con ✏️, e le modifiche restano permanenti.\n\nRicorda: fallo validare da un nutrizionista. Se il piano indica integratori (proteine, vitamine…), anche quelli vanno concordati con un nutrizionista, non presi di propria iniziativa.");
@@ -6700,6 +6760,7 @@ window.genPlanAI=async()=>{
    l'AI trascrive giorni, pasti e ALTERNATIVE, stima kcal/macro e
    ricostruisce tutto dentro Nutry. */
 window.importPlanPhotos=async()=>{
+  aiLungoOn();   /* l'indicatore resta acceso fino alla fine */
   if(!aiOn())return aiFail(new Error("nokey"));
   if(!await dlgConfirm("📸 Importo il tuo piano alimentare dalle foto.\n\nPer ogni pagina scegli se scattare adesso o prenderla dalla galleria (dalla galleria puoi selezionarne anche più di una in una volta). L'AI leggerà giorni, pasti e alternative e ricostruirà tutto qui, stimando calorie e macro dalle grammature scritte.\n\n⏳ La lettura richiede qualche minuto: abbi un po' di pazienza, l'AI fa del suo meglio per trascrivere tutto fedelmente. Sostituirà il piano attuale (le settimane già salvate restano intatte)."))return;
   const photos=[];
@@ -9511,7 +9572,12 @@ function safeRender(p,fn){
       if(el)el.innerHTML=errorCardHTML(p,e);}catch(_){}
     try{console.error("Nutry render:",p,e);}catch(_){}
   }}
-function render(p){const M={punto:renderPunto,oggi:renderOggi,piano:renderPiano,spesa:renderSpesa,sport:renderSport,
+function render(p){
+  /* Ridisegnare una pagina non deve spegnere l'indicatore: il lavoro in
+     sottofondo continua anche se cambi scheda o torni all'app dopo. */
+  setTimeout(()=>{const e=document.getElementById("aiSpin");
+    if(e)e.classList.toggle("on",AIBUSY>0);},0);
+  const M={punto:renderPunto,oggi:renderOggi,piano:renderPiano,spesa:renderSpesa,sport:renderSport,
   storico:renderStorico,io:renderIo,regole:renderRegole,tools:renderTools,benvenuto:renderBenvenuto,guida:renderGuida,setup:renderSetup};
   const fn=M[p];if(!fn)return;
   safeRender(p,fn);}

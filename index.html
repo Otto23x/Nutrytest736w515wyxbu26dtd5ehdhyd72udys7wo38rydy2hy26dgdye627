@@ -156,13 +156,25 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .agl{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 7px}
 .ag{flex:1 1 0;min-width:16px;height:26px;border-radius:7px;border:1.5px solid var(--linea);
   background:var(--card);cursor:pointer;padding:0;transition:background .2s,border-color .2s,transform .15s var(--ease)}
-.ag.on{background:#5BB8E8;border-color:#5BB8E8}
+.ag.on{background:#3AA0D8;border-color:#2E86B8;
+  box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
 .ag:active{transform:scale(.9)}
 .af{font-size:var(--t-xs);color:var(--grigio)}
 /* ══ AVANZAMENTO DELLA GENERAZIONE ══ */
 .gday{font-size:13.5px;padding:6px 0;color:var(--grigio);font-variant-numeric:tabular-nums}
 .gday.ok{color:var(--bosco);font-weight:600}
 .gday.now{color:var(--ink);font-weight:600}
+/* ══ SCHEDE CON BARRETTA DI RICHIAMO ══
+   Prima il bordo colorato era scritto a mano in otto punti, con spessori
+   diversi (3px o 4px) e colori scelti caso per caso. Una classe sola,
+   con la variante per il colore. */
+.card.nota{border-left:3px solid var(--zaff)}
+.card.nota.buona{border-left-color:var(--salvia)}
+.card.nota.info{border-left-color:var(--mensa)}
+.card.nota.grave{border-left-color:var(--rosso)}
+.card.nota.riga{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+/* Rientro dentro una scheda, per un dettaglio subordinato */
+.rientro{border-left:3px solid var(--zaff);padding-left:11px;margin-top:9px}
 /* ══ INVITI ══
    Erano strisce con il bordo colorato a sinistra e i pulsanti in fila
    sulla stessa riga del testo: si stringevano e andavano a capo male.
@@ -502,8 +514,6 @@ html[data-theme="dark"] .btn{color:#04170B}
 .wline:last-child{border-bottom:0}
 .wline .del{color:var(--rosso);cursor:pointer;font-weight:700;padding:0 7px;transition:transform .15s var(--ease)}
 .wline .del:hover{transform:scale(1.25)}
-.water{display:flex;gap:4px;flex-wrap:nowrap;margin-top:6px}
-.water span{flex:1 1 0;min-width:0;max-width:34px;height:36px;border:2px solid #B7CFEA;border-radius:8px 8px 12px 12px;cursor:pointer;font-size:clamp(11px,3.4vw,16px);text-align:center;line-height:33px;transition:all .28s var(--ease)}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 .duo .stars{font-size:19px;gap:3px}
 .famrow{display:flex;gap:6px;align-items:center;margin-bottom:8px}
@@ -515,11 +525,14 @@ html[data-theme="dark"] .btn{color:#04170B}
 .famrow .fdob{flex:1 1 128px;min-width:0;font-size:12.5px;padding-left:6px;padding-right:6px}
 .famrow .fbadge{flex:0 0 auto;font-size:12px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
 .water span:hover{transform:translateY(-3px)}
-.water span.f{background:linear-gradient(180deg,#EAF4FF,#C8E1FB);border-color:var(--mensa);transform:translateY(-3px);box-shadow:0 6px 12px -4px rgba(37,99,235,.35)}
 
 html[data-theme="dark"] .water span.f{background:#1E3350}
 .stars{display:flex;gap:5px;font-size:23px;cursor:pointer;user-select:none}
-.stars span{filter:grayscale(1);opacity:.4;transition:all .25s var(--ease)}
+.stars span{filter:grayscale(1);opacity:.35;transition:all .25s var(--ease)}
+/* Mancava del tutto la regola per la stella ACCESA: si spegnevano tutte
+   e toccarle non produceva nessun effetto visibile. */
+.stars span.on{filter:none;opacity:1;transform:scale(1.06)}
+.stars span:active{transform:scale(.85)}
 .stars span:hover{transform:scale(1.25) rotate(8deg)}
 .stars span.on{filter:none;opacity:1}
 
@@ -921,7 +934,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.24.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.26.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1409,10 +1422,15 @@ function waterExplain(){
     " L arriva già dal cibo → <b>~"+n(drink)+" L da bere</b> ("+Math.round(drink*4)+" bicchieri)";}
 /* Obiettivo acqua: l'utente lo sceglie in IO (litri/giorno); se non impostato
    si usa la proposta in base al peso. +2 bicchieri se allenamento intenso o >45'.
-   1 bicchiere = 250 ml. */
+   1 bicchiere = 200 ml. */
+/* Bicchieri da 200 ml: quelli da 250 sono grandi e rari, e nessuno ha
+   davvero in casa il bicchiere da un quarto di litro. Si arrotonda per
+   ECCESSO — 2,5 L fanno 12,5 bicchieri, quindi 13: mezzo bicchiere in
+   più di acqua non ha mai fatto male a nessuno. */
+const ML_BICCHIERE=200;
 function waterGoal(di){const hard=S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45);
   const litri=(+S.profile.waterGoalL>0)?+S.profile.waterGoalL:waterSuggestL();
-  const base=Math.min(24,Math.max(4,Math.round(litri*4))); // bicchieri da 250 ml
+  const base=Math.min(28,Math.max(5,Math.ceil(litri*1000/ML_BICCHIERE)));
   return base+(hard?2:0);}
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1994,11 +2012,19 @@ const safeUrl=u=>/^https?:\/\//i.test(String(u).trim())?String(u).trim():"";
    ritorna subito false e l'azione sembra "non funzionare". Questi dialoghi
    sono disegnati dall'app, funzionano ovunque e si mettono in coda. */
 let DLGQ=Promise.resolve();
+/* I messaggi devono poter usare grassetto e a-capo: prima si vedevano
+   i tag scritti a schermo. Si continua a NEUTRALIZZARE tutto — perché
+   qui passano anche testi che vengono dall'AI — e poi si riabilitano
+   solo <b>, <i> e <br>, che non possono fare danni. */
+function dlgHTML(m){
+  return esc(String(m==null?"":m))
+    .replace(/&lt;(\/?)(b|i)&gt;/g,"<$1$2>")
+    .replace(/&lt;br\s*\/?&gt;/g,"<br>");}
 function dlgShow(msg,opts){opts=opts||{};
   const run=()=>new Promise(res=>{
     const w=document.createElement("div");w.className="modal";w.style.zIndex="200";
     w.innerHTML=`<div class="mcard" role="alertdialog" aria-modal="true" style="max-width:440px">
-      <div style="white-space:pre-wrap;font-size:14px;line-height:1.55">${esc(msg)}</div>
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.55">${dlgHTML(msg)}</div>
       ${opts.input?`<input type="text" class="dlg-in" style="margin-top:12px">`:""}
       <div class="mtools" style="margin-top:16px;justify-content:flex-end">
         ${opts.cancel?`<button class="btn ghost small dlg-ko">${esc(opts.ko||"Annulla")}</button>`:""}
@@ -3201,17 +3227,20 @@ function pendingMeals(di){
 /* «Stai bevendo abbastanza?» con i bicchieri, nel Punto, subito prima
    del prossimo pasto: è il momento in cui uno pensa a cosa mette in
    bocca, ed è l'unico in cui si ricorda anche di bere. */
-function acquaRiga(di){
+/* Un'unica funzione per i bicchieri: prima ce n'erano due — «.water»
+   con le gocce in Oggi e «.ag» nel Punto — e la stessa cosa aveva due
+   forme diverse a seconda di dove la guardavi. */
+function acquaRiga(di,titolo){
   const g=waterGoal(di),b=(S.week.days[di]||{}).water||0;
   const pct=Math.min(100,Math.round(b/Math.max(1,g)*100));
   const frase=b>=g?"Obiettivo raggiunto.":
               (pct>=60?"Ci sei quasi.":
               (b===0?"Non hai ancora bevuto nulla.":"Ne mancano "+(g-b)+"."));
   return `<div class="acqriga">
-    <div class="ah"><span>Stai bevendo abbastanza?</span><b>${b} / ${g}</b></div>
+    <div class="ah"><span>${titolo||"Stai bevendo abbastanza?"}</span><b>${b} / ${g}</b></div>
     <div class="agl">${Array.from({length:g},(_,i)=>
       `<button class="ag ${i<b?"on":""}" onclick="setWater(${di},${i})" aria-label="Bicchiere ${i+1}"></button>`).join("")}</div>
-    <div class="af">${frase} Un bicchiere è 250 ml.</div>
+    <div class="af">${frase} Un bicchiere è 200 ml.</div>
   </div>`;}
 function prossimoPasto(di){
   const p=pendingMeals(di);
@@ -3946,7 +3975,11 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
 function stars(di,field){let h=`<div class="stars">`;
   for(let i=1;i<=5;i++)h+=`<span class="${S.week.days[di][field]>=i?"on":""}" onclick="setStar(${di},'${field}',${i})">⭐</span>`;
   return h+`</div>`;}
-window.setStar=(di,f,v)=>{S.week.days[di][f]=(S.week.days[di][f]===v?0:v);save();render("oggi");};
+window.setStar=(di,f,v)=>{
+  S.week.days[di][f]=(S.week.days[di][f]===v?0:v);save();
+  /* ridisegna la pagina in cui ci si trova: le stelle stanno nel Punto,
+     e ridisegnare «oggi» non aggiornava nulla di visibile */
+  render(cur);};
 /* Saluto + com'è andata ieri. È la prima cosa che si legge la mattina:
    non un cruscotto, ma il punto della situazione in due righe. */
 function puntoSaluto(){
@@ -3978,7 +4011,7 @@ function oggiSpesa(){
   if(!n)return "";
   const presi=Object.values(S.shop||{}).filter(Boolean).length;
   if(presi>=n)return "";
-  return `<div class="card" style="border-left:3px solid var(--mensa);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+  return `<div class="card nota info riga">
     <div style="flex:1;min-width:160px;font-size:13.5px">${ic("spesa",18)} La spesa della settimana è pronta: <b>${n-presi}</b> prodotti da prendere.</div>
     <button class="btn ghost small" onclick="show('spesa')">Apri la lista</button></div>`;}
 /* Il peso nel Punto: il confronto che motiva non è con l'obiettivo lontano,
@@ -4173,11 +4206,11 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     </div></div>`;}
 
   
-  if(needWeekBanner())h+=`<div class="card" style="border-left:4px solid var(--mensa);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+  if(needWeekBanner())h+=`<div class="card nota info riga">
     <div style="flex:1;font-size:13.5px">📅 <b>Nuova settimana.</b> La scorsa è stata archiviata da sola: se vuoi darle un'occhiata o correggere qualcosa, la trovi in Storico → ✏️ Modifica.</div>
     <button class="btn small" onclick="show('storico')">Vai al recap</button>
     <button class="ibtn" onclick="dismissWeek()" title="Nascondi per oggi">✕</button></div>`;
-  if(!aiOn()&&!S.ui.dismissAI)h+=`<div class="card" style="border-left:4px solid var(--zaff);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+  if(!aiOn()&&!S.ui.dismissAI)h+=`<div class="card nota riga">
     <div style="flex:1;font-size:13.5px">🤖 <b>Manca la chiave AI</b>: senza, restano spenti piano automatico, stime dei piatti, foto, menù, ribilanciamenti e recuperi. È gratuita e si crea in un minuto.</div>
     <a class="btn small" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="text-decoration:none">Crea la chiave ↗</a>
     <button class="btn ghost small" onclick="show('io')">Incollala</button>
@@ -4198,7 +4231,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   if(!S.ui.vacanza&&cycPhase()&&cycPhaseDay()<=3&&S.ui.cycSeen!==cycPhaseKey()){
     setTimeout(()=>cycAvvisoFase(),400);
   }
-  if(densNudge())h+=`<div class="card" style="border-left:4px solid var(--salvia)">
+  if(densNudge())h+=`<div class="card nota buona">
     <div style="font-size:13.5px">${dens()==="base"
       ? "Stai usando Nutry da "+(+S.tel.giorni||0)+" giorni. Vuoi vedere <b>qualcosa in più</b> — macro, fibre, fasi della dieta — o va bene così?"
       : "Ti sembra troppa roba a schermo? Puoi passare a <b>Essenziale</b>: nulla sparisce, resta solo l'indispensabile in vista."}</div>
@@ -4274,9 +4307,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     </div>`;})()}
     ${(function(){const t=waterPredict(di);return t?`<div class="hint" style="background:var(--menta);padding:9px;border-radius:10px;margin-top:10px">${t}</div>`:"";})()}</div>`;}
   h+=`<div class="gsec">Acqua e movimento</div>`;
-  h+=`<div class="card"><h2>Acqua</h2><div class="water">`;
-  for(let i=0;i<goal;i++)h+=`<span class="${i<S.week.days[di].water?"f":""}" onclick="setWater(${di},${i})">💧</span>`;
-  h+=`</div><div class="hint">Obiettivo: ${goal} bicchieri da <b>250 ml</b> (~${(goal/4).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
+  h+=`<div class="card"><h2>Acqua</h2>${acquaRiga(di,"Bicchieri di oggi")}`;
+  h+=`<div class="hint">Obiettivo: ${goal} bicchieri da <b>200 ml</b> (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
   // Sonno & Stress
    {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
   h+=`<div class="gsec">A tavola</div>`;
@@ -4335,7 +4367,11 @@ function ariaSync(root){
   el.querySelectorAll(".chk").forEach(c=>{
     c.setAttribute("role","checkbox");
     c.setAttribute("aria-checked",c.className.indexOf("c")>-1?"true":"false");});}
-window.setWater=(d,i)=>{S.week.days[d].water=(S.week.days[d].water===i+1?i:i+1);save();render("oggi");};
+window.setWater=(d,i)=>{
+  S.week.days[d].water=(S.week.days[d].water===i+1?i:i+1);save();
+  /* i bicchieri sono in DUE pagine: ridisegnare sempre «oggi» lasciava
+     il Punto immobile, e sembrava che il tocco non funzionasse */
+  render(cur);};
 
 /* ═══════════════════════════════════════════════════════════════
    11. SCANNER BARCODE v5 (Html5-Qrcode + Open Food Facts)
@@ -5691,7 +5727,7 @@ function renderBenvenuto(){
     <div class="obbox"><b>Minuti</b> = durata di una sessione · <b>Volte</b> = quante a settimana. Aggiungi tutte le righe che ti servono, una per sport. Servono a stimare il fabbisogno in modo onesto: se poi non li fai, l'app se ne accorge dal diario e te lo dice.</div>
     <label>Obiettivo acqua (litri al giorno)</label>
     <input type="number" id="obWater" step="0.25" min="0.5" max="6" value="${p.waterGoalL||""}" placeholder="proposto: ${waterSuggestL()} L">
-    <div class="obbox">Se lo lasci vuoto vale la proposta calcolata su di te: ${waterExplain()}. Il conto è già <b>al netto dell'acqua contenuta nel cibo</b> (frutta, verdura, minestre): quella non serve berla. Nel diario l'acqua si conta a bicchieri da 250 ml, e nei giorni con allenamento intenso o oltre 45 minuti l'obiettivo sale di 2 bicchieri.</div>
+    <div class="obbox">Se lo lasci vuoto vale la proposta calcolata su di te: ${waterExplain()}. Il conto è già <b>al netto dell'acqua contenuta nel cibo</b> (frutta, verdura, minestre): quella non serve berla. Nel diario l'acqua si conta a bicchieri da 200 ml, e nei giorni con allenamento intenso o oltre 45 minuti l'obiettivo sale di 2 bicchieri.</div>
     <div class="obwarn">Nutry non è un medico: se hai patologie, terapie in corso o sei in gravidanza, fai validare l'obiettivo da un professionista.</div>`;
   if(st===5)c=`<h2>Come mangi di solito</h2>
     <p class="obp">Questo è il pezzo che rende il piano <b>tuo</b>: l'AI userà queste risposte ogni volta che propone un piatto, un'alternativa o un ribilanciamento.</p>
@@ -8483,7 +8519,7 @@ window.wizConfirm=async ()=>{
   dlgAlert("Piano confermato! Vai in Spesa per generare la lista della spesa dal nuovo piano.");
   show("piano");};
 function renderSetup(){const el=document.getElementById("pg-setup");let h="";
-  const disc=`<div class="card" style="border-left:4px solid var(--rosso)"><div class="hint" style="color:var(--rosso)"><b>⚠️ Avvertenza importante:</b> questo piano è generato da un'intelligenza artificiale su dati auto-dichiarati. NON sostituisce un professionista: prima di seguirlo, fallo validare da un nutrizionista o un medico, soprattutto in presenza di patologie, intolleranze o gravidanza.</div></div>`;
+  const disc=`<div class="card nota grave"><div class="hint" style="color:var(--rosso)"><b>⚠️ Avvertenza importante:</b> questo piano è generato da un'intelligenza artificiale su dati auto-dichiarati. NON sostituisce un professionista: prima di seguirlo, fallo validare da un nutrizionista o un medico, soprattutto in presenza di patologie, intolleranze o gravidanza.</div></div>`;
   if(WIZ.step===1){h=disc+`<div class="card"><h2>Passo 1 di 3 — Chi sei</h2>
     <div class="row2"><div><label>Nome</label><input type="text" id="wzNome" value="${esc(WIZ.d.nome||S.profile.name||"")}"></div>
     <div><label>Genere</label><select id="wzGen"><option value="m">Uomo</option><option value="f" ${WIZ.d.gen==="f"?"selected":""}>Donna</option></select></div></div>
@@ -8540,7 +8576,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
         </div>`;
         // ── alternative dello stesso pasto (a casa / in mensa / fuori / veloce)
         if(m.o.length>1)m.o.slice(1).forEach((alt,ai)=>{const oi=ai+1;
-          h+=`<div style="border-left:3px solid var(--zaff);padding-left:10px;margin-top:8px">
+          h+=`<div class="rientro">
           <label>Alternativa ${oi}</label><textarea onchange="wizSetOpt(${di},${mi},${oi},'d',this.value)">${esc(alt.d)}</textarea>
           <div class="wzval" id="wzv${di}_${mi}_${oi}">${macroLine(alt)}</div>
           <div class="wzbar">
@@ -8719,7 +8755,7 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>🏷️</td><td><b>Evento</b> del giorno (Natale, compleanno, festa, cena fuori, lavoro/trasferta, giornata no, malattia…): il giorno resta tracciato ma <b>escluso dalle medie</b> e non spezza la serie 🔥.</td></tr>
 <tr><td>📷</td><td>Barcode (dentro ogni pasto): scansiona PIÙ prodotti, correggi i grammi e conferma la somma — da Open Food Facts, senza consumare AI.</td></tr>
 <tr><td>🔥</td><td><b>La serie, in parole semplici</b>: conta i giorni "buoni" di fila. Ogni mattina l'app guarda com'è andata IERI e si fa 3 domande: hai spuntato i pasti? sei rimasto dentro le calorie? gli extra erano al massimo 300 kcal? <b>Tre sì = fiamma +1. Anche un solo no = si riparte da 0.</b> Fa tutto da sola, non devi premere nulla; in 🏖️ vacanza si mette in pausa.</td></tr>
-<tr><td>💧</td><td>Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 250 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.<span class="newtag">NEW</span></td></tr>
+<tr><td>💧</td><td>Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.<span class="newtag">NEW</span></td></tr>
 <tr><td>⭐</td><td>Sonno · Relax · Come ti senti: scala 1 basso → 5 alto. Alimentano le correlazioni AI di fine settimana.</td></tr>
 <tr><td>🏖️</td><td>Vacanza (in Io): congela deficit e 🔥; l'app resta un diario senza giudizio.</td></tr>
 <tr><td>🌅</td><td>Promemoria del mattino: "Ieri hai segnato tutti i Pasti, l'Acqua e lo Sport?" — appare se qualcosa manca e resta in alto finché non premi <b>Fatto</b> (o apri ieri e sistemi).</td></tr>
@@ -8830,7 +8866,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
     return `<div class="hint" style="color:${cl.ok?"var(--bosco)":"var(--rosso)"}">Obiettivo ${p.goalW} kg → BMI ${b} (${cl.label}).</div>`;})()}
   ${hint2("Lascia vuoto e l'obiettivo lo calcola l'app su di te.",
- `${waterExplain()}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale 250 ml; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.`)}
+ `${waterExplain()}, già al netto dell'acqua che arriva dal cibo. Un bicchiere vale 200 ml; con allenamenti intensi o oltre 45 minuti l'obiettivo sale di 2 bicchieri.`)}
   <label>Allenamenti obiettivo a settimana</label>
   ${(p.goalWorkoutList||[]).length?`<div class="wkhead"><span style="flex:2">Sport</span><span style="flex:1">Minuti</span><span style="flex:1">Volte</span><span style="width:34px"></span></div>`:""}
   <div id="goalWkList">${(p.goalWorkoutList||[]).map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
@@ -8904,7 +8940,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div class="hint">In vacanza il deficit non viene giudicato e la serie 🔥 è congelata: l'app diventa un semplice diario.</div></div>`;
   h+=periodsCardHTML(true);
   h+=`<div class="gsec">Impostazioni</div>`;
-  h+=`<div class="card"${aiOn()?"":' style="border-left:4px solid var(--zaff)"'}><h2>Motore AI (Gemini)</h2>
+  h+=`<div class="card${aiOn()?"":" nota"}"><h2>Motore AI (Gemini)</h2>
   ${aiOn()?"":`${hint2("⚠️ <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto.",
  "Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report.")}`}
   <label>Chiave API Google Gemini</label><input type="text" id="gKey" value="${(S.ai&&S.ai.key)||""}" placeholder="incolla qui la chiave">
@@ -9453,7 +9489,7 @@ try{if(window.Chart){Chart.defaults.animation=false;Chart.defaults.animations={}
    contenitore vuoto: schermo bianco e app inutilizzabile. Ora l'errore
    viene catturato, mostrato e restano a disposizione le vie d'uscita. */
 function errorCardHTML(where,e){
-  return `<div class="card" style="border-left:4px solid var(--rosso)">
+  return `<div class="card nota grave">
   <h2>Qualcosa si è rotto</h2>
   <div class="hint">Non sono riuscito a disegnare la sezione <b>${esc(where)}</b>. I tuoi dati non sono stati toccati: sono ancora tutti sul dispositivo.</div>
   <div class="hint" style="font-family:monospace;font-size:11.5px;word-break:break-word;background:var(--crema);padding:8px;border-radius:8px">${esc((e&&e.message)||String(e))}</div>

@@ -164,11 +164,14 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .grow.on .gl b{color:var(--bosco)}
 .gc{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
 .gc select{width:auto;min-width:0;max-width:170px;font-size:12.5px;padding:9px 10px;margin:0}
-/* Il menù si sceglie e basta: si registra da solo, senza un secondo tocco */
-.gc .gsel{border-color:transparent;background:var(--crema);font-weight:600;color:var(--bosco)}
 .gc .btn{margin:0}
 .gv{font-size:12.5px;font-weight:700;color:var(--grigio);white-space:nowrap}
 .gv.link{color:var(--bosco)}
+/* Una scritta, non un pulsante: apre una scelta e non ruba peso visivo
+   alla riga, che è informazione prima che comando. */
+.glink{border:0;background:none;font-family:inherit;font-size:12.5px;font-weight:700;
+  color:var(--bosco);cursor:pointer;padding:8px 2px;white-space:nowrap;text-align:right}
+.glink:active{opacity:.55}
 /* ══ STATI DEL CORPO ══
    Prima erano caselle strette in griglia con etichette abbreviate, del
    tipo «All. escl.», e non si capiva cosa facessero. Ora una riga per
@@ -894,7 +897,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.21.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.22.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1146,7 +1149,14 @@ function applyTheme(){
    3. DATA VISUALIZZATA (scorrimento giorni) + utilità date
    ═══════════════════════════════════════════════════════════════ */
 let VIEW=new Date(); VIEW.setHours(12,0,0,0);
-const iso=d=>d.toISOString().slice(0,10);
+/* ATTENZIONE: toISOString() restituisce l'ora UTC. In Italia, fra
+   mezzanotte e le due, dava ancora la data del giorno prima — e quella
+   data finisce OVUNQUE: eventi del giorno, spunte, pesate, serie, dati
+   d'uso, scontrini. Chi segnava la cena all'una di notte se la ritrovava
+   sul giorno sbagliato. Qui si usa la data LOCALE, che è quella che la
+   persona vede sull'orologio. */
+const iso=d=>{const x=(d instanceof Date)?d:new Date(d);
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");};
 /* Data da un valore archiviato: null se non è utilizzabile. Serve perché una
    sola data corrotta (backup vecchio, import a mano) non deve far crollare
    un'intera pagina. */
@@ -1845,16 +1855,21 @@ function telSend(forza){
 /* Ogni quanto chiedere all'utente di mandarli a mano. Serve solo se non
    è configurato un indirizzo di raccolta: con quello l'invio è automatico
    e silenzioso, e questo invito non compare mai. */
-const TEL_NUDGE_GG=14;
+/* Ogni 30 giorni: meno spesso e ci si dimentica dell'app, più spesso e
+   diventa assillo. Un promemoria a stagione, non una richiesta continua. */
+const TEL_NUDGE_GG=30;
 function telNudge(){
   if(!telOn())return false;                       /* non ha acconsentito */
   if((S.tel.url||TEL_URL))return false;           /* parte già da solo */
   const g=+S.tel.giorni||0;
-  if(g<3)return false;                            /* prima ha poco senso */
+  if(g<7)return false;    /* prima di una settimana non c'è niente da dire */
   const ult=S.tel.chiesto||"";
   if(!ult)return true;
   const d=safeDate(ult+"T12:00:00");
-  return !d||((new Date()-d)/864e5)>=TEL_NUDGE_GG;}
+  /* Chi ha già rinviato due volte lo rivede dopo il doppio del tempo:
+     insistere con chi ha detto «più tardi» due volte è assillo. */
+  const attesa=TEL_NUDGE_GG*((+S.tel.rinvii||0)>=2?2:1);
+  return !d||((new Date()-d)/864e5)>=attesa;}
 window.telNudgeLater=()=>{S.tel.chiesto=iso(new Date());save();render("oggi");};
 window.telNudgeSend=()=>{S.tel.chiesto=iso(new Date());save();telMail();render("oggi");};
 window.telMail=()=>{
@@ -3125,7 +3140,28 @@ function applyMealEdits(arr){
 /* elenco dei pasti ancora da fare, pronto per i prompt */
 function pendingMeals(di){
   return dayItems(di).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];return !st.done&&!st.skip;})
-    .map(it=>{const o=mealOpt(it.pdi,it.mi);return {pdi:it.pdi,mi:it.mi,slot:it.slot,d:o.d,k:o.k,p:o.p,c:o.c||0,f:o.f||0};});}
+    .map(it=>{const o=mealOpt(it.pdi,it.mi);const m=PLAN[it.pdi].meals[it.mi];
+      return {pdi:it.pdi,mi:it.mi,slot:it.slot,t:(m&&m.t)||"",d:o.d,k:o.k,p:o.p,c:o.c||0,f:o.f||0};});}
+/* ── Qual è «il prossimo pasto» ────────────────────────────────────
+   Regola: il PRIMO pasto non ancora segnato, in ordine di orario. Non
+   quello dell'ora corrente.
+   Perché così e non a fasce orarie: chi lavora su turni, chi fa colazione
+   alle 11 o chi ha saltato un pasto vedrebbe l'app saltare avanti da sola,
+   e il pasto scavalcato sparirebbe senza che nessuno l'abbia segnato —
+   restando poi conteggiato nel bilancio. Con questa regola l'ordine è
+   sempre quello del piano e nulla sparisce da solo.
+   Chi ha saltato un pasto lo dichiara: dalla lista in Oggi, con ✗.
+   L'unica concessione all'orologio è l'etichetta: se l'orario del pasto
+   è già passato di oltre un'ora, si dice — così si capisce perché è lì. */
+function prossimoPasto(di){
+  const p=pendingMeals(di);
+  if(!p.length)return null;
+  const m=p[0];
+  const oraOra=new Date().getHours()+new Date().getMinutes()/60;
+  const mm=String(m.t||"").match(/^(\d{1,2})[:.](\d{2})/);
+  m.tardi=(isToday()&&mm)?((oraOra-(+mm[1]+ +mm[2]/60))>1):false;
+  m.altri=p.length-1;
+  return m;}
 
 /* ═══ 🧭 BUSSOLA DELLE VOGLIE ══════════════════════════════════════ */
 const CRAVE=[["croccante","🥨 Croccante"],["dolce","🍫 Dolce"],["caldo","♨️ Caldo"],
@@ -3930,19 +3966,17 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     const ap=activePeriod();
     h+=`<div class="card"><h2>La giornata</h2>
     <div class="glist">
-      <div class="grow ${ap?"on":""}" ${ap?"":`onclick="show('storico')" style="cursor:pointer"`}>
-        <div class="gl"><b>${ap?"Periodo aperto":"Nessun periodo aperto"}</b>
-          <small>${ap?(esc(cap(ap.type))+" dal "+new Date(ap.start+"T12:00:00").toLocaleDateString("it-IT")):"Serve a raggruppare i dati in Numeri"}</small></div>
-        <div class="gc">${ap?`<span class="gv">attivo</span>`:`<span class="gv link">Aprine uno ›</span>`}</div>
+      <div class="grow ${ap?"on":""}">
+        <div class="gl"><b>${ap?("Periodo "+esc(cap(ap.type))+" aperto"):"Nessun periodo aperto"}</b>
+          <small>${ap?("Dal "+new Date(ap.start+"T12:00:00").toLocaleDateString("it-IT")+" · "+giorniPeriodo(ap)+" giorni"):"Serve a raggruppare i dati in Numeri"}</small></div>
+        <div class="gc">${ap
+          ? `<button class="glink" onclick="periodoAzioni('${esc(ap.id||"")}')">Gestisci ›</button>`
+          : `<button class="glink" onclick="periodoApri()">Aprine uno ›</button>`}</div>
       </div>
       <div class="grow ${ev?"on":""}">
         <div class="gl"><b>Evento del giorno</b>
           <small>${ev?"L'AI ne tiene conto nel ribilanciare":"Compleanno, cena fuori, giornata no…"}</small></div>
-        <div class="gc">
-          <select class="gsel" onchange="setDayEvent('${_vd}',this.value);applyCtl('${_vd}',${di},${today?1:0})">
-            ${["","Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party","Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"].map(o=>`<option value="${o}" ${ev===o?"selected":""}>${o||"— nessuno —"}</option>`).join("")}
-          </select>
-        </div>
+        <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">${ev?esc(ev)+" ›":"Scegli ›"}</button></div>
       </div>
       ${densMin("expert")?`<div class="grow">
         <div class="gl"><b>Ribilancia i giorni prima</b>
@@ -3962,7 +3996,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
       const plan=plannedOfDay(di).k||dayTargetK();
       const resta=Math.max(0,plan-eat.k);
       const dopo=pendingMeals(di);
-      const prox=dopo.length?dopo[0]:null;
+      const prox=prossimoPasto(di);
       const q=dayQuality(di);
       /* La frase cambia con il momento della giornata. Attenzione al caso
          «nessun piano»: senza pasti previsti, zero spunte NON vuol dire
@@ -3988,13 +4022,15 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           <div class="ttrack"><i style="width:${Math.min(100,Math.round(eat.k/Math.max(1,plan)*100))}%;background:${eat.k>plan?"var(--rosso)":"var(--bosco)"}"></i></div>
         </div>
         ${prox?`<div class="tnext">
-          <div class="k">Il prossimo pasto${prox.t?" · "+esc(prox.t):""}</div>
+          <div class="k">${prox.tardi?"Da segnare":"Il prossimo pasto"}${prox.t?" · "+esc(prox.t):""}</div>
           <div class="t">${esc(prox.d||prox.slot||"")}</div>
           <div class="m">${Math.round(prox.k||0)} kcal · ${Math.round(prox.p||0)} g proteine</div>
           <div class="tcta">
             <button class="btn small" onclick="tgl(${prox.pdi},${prox.mi})">L'ho mangiato</button>
             <button class="btn ghost small" onclick="vaiPasto(${prox.pdi},${prox.mi})">Modifica</button>
-          </div></div>`:""}
+          </div>
+          ${prox.tardi?`<div class="hint" style="margin-top:10px">L'orario è passato. Se l'hai saltato, segnalo con ✗ in Oggi: così il bilancio resta giusto.</div>`:""}
+          </div>`:""}
       </div>`;})();
   {const nf=notifOra(di);
    if(nf)h+=`<div class="nbanner" data-k="${esc(nf.k)}">
@@ -4035,12 +4071,10 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
       +riga("phCycle",!!cycleDay(),"🩸 Ciclo"+(cycleDay()?" · giorno "+cycleDay():""),"Si spegne da solo dopo "+cycleDaysMax()+" giorni","cycleToggle()")
       +riga("phLactF",S.phys.lact==="esclusivo","🤱 Allattamento esclusivo","+"+(+S.profile.lactFull||500)+" kcal al giorno","lactSet(this.checked?'esclusivo':'no')")
       +riga("phLactP",S.phys.lact==="parziale","🍼 Allattamento parziale","+"+(+S.profile.lactPart||250)+" kcal al giorno","lactSet(this.checked?'parziale':'no')")
-      +`</div>
-      <label>🤰 Gravidanza</label>
-      <select id="phPreg"${d} onchange="pregSet(this.value)">
-        <option value="no" ${pregOn()==="no"?"selected":""}>— nessuna —</option>
-        ${Object.keys(PREG_LBL).map(k=>`<option value="${k}" ${pregOn()===k?"selected":""}>${PREG_LBL[k]}</option>`).join("")}
-      </select>`;}
+      +Object.keys(PREG_LBL).map(k=>riga("phPreg_"+k,pregOn()===k,"🤰 "+PREG_LBL[k],
+          "+"+pregKcalOf(k)+" kcal al giorno · il deficit resta sospeso",
+          "pregSet(this.checked?'"+k+"':'no')")).join("")
+      +`</div>`;}
     /* Questi tre non c'entrano nulla con il genere: bloccarli era un
        errore, e li rendeva grigi e intoccabili per metà degli utenti. */
     const rigaLibera=(id,on,lab,desc,ev)=>`<label class="stato ${on?"on":""}">
@@ -4481,6 +4515,55 @@ window.scontrinoScan=async()=>{
 /* Scorciatoia al campo del genere: da «Il tuo corpo» ci si arriva in un
    tocco invece di cercarlo in Profilo. Il campo si illumina e prende il
    fuoco, così si vede subito dov'è. */
+/* ── Scelta fra più voci ───────────────────────────────────────────
+   Un pannello dal basso con una riga per opzione: su un telefono è più
+   comodo di un menù a tendina, e si legge senza aprire nulla. */
+function dlgChoice(titolo,voci){
+  return new Promise(res=>{
+    const w=document.getElementById("moreSheet"),l=document.getElementById("moreList");
+    if(!w||!l)return res(null);
+    let chiuso=false;
+    const fine=(v)=>{if(chiuso)return;chiuso=true;moreClose();setTimeout(()=>res(v),160);};
+    l.innerHTML='<div class="sheethd">'+esc(titolo)+'</div>'+
+      voci.map((v,i)=>`<button class="sheetrow" data-i="${i}"><span>${esc(v[1])}</span><em>›</em></button>`).join("")+
+      '<button class="sheetrow" data-i="-1" style="color:var(--grigio)"><span>Annulla</span></button>';
+    l.querySelectorAll(".sheetrow").forEach(b=>{
+      b.onclick=()=>{const i=+b.getAttribute("data-i");fine(i<0?null:voci[i][0]);};});
+    const bg=w.querySelector(".sheetbg");
+    if(bg)bg.onclick=()=>fine(null);
+    w.hidden=false;requestAnimationFrame(()=>w.classList.add("on"));
+  });}
+/* ── Le azioni della giornata ─────────────────────────────────────
+   Prima erano un menù a tendina e un pulsante pieno dentro una riga di
+   testo: stonavano. Ora ogni riga ha una scritta a destra che apre una
+   scelta, come «Aprine uno ›». */
+function giorniPeriodo(ap){
+  const a=safeDate((ap&&ap.start||"")+"T12:00:00");
+  return a?Math.max(1,Math.round((new Date()-a)/864e5)+1):0;}
+window.periodoApri=async()=>{
+  const t=await dlgChoice("Che periodo apri?",[
+    ["dieta","📉 Dieta — sei in deficit e vuoi misurarlo"],
+    ["libero","🍃 Libero — mangi normale, senza obiettivo"]]);
+  if(!t)return;
+  startPeriod(t);};
+window.periodoAzioni=async(id)=>{
+  const ap=activePeriod();if(!ap)return;
+  const scelta=await dlgChoice("Periodo "+cap(ap.type)+", aperto da "+giorniPeriodo(ap)+" giorni",[
+    ["soft", (reverseOn()?"📈 Chiudi l'uscita morbida":"📈 Passa all'uscita morbida — risali piano dal deficit")],
+    ["vac",  (S.ui.vacanza?"🏖️ Esci dalla modalità vacanza":"🏖️ Modalità vacanza — congela deficit e serie")],
+    ["fine", "🏁 Chiudi il periodo"]]);
+  if(scelta==="soft")return reverseToggle();
+  if(scelta==="vac")return toggleVacanza();
+  if(scelta==="fine")return endPeriod(id||ap.id);};
+window.eventoScegli=async(vd,di,today)=>{
+  const opt=["Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party",
+             "Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"];
+  const cur2=(S.dayEvents||{})[vd]||"";
+  const scelta=await dlgChoice("Evento del giorno",
+    [["","— nessuno —"]].concat(opt.map(o=>[o,(o===cur2?"● ":"")+o])));
+  if(scelta===null)return;
+  setDayEvent(vd,scelta);
+  applyCtl(vd,di,today?1:0);};
 window.vaiGenere=()=>{
   show("io");
   setTimeout(()=>{
@@ -7712,6 +7795,12 @@ function physAllowed(){return isFemale()||PHYS_TEST_UNLOCK;}
 /* Gravidanza: il fabbisogno cresce per trimestre (riferimenti LARN/EFSA:
    1° ~+70, 2° ~+260, 3° ~+450 kcal). Valori modificabili in Regole. */
 const PREG_LBL={t1:"1° trimestre",t2:"2° trimestre",t3:"3° trimestre"};
+/* Le calorie in più per trimestre, lette dal profilo con i valori di
+   riferimento come ripiego: servono a scriverle accanto alla voce, così
+   si sa cosa si sta accendendo. */
+function pregKcalOf(k){
+  const p=S.profile||{};
+  return k==="t1"?(+p.pregT1||70):k==="t2"?(+p.pregT2||260):(+p.pregT3||450);};
 function pregOn(){const p=(S.phys&&S.phys.preg)||"no";return (physAllowed()&&PREG_LBL[p])?p:"no";}
 function pregKcal(){
   const p=pregOn();if(p==="no")return 0;
@@ -9179,8 +9268,9 @@ window.goReview=(di)=>{const mon=new Date();mon.setHours(12,0,0,0);mon.setDate(m
 /* Senza un piano non esistono pasti da spuntare: chiedere «hai segnato
    tutto?» a chi non ha ancora nulla da segnare è solo un rimprovero
    senza senso. */
-function needMorningBanner(){
-  return !S.ui.vacanza&&!planIsEmpty()&&pendingReviewDays().length>0;}
+/* Il saluto in cima al Punto dice già com'è andata ieri: un riquadro in
+   fondo che rifà la stessa domanda è una ripetizione. */
+function needMorningBanner(){return false;}
 /* v5.1: grafici senza animazione (Chart.js ridisegna il canvas a 60fps
    per ogni animazione: è uno dei costi maggiori in batteria). */
 try{if(window.Chart){Chart.defaults.animation=false;Chart.defaults.animations={};

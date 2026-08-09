@@ -132,18 +132,23 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .page.active{display:block}
 
 /* ══ NAV: dock flottante in vetro ══ */
-/* ══ PESO NEL PUNTO ══ */
-.pw{display:flex;align-items:baseline;gap:14px;margin-top:6px}
-.pwv{font-family:'Fraunces',Georgia,serif;font-size:34px;font-weight:700;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
-.pwv small{font-size:15px;font-weight:600;color:var(--grigio);letter-spacing:0}
-.pwd{font-size:14.5px;font-weight:700;color:var(--grigio);font-variant-numeric:tabular-nums}
-.pwd.giu{color:var(--salvia)}
-.pwd.su{color:var(--zaff)}
 /* ══ AVANZAMENTO DEL PERCORSO ══ */
 .obprog{margin-bottom:16px}
 .obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
 .obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
 .obpl{display:flex;justify-content:space-between;margin-top:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
+/* ══ ACQUA NEL PUNTO ══
+   Bicchieri da toccare, non un promemoria scritto: se bere costa un
+   tocco lo si fa, se costa aprire un'altra pagina non lo fa nessuno. */
+.acqriga{margin:16px 0 4px}
+.ah{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-sm);color:var(--grigio)}
+.ah b{color:var(--ink);font-variant-numeric:tabular-nums}
+.agl{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 7px}
+.ag{flex:1 1 0;min-width:16px;height:26px;border-radius:7px;border:1.5px solid var(--linea);
+  background:var(--card);cursor:pointer;padding:0;transition:background .2s,border-color .2s,transform .15s var(--ease)}
+.ag.on{background:#5BB8E8;border-color:#5BB8E8}
+.ag:active{transform:scale(.9)}
+.af{font-size:var(--t-xs);color:var(--grigio)}
 /* ══ INVITI ══
    Erano strisce con il bordo colorato a sinistra e i pulsanti in fila
    sulla stessa riga del testo: si stringevano e andavano a capo male.
@@ -165,8 +170,6 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .gc{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
 .gc select{width:auto;min-width:0;max-width:170px;font-size:12.5px;padding:9px 10px;margin:0}
 .gc .btn{margin:0}
-.gv{font-size:12.5px;font-weight:700;color:var(--grigio);white-space:nowrap}
-.gv.link{color:var(--bosco)}
 /* Una scritta, non un pulsante: apre una scelta e non ruba peso visivo
    alla riga, che è informazione prima che comando. */
 .glink{border:0;background:none;font-family:inherit;font-size:12.5px;font-weight:700;
@@ -177,12 +180,17 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
    tipo «All. escl.», e non si capiva cosa facessero. Ora una riga per
    stato, nome intero e sotto in grigio l'effetto reale sui numeri. */
 .statolist{display:flex;flex-direction:column;gap:8px;margin:10px 0 2px}
+/* ATTENZIONE: queste righe sono <label> e da label{} ereditavano
+   maiuscoletto, grigio e spaziatura delle lettere: è per questo che
+   sembravano un elemento estraneo al resto della pagina. */
+.stato,.ck{text-transform:none;letter-spacing:normal;font-weight:400;color:var(--ink);margin:0}
+.stato .sl b,.stato .sl small{text-transform:none;letter-spacing:normal}
 .stato{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border-radius:14px;
   background:var(--crema);cursor:pointer;transition:background .2s,box-shadow .2s}
 .stato input{margin:1px 0 0;flex:0 0 auto}
 .stato .sl{flex:1;min-width:0;display:block}
-.stato .sl b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.3}
-.stato .sl small{display:block;font-size:11.5px;color:var(--grigio);margin-top:3px;line-height:1.4}
+.stato .sl b{display:block;font-size:14px;font-weight:600;color:var(--ink);line-height:1.3}
+.stato .sl small{display:block;font-size:12px;color:var(--grigio);margin-top:4px;line-height:1.45;font-weight:400}
 .stato.on{background:var(--menta);box-shadow:inset 3px 0 0 var(--bosco)}
 .stato.on .sl b{color:var(--bosco)}
 .stato.off{opacity:.5;cursor:default}
@@ -398,7 +406,6 @@ body.onb .fab{display:none}
 .meal.free .mname{color:var(--zaff)}
 .meal.mensa .mname{color:var(--mensa)}
 .meal.skip .mname{color:var(--rosso)}
-.mtime{color:var(--grigio)}
 .qdot{display:inline-block;border-radius:50%;vertical-align:-1px;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.85) inset,0 1px 2px rgba(0,0,0,.18)}
 .qdot.empty{background:transparent;border:2px dashed var(--linea);box-shadow:none}
 .qwrap{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--grigio);white-space:nowrap}
@@ -897,7 +904,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.22.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.23.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1705,7 +1712,8 @@ function rulesSnapshot(){return{
   obiettivo_proteine_g_kg:(S.profile.protKg!=null?+S.profile.protKg:protKgAuto())
 };}
 function digiunoForAI(){
-  return digiunoOn()?" La persona sta osservando un DIGIUNO RELIGIOSO: rispetta gli orari e le restrizioni tipiche del periodo, concentra i pasti nelle finestre consentite e non proporre alimenti esclusi. Non ridurre il fabbisogno: ridistribuiscilo.":"";}
+  if(!digiunoOn())return "";
+  return " "+DIGIUNI[digiunoTipo()].ai+" Non ridurre il fabbisogno totale: ridistribuiscilo.";}
 function physForAI(){
   if(!physBonus())return "";
   let t=" CONDIZIONE FISIOLOGICA: ";
@@ -2345,7 +2353,7 @@ function mealCard(pdi,mi){
       <div class="mtop"><span class="mname">${esc(dispName)}${st.skip?" (saltato)":""}</span>${
         st.done&&!st.skip
           ? (function(){const q=qOf(st,o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
-          : `<span class="mtime">${esc(m.t.replace(/\s*\(portatile\)/,""))}</span>`}</div>
+          : ""}</div>
       <div class="mdesc">${esc(cap(o.d))}</div>
       <div class="mkcal">~${o.k} kcal · ${o.p} g P${o.c!=null?` · ${o.c} g C`:""}${o.f!=null?` · ${o.f} g G`:""}${o.fib!=null?` · ${o.fib} g F`:""}${o.z!=null?` · ${o.z} g Z`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
   h+=hungryHTML(pdi,mi);
@@ -2724,6 +2732,11 @@ function rgpDays(di){
       done:(S.week.days[d].rgpRecovered||0)>0&&res<th,
       todo:eatenOfDay(d).k>0&&res>=th});}
   return out;}
+/* C'è qualcosa da recuperare? Serve a NON mostrare la riga quando non
+   c'è niente da fare: una riga che dice «niente da recuperare» occupa
+   spazio per non dire nulla. */
+function rgpPending(di){
+  try{return rgpDays(di===undefined?viewIdx():di).some(d=>d.todo);}catch(e){return false;}}
 function rgpControlHTML(di){
   const days=rgpDays(di),over=days.filter(d=>d.todo);
   if(!over.length)return `<span class="coff" title="Nessuno degli ultimi giorni supera la soglia di recupero">niente da recuperare</span>`;
@@ -3153,6 +3166,21 @@ function pendingMeals(di){
    Chi ha saltato un pasto lo dichiara: dalla lista in Oggi, con ✗.
    L'unica concessione all'orologio è l'etichetta: se l'orario del pasto
    è già passato di oltre un'ora, si dice — così si capisce perché è lì. */
+/* «Stai bevendo abbastanza?» con i bicchieri, nel Punto, subito prima
+   del prossimo pasto: è il momento in cui uno pensa a cosa mette in
+   bocca, ed è l'unico in cui si ricorda anche di bere. */
+function acquaRiga(di){
+  const g=waterGoal(di),b=(S.week.days[di]||{}).water||0;
+  const pct=Math.min(100,Math.round(b/Math.max(1,g)*100));
+  const frase=b>=g?"Obiettivo raggiunto.":
+              (pct>=60?"Ci sei quasi.":
+              (b===0?"Non hai ancora bevuto nulla.":"Ne mancano "+(g-b)+"."));
+  return `<div class="acqriga">
+    <div class="ah"><span>Stai bevendo abbastanza?</span><b>${b} / ${g}</b></div>
+    <div class="agl">${Array.from({length:g},(_,i)=>
+      `<button class="ag ${i<b?"on":""}" onclick="setWater(${di},${i})" aria-label="Bicchiere ${i+1}"></button>`).join("")}</div>
+    <div class="af">${frase} Un bicchiere è 250 ml.</div>
+  </div>`;}
 function prossimoPasto(di){
   const p=pendingMeals(di);
   if(!p.length)return null;
@@ -3815,7 +3843,7 @@ function plannedTemplateOfDay(di){let k=0,p=0,c=0,f=0,fib=0,z=0;PLAN[di].meals.f
 function mealCardStatic(pdi,mi){const m=PLAN[pdi].meals[mi];const o=templateOpt(pdi,mi);
   const permObj=S.permMeals[pdi+"_"+mi];const isCustom=!!permObj;
   let h=`<div class="meal"><div class="mbody">
-    <div class="mtop"><span class="mname">${esc(cap(m.n))}</span><span class="mtime">${m.t.replace(/\s*\(portatile\)/,"")}</span></div>
+    <div class="mtop"><span class="mname">${esc(cap(m.n))}</span></div>
     <div class="mdesc">${esc(cap(o.d))}</div>
     <div class="mkcal">~${o.k} kcal · ${o.p} g P${o.c!=null?` · ${o.c} g C`:""}${o.f!=null?` · ${o.f} g G`:""}${o.fib!=null?` · ${o.fib} g F`:""}${o.z!=null?` · ${o.z} g Z`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
   if(m.o.length>1){h+=`<div class="mopts">`+m.o.map((x,oi)=>{
@@ -3905,6 +3933,7 @@ function puntoTesta(di){
     if(q!=null)righe.push(`Qualità del cibo ${q}%.`);
   }else righe.push("Ieri non hai segnato nulla: se vuoi puoi ancora farlo dallo storico.");
   if(st>=3)righe.push(`<b>${st} giorni di fila</b> in linea.`);
+  {const p=pesoRiga();if(p&&!/Non hai ancora/.test(p))righe.push(cap(p)+".");}
   return `<div class="psaluto tap" onclick="show('oggi')" title="Vai a Oggi">
     <div class="ph">${puntoSaluto()} <span class="pgo">›</span></div>
     <div class="pd">${righe.join(" ")}</div>
@@ -3923,30 +3952,24 @@ function oggiSpesa(){
 /* Il peso nel Punto: il confronto che motiva non è con l'obiettivo lontano,
    ma con te stesso di quattro settimane fa. La proiezione e i grafici
    restano in Numeri, per chi li vuole. */
-function puntoPeso(){
+/* Il peso di oggi, se c'è, e come sta andando rispetto a quattro
+   settimane fa: due righe invece di una scheda intera. */
+function pesoOggi(){
+  const w=(S.profile.weights||[]).find(x=>x.d===iso(new Date()));
+  return w?(+w.w||0):null;}
+function pesoRiga(){
   const w=(S.profile.weights||[]).slice().sort((a,b)=>(a.d<b.d?-1:1));
-  if(!w.length)return `<div class="card"><h2>Il tuo peso</h2>
-    <div class="hint">Non hai ancora registrato una pesata. È il dato che fa funzionare tutto il resto.</div>
-    <div class="mtools"><button class="btn small" onclick="show('io')">Segna il peso</button></div></div>`;
-  const oggi=w[w.length-1], ogg=+oggi.w||0;
+  if(!w.length)return "Non hai ancora registrato una pesata";
+  const ogg=+w[w.length-1].w||0;
   const lim=new Date();lim.setDate(lim.getDate()-28);
   const vecchie=w.filter(x=>safeDate(x.d+"T12:00:00")&&safeDate(x.d+"T12:00:00")<lim);
   const rif=vecchie.length?vecchie[vecchie.length-1]:w[0];
   const d=Math.round((ogg-(+rif.w||0))*10)/10;
-  const g=goalWeightSet();
-  const manca=g?Math.round((ogg-g)*10)/10:null;
-  return `<div class="card"><h2>Il tuo peso</h2>
-    <div class="pw">
-      <div class="pwv">${ogg} <small>kg</small></div>
-      <div class="pwd ${d<0?"giu":(d>0?"su":"")}">${d===0?"stabile":(d<0?"−":"+")+Math.abs(d)+" kg"}</div>
-    </div>
-    <div class="hint" style="margin-top:2px">${rif===w[0]&&!vecchie.length
-      ? "Rispetto alla prima pesata."
-      : "Rispetto a quattro settimane fa."}${manca!==null&&manca>0?` Mancano <b>${manca} kg</b> all'obiettivo.`:(manca!==null?" Obiettivo raggiunto.":"")}</div>
-    <div class="mtools">
-      <button class="btn ghost small" onclick="show('io')">Nuova pesata</button>
-      <button class="btn ghost small" onclick="show('storico')">Vedi i numeri</button>
-    </div></div>`;}
+  const quando=vecchie.length?"in quattro settimane":"dalla prima pesata";
+  /* In italiano il decimale è una virgola: «−2.4 kg» sembra un refuso */
+  const num=(x)=>String(Math.abs(x)).replace(".",",");
+  return (d===0?"Stabile ":(d<0?"−"+num(d)+" kg ":"+"+num(d)+" kg "))+quando+
+    (pesoOggi()?"":" · ultima pesata "+new Date(w[w.length-1].d+"T12:00:00").toLocaleDateString("it-IT"));}
 function renderPunto(){const el=document.getElementById("pg-punto");const di=viewIdx();
   const eat=eatenOfDay(di),burn=burnedOfDay(di),t=tdeeOfDay(di),def=t+burn-eat.k,target=t+burn;
   let h="";
@@ -3973,15 +3996,20 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           ? `<button class="glink" onclick="periodoAzioni('${esc(ap.id||"")}')">Gestisci ›</button>`
           : `<button class="glink" onclick="periodoApri()">Aprine uno ›</button>`}</div>
       </div>
+      <div class="grow">
+        <div class="gl"><b>${pesoOggi()?("Pesato oggi: "+pesoOggi()+" kg"):"Peso"}</b>
+          <small>${pesoRiga()}</small></div>
+        <div class="gc"><button class="glink" onclick="show('io')">${pesoOggi()?"Correggi ›":"Pesati ›"}</button></div>
+      </div>
       <div class="grow ${ev?"on":""}">
         <div class="gl"><b>Evento del giorno</b>
           <small>${ev?"L'AI ne tiene conto nel ribilanciare":"Compleanno, cena fuori, giornata no…"}</small></div>
         <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">${ev?esc(ev)+" ›":"Scegli ›"}</button></div>
       </div>
-      ${densMin("expert")?`<div class="grow">
+      ${(densMin("expert")&&today&&rgpPending(di))?`<div class="grow">
         <div class="gl"><b>Ribilancia i giorni prima</b>
-          <small>${today?"Recupera gli sfori sui giorni che restano":"Si può fare solo sulla giornata di oggi"}</small></div>
-        <div class="gc">${today?rgpControlHTML(di):`<span class="gv">—</span>`}</div>
+          <small>Recupera gli sfori sui giorni che restano</small></div>
+        <div class="gc">${rgpControlHTML(di)}</div>
       </div>`:""}
     </div></div>`;}
 
@@ -4021,8 +4049,9 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
           <div class="trow"><span>Mangiate</span><b>${eat.k} / ${plan}</b></div>
           <div class="ttrack"><i style="width:${Math.min(100,Math.round(eat.k/Math.max(1,plan)*100))}%;background:${eat.k>plan?"var(--rosso)":"var(--bosco)"}"></i></div>
         </div>
+        ${acquaRiga(di)}
         ${prox?`<div class="tnext">
-          <div class="k">${prox.tardi?"Da segnare":"Il prossimo pasto"}${prox.t?" · "+esc(prox.t):""}</div>
+          <div class="k">${prox.tardi?"Da segnare":"Il prossimo pasto"}</div>
           <div class="t">${esc(prox.d||prox.slot||"")}</div>
           <div class="m">${Math.round(prox.k||0)} kcal · ${Math.round(prox.p||0)} g proteine</div>
           <div class="tcta">
@@ -4039,7 +4068,6 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
      ${nf.a?`<div class="nb-a"><button class="btn small" onclick="notifVisto('${esc(nf.k)}',1);${nf.a[1]}">${esc(nf.a[0])}</button></div>`:""}
      <button class="nb-x" onclick="notifVisto('${esc(nf.k)}',0)" aria-label="Chiudi">×</button>
    </div>`;}
-  h+=puntoPeso();
   /* ═══ COME STAI ═══════════════════════════════════════════════════
      Prima era una card sola che faceva cinque mestieri: sonno, corpo,
      cali di energia, nota e ricalibratura, separati da righine grigie.
@@ -4048,7 +4076,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   h+=`<div class="card"><h2>Come stai oggi</h2>
   <div class="hint">Due tocchi. Servono all'analisi di fine settimana per capire cosa influenza i tuoi risultati.</div>
   <div class="duo" style="margin-top:14px">
-    <div><label>Sonno · notte scorsa</label>${stars(di,"sleep")}</div>
+    <div><label>Come hai dormito</label>${stars(di,"sleep")}</div>
     <div><label>Come ti senti</label>${stars(di,"feel")}</div>
   </div>
   <div class="hint">1 = male · 5 = alla grande.</div>
@@ -4083,7 +4111,10 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     g+=`<div class="statolist" style="margin-top:12px">`
       +rigaLibera("phInj",injOn(),"🩼 Infortunio","Mi muovo meno del solito: −"+injPct()+"% sulla quota attività","injSet(this.checked)")
       +rigaLibera("phIll",illOn(),"🤒 Malattia","Deficit sospeso: si mangia a mantenimento","illSet(this.checked)")
-      +rigaLibera("phDig",digiunoOn(),"🕊️ Digiuno religioso","Stessi numeri, pasti distribuiti diversamente","digiunoSet(this.checked)")
+      +rigaLibera("phDig",digiunoOn(),
+          "🕊️ "+(digiunoOn()?DIGIUNI[digiunoTipo()].l:"Digiuno religioso"),
+          digiunoOn()?DIGIUNI[digiunoTipo()].d:"Ramadan, Quaresima, digiuno totale: scegli quale",
+          "digiunoSet(this.checked)")
       +`</div>`;
     return g;})()}
   ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:11px 13px;border-radius:12px;margin-top:12px">Nei giorni del ciclo è normale pesare <b>1-2 kg in più</b>: è acqua, non grasso. Non toccare il piano per questo — passa da sé.</div>`:""}
@@ -4157,30 +4188,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   const eat=eatenOfDay(di),burn=burnedOfDay(di),t=tdeeOfDay(di),def=t+burn-eat.k,target=t+burn;
   let h="";
   h+=oggiSpesa();
-  h+=`<div class="gsec">A tavola</div>`;
-  h+=`<div class="card"><h2>I pasti</h2><div class="hint">✓ mangiato · ✗ saltato · ○ da fare · ⏳ quando l'AI elabora · 📸 scatta la foto · 🖼️ scegline una dalla galleria</div></div>`;
-  const items=dayItems(di);
-  if(items.length)items.forEach(it=>h+=mealCard(it.pdi,it.mi));
-  else h+=`<div class="hint">Nessun pasto assegnato a questo giorno.</div>`;
-  // Extra v5: card COMPLETE come i pasti (✓/✗, ✏️, 📸, 🗑) — niente eliminazioni per sbaglio
-  S.week.days[di].extras.forEach((e,ei)=>{const done=e.st!=="skip";
-    h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina 🗑</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
-    <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
-      done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
-    <div class="mdesc">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g P${e.c!=null?` · ${e.c} g C`:""}${e.f!=null?` · ${e.f} g G`:""}${e.fib!=null?` · ${e.fib} g F`:""}${e.z!=null?` · ${e.z} g Z`:""}</div>
-    <div class="mtools" style="margin-top:6px">
-      <button class="ibtn" title="Modifica (ricalcola macro)" onclick="editExtra(${di},${ei})">✏️</button>
-      <button class="ibtn" title="📸 Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">📸</button>
-        <button class="ibtn" title="🖼️ Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">🖼️</button>
-      <button class="ibtn" title="Barcode: scansiona i prodotti di questo extra" onclick="scanStart(${di},null,null,${ei})"><svg width="16" height="14" viewBox="0 0 24 20" style="vertical-align:-2px"><g fill="currentColor"><rect x="1" y="2" width="2" height="16"/><rect x="5" y="2" width="1" height="16"/><rect x="8" y="2" width="3" height="16"/><rect x="13" y="2" width="1" height="16"/><rect x="16" y="2" width="2" height="16"/><rect x="20" y="2" width="1" height="16"/><rect x="22" y="2" width="1.5" height="16"/></g></svg></button>
-      <button class="ibtn" title="Elimina definitivamente" onclick="delExtraAsk(${di},${ei})">🗑</button>
-    </div></div></div></div>`;});
-  h+=`<div class="mtools" style="margin-top:4px">
-    <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
-    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
-  <div class="hint">⚖️ <b>Ribilancia le calorie residue</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
-
-  // Acqua con obiettivo dinamico
+  /* L'acqua in testa: in fondo alla pagina non la segnava nessuno. */
   const goal=waterGoal(di);
   const _vd=iso(VIEW);
   h+=`<div class="card"><h2>Nota del giorno</h2>
@@ -4235,6 +4243,30 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   h+=`</div><div class="hint">Obiettivo: ${goal} bicchieri da <b>250 ml</b> (~${(goal/4).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
   // Sonno & Stress
    {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
+  h+=`<div class="gsec">A tavola</div>`;
+  h+=`<div class="card"><h2>I pasti</h2><div class="hint">✓ mangiato · ✗ saltato · ○ da fare · ⏳ quando l'AI elabora · 📸 scatta la foto · 🖼️ scegline una dalla galleria</div></div>`;
+  const items=dayItems(di);
+  if(items.length)items.forEach(it=>h+=mealCard(it.pdi,it.mi));
+  else h+=`<div class="hint">Nessun pasto assegnato a questo giorno.</div>`;
+  // Extra v5: card COMPLETE come i pasti (✓/✗, ✏️, 📸, 🗑) — niente eliminazioni per sbaglio
+  S.week.days[di].extras.forEach((e,ei)=>{const done=e.st!=="skip";
+    h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina 🗑</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
+    <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
+      done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
+    <div class="mdesc">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g P${e.c!=null?` · ${e.c} g C`:""}${e.f!=null?` · ${e.f} g G`:""}${e.fib!=null?` · ${e.fib} g F`:""}${e.z!=null?` · ${e.z} g Z`:""}</div>
+    <div class="mtools" style="margin-top:6px">
+      <button class="ibtn" title="Modifica (ricalcola macro)" onclick="editExtra(${di},${ei})">✏️</button>
+      <button class="ibtn" title="📸 Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">📸</button>
+        <button class="ibtn" title="🖼️ Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">🖼️</button>
+      <button class="ibtn" title="Barcode: scansiona i prodotti di questo extra" onclick="scanStart(${di},null,null,${ei})"><svg width="16" height="14" viewBox="0 0 24 20" style="vertical-align:-2px"><g fill="currentColor"><rect x="1" y="2" width="2" height="16"/><rect x="5" y="2" width="1" height="16"/><rect x="8" y="2" width="3" height="16"/><rect x="13" y="2" width="1" height="16"/><rect x="16" y="2" width="2" height="16"/><rect x="20" y="2" width="1" height="16"/><rect x="22" y="2" width="1.5" height="16"/></g></svg></button>
+      <button class="ibtn" title="Elimina definitivamente" onclick="delExtraAsk(${di},${ei})">🗑</button>
+    </div></div></div></div>`;});
+  h+=`<div class="mtools" style="margin-top:4px">
+    <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
+    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
+  <div class="hint">⚖️ <b>Ribilancia le calorie residue</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
+
+  // Acqua con obiettivo dinamico
     h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
    <div class="hint">${wk.length
      ? wk.length+(wk.length===1?" allenamento":" allenamenti")+" registrati · <b>"+br+" kcal</b> bruciate, già contate nel bilancio."
@@ -7812,14 +7844,34 @@ function pregKcal(){
    (quella dovuta all'attività), mai al basale stesso. */
 function injOn(){return !!(S.phys&&S.phys.inj);}
 function illOn(){return !!(S.phys&&S.phys.ill);}
-/* Digiuno religioso: non cambia le calorie, cambia COME si distribuiscono
-   e cosa si può mangiare. Se ne occupa l'AI, non il calcolo. */
+/* ═══ DIGIUNI RELIGIOSI ═════════════════════════════════════════════
+   Non sono affatto uguali fra loro, e trattarli come una casella sola
+   era sbagliato: il Ramadan sposta TUTTI i pasti fra tramonto e alba,
+   la Quaresima toglie certi alimenti in certi giorni, lo Yom Kippur è
+   un digiuno totale di 25 ore. Cambia cosa deve fare l'AI, non solo il
+   tono della frase. */
+const DIGIUNI={
+  ramadan:{l:"Ramadan",d:"Si mangia solo fra tramonto e alba",
+    ai:"RAMADAN: tutti i pasti vanno concentrati fra il tramonto (iftar) e l'alba (suhoor). Nessun cibo né bevanda durante il giorno. Proponi due pasti principali — iftar e suhoor — più eventuali spuntini nella finestra notturna, con il TOTALE calorico e proteico invariato. Al suhoor privilegia alimenti a rilascio lento (cereali integrali, proteine, grassi buoni) e forte idratazione; all'iftar apri con qualcosa di leggero. Ricorda di bere molto nella finestra consentita."},
+  quaresima:{l:"Quaresima o giorni di magro",d:"Niente carne in certi giorni",
+    ai:"QUARESIMA: niente carne nei giorni di magro (venerdì e mercoledì delle Ceneri). Sostituisci con pesce, uova, legumi e latticini mantenendo le proteine invariate. Pasti più sobri, senza ridurre le calorie totali."},
+  yomkippur:{l:"Yom Kippur o digiuno totale",d:"24-25 ore senza cibo né acqua",
+    ai:"DIGIUNO TOTALE di 24-25 ore: nessun pasto nella giornata. Concentra tutto nel pasto che precede e in quello che segue: il precedente ricco di liquidi e carboidrati complessi, il successivo leggero e graduale per non appesantire. Non recuperare le calorie perse: il deficit di quel giorno è voluto e non va compensato."},
+  altro:{l:"Altro digiuno",d:"Descrivilo tu nelle regole dell'AI",
+    ai:"DIGIUNO RELIGIOSO in corso: rispetta gli orari e le restrizioni indicate dalla persona nelle sue regole, ridistribuendo i pasti senza ridurre il totale."}
+};
 function digiunoOn(){return !!(S.phys&&S.phys.digiuno);}
+function digiunoTipo(){const t=S.phys&&S.phys.digTipo;return DIGIUNI[t]?t:"ramadan";}
 window.digiunoSet=async(on)=>{
   if(on&&!digiunoOn()){
-    if(!await dlgConfirm("🕊️ Periodo di digiuno religioso?\n\nFinché resta attivo l'AI ne tiene conto quando costruisce i pasti: orari, alimenti da evitare, distribuzione della giornata.\n\nIl fabbisogno e il target NON cambiano — cambia come vengono composti i piatti. Ricordati di spegnerlo quando il periodo finisce.")){render(cur);return;}}
+    const t=await dlgChoice("Che digiuno stai osservando?",
+      Object.keys(DIGIUNI).map(k=>[k,DIGIUNI[k].l+" — "+DIGIUNI[k].d]));
+    if(!t){render(cur);return;}
+    S.phys.digTipo=t;
+    await dlgAlert("🕊️ <b>"+esc(DIGIUNI[t].l)+"</b> attivo.<br><br>Le calorie e le proteine del giorno <b>restano quelle</b>: cambia quando e come si mangia. Ricordati di spegnerlo quando il periodo finisce.<br><br>Se hai dubbi sul digiuno e sulla tua salute, parlane con un medico: in gravidanza, allattamento, diabete o terapie in corso non è una scelta neutra.");
+  }
   S.phys.digiuno=!!on;save();render(cur);
-  toast(on?"Digiuno attivo · l'AI ne terrà conto":"Digiuno disattivato");};
+  toast(on?DIGIUNI[digiunoTipo()].l+" attivo":"Digiuno disattivato");};
 function injPct(){const n=+S.profile.injPct;return n>0?Math.min(90,n):50;}
 function illPct(){const n=+S.profile.illPct;return n>0?Math.min(90,n):30;}
 function movePct(){ /* se coesistono, comanda il taglio maggiore: non si sommano */

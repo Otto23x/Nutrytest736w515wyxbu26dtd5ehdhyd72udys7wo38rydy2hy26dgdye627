@@ -667,8 +667,17 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
   100%{stroke-dashoffset:0;opacity:.12}}
 
 @media(prefers-reduced-motion:reduce){#aiSpin .sp{animation:none}}
-#toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px) scale(.9);top:78px;z-index:96;max-width:calc(100vw - 32px);background:var(--azione);color:#fff;border-radius:22px;padding:11px 20px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:all .4s var(--ease);box-shadow:0 12px 30px -8px rgba(22,163,74,.6)}
-#toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+/* Il messaggio era una pastiglia verde piena sopra l'intestazione: la
+   copriva, e il verde acceso a tutta larghezza non c'entra niente con il
+   resto dell'app. Ora è una scheda chiara in basso, come tutto il resto,
+   e lascia libero l'angolo del pulsante dell'assistente. */
+#toast{position:fixed;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom));
+  transform:translateY(12px);z-index:96;max-width:520px;margin:0 auto;
+  background:var(--card);color:var(--ink);border-left:3px solid var(--salvia);
+  border-radius:var(--r-lg);padding:14px 16px;font-size:13.5px;font-weight:500;line-height:1.45;
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--ease);
+  box-shadow:0 1px 2px rgba(12,31,23,.06),0 18px 40px -20px rgba(12,31,23,.45)}
+#toast.on{opacity:1;transform:translateY(0)}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:97;overflow:hidden}
 #confetti span{position:absolute;width:9px;height:9px;border-radius:2px;top:-12px}
 /* ══ MODALI ══ */
@@ -952,7 +961,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.34.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.35.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -6814,11 +6823,15 @@ window.genPlanAI=async()=>{
     if(fuori.length)avvisi.push("⚠️ Giorni lontani dal target: "+fuori.join(", "));
     if(magri.length)avvisi.push("⚠️ Proteine sotto la soglia: "+magri.join(", "));
     if(avvisi.length)avvisi.push("Puoi attivarlo lo stesso e poi premere 🎯 Ricalibra, che sistema le grammature senza cambiare i piatti.");
-    if(!await dlgConfirm("Piano pronto — sette giorni completi.\n\n"+
+    /* La conferma dice CHIARAMENTE che il lavoro non è finito: dopo l'OK
+       restano lista della spesa e controllo. Prima annunciava «Piano
+       pronto» a metà strada, e poi toccava aspettare ancora. */
+    if(!await dlgConfirm("I sette giorni sono pronti.\n\n"+
       plan.map((d,i)=>d.day+": ~"+tot[i]+" kcal · "+pro[i]+" g proteine").join("\n")+
       "\n\nMedia: ~"+media+" kcal (target "+target+") · proteine obiettivo "+protG+" g"+
       (avvisi.length?("\n\n"+avvisi.join("\n")):"\n\n✓ Tutti i giorni sono nei limiti.")+
-      "\n\nOK = attiva questo piano"))return;
+      "\n\nPremi OK efinisc: preparo la lista della spesa e faccio il controllo finale. Ci vuole ancora un minuto.",
+      {ok:"Vai avanti",ko:"Annulla"}))return;
     snapSave("prima di: piano generato");
     S.customPlan=plan;PLAN=plan;S.permMeals={};S.week=freshWeek();
     S.customShop=null;S.shop={};      /* la spesa riparte dagli ingredienti del nuovo piano */
@@ -6838,7 +6851,14 @@ window.genPlanAI=async()=>{
       genPassi(box,0,2);await wait(400);
       if(box)box.textContent="";genBoxVia();
     }
-    dlgAlert("Piano attivato ✓\n\nPuoi correggere ogni pasto dal Piano con ✏️, e le modifiche restano permanenti.\n\nRicorda: fallo validare da un nutrizionista. Se il piano indica integratori (proteine, vitamine…), anche quelli vanno concordati con un nutrizionista, non presi di propria iniziativa.");
+    /* L'annuncio arriva SOLO adesso: piano, spesa e controllo sono fatti. */
+    const nSpesa=(S.customShop||[]).reduce((a,c)=>a+((c[1]||[]).length),0);
+    dlgAlert("<b>Tutto pronto.</b><br><br>"+
+      "· Piano settimanale di 7 giorni, media ~"+media+" kcal<br>"+
+      (nSpesa?("· Lista della spesa con "+nSpesa+" prodotti<br>"):"")+
+      "· Controllo finale superato<br><br>"+
+      "Puoi correggere ogni pasto dal Piano con ✏️, e le modifiche restano permanenti.<br><br>"+
+      "Ricorda: fallo validare da un nutrizionista. Se il piano indica integratori, anche quelli vanno concordati con lui, non presi di propria iniziativa.");
   }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 /* ═══ IMPORT DEL PIANO DA FOTO ═══════════════════════════════════
    Chi ha già un piano (nutrizionista, foglio, PDF) lo fotografa:

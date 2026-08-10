@@ -961,7 +961,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.35.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.36.2";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2055,7 +2055,7 @@ let DLGQ=Promise.resolve();
    solo <b>, <i> e <br>, che non possono fare danni. */
 function dlgHTML(m){
   return esc(String(m==null?"":m))
-    .replace(/&lt;(\/?)(b|i)&gt;/g,"<$1$2>")
+    .replace(/&lt;(\/?)(b|i|small|em|strong)&gt;/g,"<$1$2>")
     .replace(/&lt;br\s*\/?&gt;/g,"<br>");}
 function dlgShow(msg,opts){opts=opts||{};
   const run=()=>new Promise(res=>{
@@ -4069,7 +4069,7 @@ function pesoRiga(){
   /* In italiano il decimale è una virgola: «−2.4 kg» sembra un refuso */
   const num=(x)=>String(Math.abs(x)).replace(".",",");
   return (d===0?"Stabile ":(d<0?"−"+num(d)+" kg ":"+"+num(d)+" kg "))+quando+
-    (pesoOggi()?"":" · ultima pesata "+new Date(w[w.length-1].d+"T12:00:00").toLocaleDateString("it-IT"));}
+    (pesoOggi()?"":(function(){const q=dataIT(w[w.length-1].d);return q?(" · ultima pesata "+q):"";})());}
 function renderPunto(){const el=document.getElementById("pg-punto");const di=viewIdx();
   const eat=eatenOfDay(di),burn=burnedOfDay(di),t=tdeeOfDay(di),def=t+burn-eat.k,target=t+burn;
   let h="";
@@ -4083,19 +4083,24 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
      degli stati del corpo: nome, effetto sotto, comando a destra. Prima
      erano tre strisce con il bordo, l'unico elemento dell'app che ce
      l'avesse ancora. */
-  if(!S.ui.vacanza&&densMin("full")){
+  /* La scheda c'è SEMPRE: peso, allenamenti e nota sono cose di base.
+     A cambiare con il livello sono solo le righe tecniche — periodo,
+     evento, recupero — che a chi comincia non dicono niente. Prima
+     spariva tutta insieme, e a livello Essenziale non si poteva più
+     registrare un allenamento né scrivere una nota. */
+  if(!S.ui.vacanza){
     const ev=(S.dayEvents||{})[_vd]||"",today=isToday();
     const evOK=!!(S.ui.evOk||{})[_vd];
     const ap=activePeriod();
     h+=`<div class="card"><h2>La giornata</h2>
     <div class="glist">
-      <div class="grow ${ap?"on":""}">
+      ${densMin("full")?`<div class="grow ${ap?"on":""}">
         <div class="gl"><b>${ap?("Periodo "+esc(cap(ap.type))+" aperto"):"Nessun periodo aperto"}</b>
           <small>${ap?("Dal "+dataIT(ap.start)+" · "+giorniPeriodo(ap)+(giorniPeriodo(ap)===1?" giorno":" giorni")):"Serve a raggruppare i dati in Numeri"}</small></div>
         <div class="gc">${ap
           ? `<button class="glink" onclick="periodoAzioni()">Gestisci ›</button>`
           : `<button class="glink" onclick="periodoApri()">Aprine uno ›</button>`}</div>
-      </div>
+      </div>`:""}
       ${pesoOggi()?"":`<div class="grow">
         <div class="gl"><b>Peso</b><small>${pesoRiga()}</small></div>
         <div class="gc"><button class="glink" onclick="show('io')">Pesati ›</button></div>
@@ -4112,7 +4117,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
             <small>Restano ${resta} ${resta===1?"pasto":"pasti"}: posso alleggerire solo quelli</small></div>
           <div class="gc"><button class="glink" onclick="rebalance()">Ribilancia ›</button></div>
         </div>`;})()}
-      ${ev?`<div class="grow on">
+      ${!densMin("full")?"":(ev?`<div class="grow on">
         <div class="gl"><b>${esc(ev)}</b>
           <small>L'AI ne tiene conto quando ribilancia la giornata</small></div>
         <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">Cambia ›</button></div>
@@ -4120,26 +4125,33 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         <div class="gl"><b>Evento del giorno</b>
           <small>Compleanno, cena fuori, giornata no…</small></div>
         <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">Scegli ›</button></div>
-      </div>`}
+      </div>`)}
       ${(densMin("expert")&&today&&rgpPending(di))?`<div class="grow">
         <div class="gl"><b>Ribilancia i giorni prima</b>
           <small>Recupera gli sfori sui giorni che restano</small></div>
         <div class="gc">${rgpControlHTML(di)}</div>
       </div>`:""}
+      ${(function(){
+        /* Allenamenti e nota erano due schede a sé sotto «La giornata»,
+           con titolo e pulsante pieno: due mestieri in più per una cosa
+           che è un dettaglio della giornata, non un capitolo. Qui hanno
+           la forma delle altre righe. */
+        const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
+        return `<div class="grow ${wk.length?"on":""}">
+          <div class="gl"><b>${wk.length?(wk.length+(wk.length===1?" allenamento":" allenamenti")+" · "+br+" kcal"):"Allenamenti"}</b>
+            <small>${wk.length
+              ? esc(wk.map(w=>cap(sportCorto(w.sport||"Attività"))+" "+Math.round(w.min||0)+"′").join(" · "))+" — già nel bilancio"
+              : "Se ti muovi, registralo: entra nel bilancio del giorno"}</small></div>
+          <div class="gc"><button class="glink" onclick="show('sport')">${wk.length?"Gestisci ›":"Registra ›"}</button></div>
+        </div>`;})()}
+      ${(function(){
+        const n=String((S.week.days[di]||{}).note||"").trim();
+        return `<div class="grow ${n?"on":""}">
+          <div class="gl"><b>${n?"Nota di oggi":"Nota del giorno"}</b>
+            <small>${n?esc(cap(n.length>70?n.slice(0,69)+"…":n)):"Fame, imprevisti: quello che i numeri non dicono"}</small></div>
+          <div class="gc"><button class="glink" onclick="notaScrivi(${di})">${n?"Modifica ›":"Scrivi ›"}</button></div>
+        </div>`;})()}
     </div></div>`;}
-   {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
-    h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
-   <div class="hint">${wk.length
-     ? wk.length+(wk.length===1?" allenamento":" allenamenti")+" registrati · <b>"+br+" kcal</b> bruciate, già contate nel bilancio."
-     : "Nessun allenamento oggi. Se ti muovi, registralo: entra nel bilancio della giornata."}</div>
-   ${wk.length?`<div class="mini" style="margin-top:10px">${wk.map(w=>`<span class="chip">${esc(w.sport||"Attività")} · ${Math.round(w.min||0)}′</span>`).join("")}</div>`:""}
-   <div class="mtools"><button class="btn ${wk.length?"ghost ":""}small" onclick="show('sport')">${wk.length?"Gestisci":"Registra un allenamento"}</button></div>
-   </div>`;}
-  h+=`<div class="card"><h2>Nota del giorno</h2>
-  <div class="hint">Fame, digestione, imprevisti: quello che i numeri non dicono.</div>
-  <textarea id="dayNote" rows="3" placeholder="Com'è andata?" onchange="setNote(${di},this.value)">${esc(cap(S.week.days[di].note||""))}</textarea>
-  <div class="hint">Finisce nell'esportazione e nell'analisi dei pattern.</div>
-  </div>`;
 
 
   /* La risposta apre la pagina: è la domanda che uno si fa aprendo l'app.
@@ -4727,6 +4739,14 @@ window.periodoAzioni=async()=>{
   if(scelta==="soft")return reverseToggle();
   if(scelta==="vac")return toggleVacanza();
   if(scelta==="fine")return endPeriod(ap.id);};
+/* La nota si scrive da una finestra: un campo di testo alto tre righe
+   dentro una riga di elenco romperebbe l'allineamento di tutte. */
+window.notaScrivi=async(di)=>{
+  const ora=String((S.week.days[di]||{}).note||"");
+  const t=await dlgPrompt("Com'è andata oggi?<br><small>Fame, imprevisti: quello che i numeri non dicono.</small>",ora);
+  if(t===null)return;
+  setNote(di,t);render(cur);
+  toast(t.trim()?"Nota salvata":"Nota rimossa");};
 window.eventoScegli=async(vd,di,today)=>{
   const opt=["Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party",
              "Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"];
@@ -7053,7 +7073,7 @@ function notesCardHTML(){
   let h=`<div class="card"><h2>Le tue note</h2>
   ${hint2("Tutto quello che hai scritto in <b>Nota del giorno</b>, dalla più recente.",
  "Le note vengono archiviate con la settimana, finiscono nel CSV e le legge l'AI in <b>Analizza i pattern</b> e nel report di fine settimana.")}`;
-  if(!rows.length)h+=`<div class="hint">Ancora nessuna nota. La scrivi da <b>Oggi → 📝 Nota del giorno</b>: fame, digestione, imprevisti, come ti sentivi.</div></div>`;
+  if(!rows.length)h+=`<div class="hint">Ancora nessuna nota. La scrivi dalla tua pagina, in <b>La giornata → Nota del giorno</b>: fame, imprevisti, come ti sentivi.</div></div>`;
   else{
     h+=`<div class="tbl-scroll" style="max-height:340px">`;
     rows.slice(0,120).forEach(d=>{

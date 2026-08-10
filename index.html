@@ -650,16 +650,21 @@ html[data-theme="dark"] #zoomOv img{background:#131E15}
 #aiSpin.on{display:flex}
 /* rotella dell'AI: unica animazione rimasta, gira SOLO mentre l'AI lavora */
 @keyframes nspin{to{transform:rotate(360deg)}}
-#aiSpin /* Una ciambella che si riempie e ricomincia: mostra un avanzamento
-   invece di un moto perpetuo, e si capisce che sta lavorando. */
-@property --gr{syntax:"<percentage>";inherits:false;initial-value:0%}
-.sp{position:relative;width:20px;height:20px;border-radius:50%;flex:0 0 auto;
-  background:conic-gradient(var(--azione) var(--gr,0%),var(--linea) 0);
-  animation:nfill 1.8s linear infinite}
-.sp::before{content:"";position:absolute;inset:3.5px;border-radius:50%;background:var(--card)}
-@keyframes nfill{from{--gr:0%}to{--gr:100%}}
-/* Anello interno in senso ORARIO OPPOSTO: l'occhio lo coglie subito e
-   distingue «sto lavorando» da un semplice caricamento. */
+/* ══ CIAMBELLA DELL'AI ══
+   Un anello che si riempie e ricomincia, disegnato in SVG. La versione
+   con conic-gradient dipendeva da @property, che molti browser non
+   conoscono: lì cadeva nel ripiego e diventava un anello che gira e
+   basta. Con stroke-dasharray funziona ovunque, senza eccezioni. */
+.sp{width:20px;height:20px;flex:0 0 auto;transform:rotate(-90deg)}
+.sp circle{fill:none;stroke-width:4}
+.sp .sp-b{stroke:var(--linea)}
+.sp .sp-f{stroke:var(--azione);stroke-linecap:round;
+  stroke-dasharray:97.4;stroke-dashoffset:97.4;
+  animation:nfill 1.7s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes nfill{
+  0%  {stroke-dashoffset:97.4}
+  75% {stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:.12}}
 
 @media(prefers-reduced-motion:reduce){#aiSpin .sp{animation:none}}
 #toast{position:fixed;left:50%;transform:translateX(-50%) translateY(-16px) scale(.9);top:78px;z-index:96;max-width:calc(100vw - 32px);background:var(--azione);color:#fff;border-radius:22px;padding:11px 20px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:all .4s var(--ease);box-shadow:0 12px 30px -8px rgba(22,163,74,.6)}
@@ -787,7 +792,10 @@ body.onb{padding-bottom:0}
 <div class="page" id="pg-setup"></div>
 <div id="printreport"></div>
 
-<div id="aiSpin" onclick="aiReset()" title="Tocca se resta bloccato"><span class="sp"></span>L'AI sta lavorando… <span style="opacity:.75;font-size:11px">(tocca per annullare)</span></div>
+<div id="aiSpin" onclick="aiReset()" title="Tocca se resta bloccato"><svg class="sp" viewBox="0 0 36 36" aria-hidden="true">
+    <circle class="sp-b" cx="18" cy="18" r="15.5"></circle>
+    <circle class="sp-f" cx="18" cy="18" r="15.5"></circle>
+  </svg>L'AI sta lavorando… <span style="opacity:.75;font-size:11px">(tocca per annullare)</span></div>
 <button class="fab" id="askFab" onclick="assistOpen()" aria-label="Chiedi all'assistente">
   <span class="fabpulse"></span>
   <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.4 12.4c0 4-3.8 7.2-8.4 7.2a9.7 9.7 0 0 1-2.7-.4L4.6 20.4l1.3-3.8a6.8 6.8 0 0 1-2.3-4.2c0-4 3.8-7.2 8.4-7.2s8.4 3.2 8.4 7.2Z"/></svg>
@@ -944,7 +952,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.27.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.34.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1695,7 +1703,7 @@ function dietStr(){const D=S.diet;
   if(tipoTxt==="vegetariana")tipoTxt+=" (uova "+(D.vegUova!==false?"AMMESSE":"ESCLUSE")+", pesce "+(D.vegPesce?"AMMESSO":"ESCLUSO")+")";
   if(tipoTxt==="vegana")tipoTxt+=" (nessun alimento di origine animale)";
   L.push("Impostazione alimentare: "+tipoTxt);
-  L.push("intolleranze: "+(D.intol||"nessuna"));
+  L.push("intolleranze: "+(D.intol||"nessuna")+intolForAI(D.intol,D.patologie)+integForAI(D.integratori));
   L.push("da evitare assolutamente: "+(D.no||"niente"));
   L.push("cibi preferiti: "+(D.si||"—"));
   if(D.religiose)L.push("vincoli religiosi/etici: "+D.religiose);
@@ -1822,10 +1830,10 @@ function nutriRulesShort(){
     "con colon irritabile 1-2 volte, 60-80 g cotti, lenticchie decorticate. Salumi 1-2 volte al massimo. "+
     "Varia: mai lo stesso piatto più di due volte a settimana.";}
 function rulesForPlan(){const r=rulesSnapshot();
-  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRulesShort()+digiunoForAI()+" "+physForAI()+
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRulesShort()+digiunoForAI()+gruppoForAI()+" "+physForAI()+
     (r.custom?(" Regole della persona: "+r.custom):"");}
 function rulesForAI(){const r=rulesSnapshot();
-  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+gruppoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
     (Object.keys(parseMensa(outThisWeek())).length?" PASTI FUORI CASA questa settimana: "+outThisWeek()+
       (outTypeIsPorto()
         ? ". Questi pasti li prepara e li porta da casa: sono pasti NORMALI come tutti gli altri, con la stessa struttura e le stesse grammature, con l'unico vincolo di essere trasportabili in un contenitore e buoni anche freddi o riscaldati. I loro ingredienti vanno nella lista della spesa."
@@ -2433,7 +2441,7 @@ function mealCard(pdi,mi){
           ? (function(){const q=qOf(st,o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
           : ""}</div>
       <div class="mdesc">${esc(cap(o.d))}</div>
-      <div class="mkcal">~${o.k} kcal · ${o.p} g P${o.c!=null?` · ${o.c} g C`:""}${o.f!=null?` · ${o.f} g G`:""}${o.fib!=null?` · ${o.fib} g F`:""}${o.z!=null?` · ${o.z} g Z`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
+      <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
   h+=hungryHTML(pdi,mi);
   if(PLAN[pdi].meals[mi].o.length>1&&!st.custom){h+=`<div class="mopts">`+m.o.map((x,oi)=>
     `<button class="${oi===st.opt?"sel":""}" onclick="setOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`).join("")+`</div>`;}
@@ -2684,7 +2692,6 @@ window.recDel=(di,i)=>{
   const m=document.getElementById("recM");if(m)m.remove();recModal(di);
   snackUndo("Piatto eliminato",()=>{S.recipes.splice(i,0,copia);save();
     const m2=document.getElementById("recM");if(m2)m2.remove();recModal(di);});};
-window.recDelOld=async (di,i)=>{if(await dlgConfirm("Eliminare questo piatto salvato?",{ok:"Elimina",ko:"No"})){S.recipes.splice(i,1);document.getElementById("recM").remove();recModal(di);save();}};
 function renderSub(){
   let m=document.getElementById("subModal");
   if(!m){m=document.createElement("div");m.id="subModal";m.className="modal";document.body.appendChild(m);}
@@ -2709,7 +2716,6 @@ window.delExtraAsk=(d,i)=>{
   const copia=JSON.parse(JSON.stringify(x));
   arr.splice(i,1);save();render(cur);
   snackUndo("Extra eliminato",()=>{S.week.days[d].extras.splice(i,0,copia);save();render(cur);});};
-window.delExtraAskOld=async (d,i)=>{if(await dlgConfirm("Eliminare questo extra?\n(Se semplicemente non l'hai mangiato, basta la ✗)",{ok:"Elimina",ko:"No"}))delExtra(d,i);};
 /* Extra/sgarro: AI o manuale */
 window.addExtra=(d)=>{ // v5.1: crea un extra VUOTO da compilare come preferisci
   S.week.days[d].extras.push({d:"Nuovo extra — compilalo con ✏️, 📸 o barcode",k:0,p:0,st:"done"});
@@ -3339,19 +3345,6 @@ window.crashTog=(di,k)=>{
   }else{d.crash.splice(i,1);
     S.crashes=(S.crashes||[]).filter(x=>!(x.slot===k&&String(x.at).slice(0,10)===iso(new Date())));}
   save();render(cur);};
-window.crashLog=()=>{
-  const di=viewIdx();if(di<0)return dlgAlert("Torna a un giorno della settimana in corso.");
-  const now=new Date();
-  const items=dayItems(di).filter(it=>S.week.days[it.pdi].meals[it.mi].done);
-  const last=items.length?items[items.length-1]:null;
-  const o=last?mealOpt(last.pdi,last.mi):null;
-  S.crashes=S.crashes||[];
-  S.crashes.push({at:now.toISOString(),h:now.getHours()+now.getMinutes()/60,
-    pasto:last?last.slot:"",d:o?String(o.d).slice(0,80):"",k:o?o.k:0,c:o?(o.c||0):0});
-  if(S.crashes.length>200)S.crashes=S.crashes.slice(-200);
-  save();
-  toast("⚡ Calo di energia registrato"+(last?" — dopo "+last.slot:""));
-  render(cur);};
 function crashForAI(){
   const c=(S.crashes||[]).slice(-20);
   if(c.length<3)return "";
@@ -3594,14 +3587,27 @@ function reverseBonus(){return reverseOn()?(+S.reverse.kcal||0):0;}
 window.reverseToggle=async()=>{
   if(reverseOn()){
     if(!await dlgConfirm("Chiudo l'uscita morbida?\n\nHai risalito "+reverseBonus()+" kcal in "+(S.reverse.step||0)+" settimane. Il target torna al calcolo normale."))return;
-    S.reverse={on:false,start:null,step:0,kcal:0,lastCheck:null};save();render(cur);return toast("Uscita morbida chiusa");}
+    S.reverse={on:false,start:null,step:0,kcal:0,lastCheck:null};save();render(cur);
+    if(!planIsEmpty()&&aiOn()&&await dlgConfirm(
+       "Uscita morbida chiusa.\n\nIl target torna al calcolo normale: ritaro piano e spesa?",
+       {ok:"Ritara ora",ko:"Più tardi"}))
+      return recalibrate();
+    return toast("Uscita morbida chiusa");}
   if(!await dlgConfirm("📈 Attivo l'uscita morbida (reverse diet)?\n\n"+
     "Invece del deficit, ogni settimana aggiungo 60 kcal da carboidrati e guardo la bilancia:\n"+
     "• se il peso resta stabile, la settimana dopo salgo ancora\n"+
     "• se sale, mi fermo: hai trovato il tuo soffitto metabolico\n\n"+
     "Serve a uscire dalla dieta senza riprendere tutto, non a dimagrire."))return;
   S.reverse={on:true,start:iso(new Date()),step:0,kcal:0,lastCheck:iso(new Date())};
-  save();render(cur);toast("Uscita morbida attiva 📈");};
+  save();render(cur);
+  /* Il target è cambiato: se il piano resta sulle vecchie calorie
+     l'uscita morbida non esiste nei fatti, esiste solo nello stato.
+     Prima si limitava a salvare e non ricalcolava niente. */
+  if(!planIsEmpty()&&aiOn()&&await dlgConfirm(
+     "📈 Uscita morbida attiva.\n\nDa adesso il target sale di 60 kcal a settimana. Ritaro subito piano e spesa sulle nuove calorie?",
+     {ok:"Ritara ora",ko:"Più tardi"}))
+    return recalibrate();
+  toast("Uscita morbida attiva · +60 kcal a settimana");};
 /* una volta a settimana valuta il peso e decide se salire ancora */
 window.reverseStep=async()=>{
   if(!reverseOn())return;
@@ -3926,7 +3932,7 @@ function mealCardStatic(pdi,mi){const m=PLAN[pdi].meals[mi];const o=templateOpt(
   let h=`<div class="meal"><div class="mbody">
     <div class="mtop"><span class="mname">${esc(cap(m.n))}</span></div>
     <div class="mdesc">${esc(cap(o.d))}</div>
-    <div class="mkcal">~${o.k} kcal · ${o.p} g P${o.c!=null?` · ${o.c} g C`:""}${o.f!=null?` · ${o.f} g G`:""}${o.fib!=null?` · ${o.fib} g F`:""}${o.z!=null?` · ${o.z} g Z`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
+    <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
   if(m.o.length>1){h+=`<div class="mopts">`+m.o.map((x,oi)=>{
       const sel=isCustom?(permObj.d===x.d):(oi===0);
       return `<button class="${sel?"sel":""}" onclick="setPermOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`;}).join("")+`</div>`;}
@@ -3948,7 +3954,7 @@ window.editMealPerm=async(d,m)=>{const o=templateOpt(d,m);const nd=await dlgProm
 window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));const o=templateOpt(d,m);
   try{const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+dietStr()+' Ingredienti comuni in Italia con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
     const j=parseAIJSON(t);
-    if(!await dlgConfirm("Alternativa permanente:\n"+j.piatto+"\n~"+Math.round(j.kcal)+" kcal · ~"+Math.round(j.prot)+" g P\n\nOK = usala sempre nel piano"))return;
+    if(!await dlgConfirm("Alternativa permanente:\n"+j.piatto+"\n~"+Math.round(j.kcal)+" kcal · ~"+Math.round(j.prot)+" g proteine\n\nOK = usala sempre nel piano"))return;
     S.permMeals[d+"_"+m]={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot),c:Math.round(j.carb)||null,f:Math.round(j.gras)||null};save();render("piano");}catch(e){aiFail(e);}};
 function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(new Date());
   let h=`<div class="card"><h2>La tua settimana</h2>
@@ -3988,7 +3994,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     h+=`<div class="dayname">${d.day}${di===ti?'<span class="todaytag">OGGI</span>':""}</div><div class="dayctx">${d.ctx}</div>`;
     d.meals.forEach((m,mi)=>h+=mealCardStatic(di,mi));
     const pl=plannedTemplateOfDay(di);
-    h+=`<div class="daytotal">Piano: <span>~${pl.k} kcal · ${pl.p} g P · ${pl.c} g C · ${pl.f} g G · ${pl.fib} g F · ${pl.z||0} g Z</span></div>`;
+    h+=`<div class="daytotal">Piano: <span>~${pl.k} kcal · ${pl.p} g proteine · ${pl.c} g carboidrati · ${pl.f} g grassi · ${pl.fib} g fibre · ${pl.z||0} g zuccheri</span></div>`;
   });
   el.innerHTML=h;}
 
@@ -4076,27 +4082,56 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     <div class="glist">
       <div class="grow ${ap?"on":""}">
         <div class="gl"><b>${ap?("Periodo "+esc(cap(ap.type))+" aperto"):"Nessun periodo aperto"}</b>
-          <small>${ap?("Dal "+new Date(ap.start+"T12:00:00").toLocaleDateString("it-IT")+" · "+giorniPeriodo(ap)+" giorni"):"Serve a raggruppare i dati in Numeri"}</small></div>
+          <small>${ap?("Dal "+dataIT(ap.start)+" · "+giorniPeriodo(ap)+(giorniPeriodo(ap)===1?" giorno":" giorni")):"Serve a raggruppare i dati in Numeri"}</small></div>
         <div class="gc">${ap
-          ? `<button class="glink" onclick="periodoAzioni('${esc(ap.id||"")}')">Gestisci ›</button>`
+          ? `<button class="glink" onclick="periodoAzioni()">Gestisci ›</button>`
           : `<button class="glink" onclick="periodoApri()">Aprine uno ›</button>`}</div>
       </div>
-      <div class="grow">
-        <div class="gl"><b>${pesoOggi()?("Pesato oggi: "+pesoOggi()+" kg"):"Peso"}</b>
-          <small>${pesoRiga()}</small></div>
-        <div class="gc"><button class="glink" onclick="show('io')">${pesoOggi()?"Correggi ›":"Pesati ›"}</button></div>
-      </div>
-      <div class="grow ${ev?"on":""}">
+      ${pesoOggi()?"":`<div class="grow">
+        <div class="gl"><b>Peso</b><small>${pesoRiga()}</small></div>
+        <div class="gc"><button class="glink" onclick="show('io')">Pesati ›</button></div>
+      </div>`}
+      ${(function(){
+        /* Se stai andando oltre e ci sono ancora pasti da fare, la cosa
+           utile non è saperlo: è poterci fare qualcosa subito. */
+        if(!today||eat.k<=0)return "";
+        const resta=pendingMeals(di).length;
+        const oltre=eat.k-target;
+        if(!(resta>0&&oltre>0))return "";
+        return `<div class="grow on">
+          <div class="gl"><b>Sei oltre di ${oltre} kcal</b>
+            <small>Restano ${resta} ${resta===1?"pasto":"pasti"}: posso alleggerire solo quelli</small></div>
+          <div class="gc"><button class="glink" onclick="rebalance()">Ribilancia ›</button></div>
+        </div>`;})()}
+      ${ev?`<div class="grow on">
+        <div class="gl"><b>${esc(ev)}</b>
+          <small>L'AI ne tiene conto quando ribilancia la giornata</small></div>
+        <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">Cambia ›</button></div>
+      </div>`:`<div class="grow">
         <div class="gl"><b>Evento del giorno</b>
-          <small>${ev?"L'AI ne tiene conto nel ribilanciare":"Compleanno, cena fuori, giornata no…"}</small></div>
-        <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">${ev?esc(ev)+" ›":"Scegli ›"}</button></div>
-      </div>
+          <small>Compleanno, cena fuori, giornata no…</small></div>
+        <div class="gc"><button class="glink" onclick="eventoScegli('${_vd}',${di},${today?1:0})">Scegli ›</button></div>
+      </div>`}
       ${(densMin("expert")&&today&&rgpPending(di))?`<div class="grow">
         <div class="gl"><b>Ribilancia i giorni prima</b>
           <small>Recupera gli sfori sui giorni che restano</small></div>
         <div class="gc">${rgpControlHTML(di)}</div>
       </div>`:""}
     </div></div>`;}
+   {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
+    h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
+   <div class="hint">${wk.length
+     ? wk.length+(wk.length===1?" allenamento":" allenamenti")+" registrati · <b>"+br+" kcal</b> bruciate, già contate nel bilancio."
+     : "Nessun allenamento oggi. Se ti muovi, registralo: entra nel bilancio della giornata."}</div>
+   ${wk.length?`<div class="mini" style="margin-top:10px">${wk.map(w=>`<span class="chip">${esc(w.sport||"Attività")} · ${Math.round(w.min||0)}′</span>`).join("")}</div>`:""}
+   <div class="mtools"><button class="btn ${wk.length?"ghost ":""}small" onclick="show('sport')">${wk.length?"Gestisci":"Registra un allenamento"}</button></div>
+   </div>`;}
+  h+=`<div class="card"><h2>Nota del giorno</h2>
+  <div class="hint">Fame, digestione, imprevisti: quello che i numeri non dicono.</div>
+  <textarea id="dayNote" rows="3" placeholder="Com'è andata?" onchange="setNote(${di},this.value)">${esc(cap(S.week.days[di].note||""))}</textarea>
+  <div class="hint">Finisce nell'esportazione e nell'analisi dei pattern.</div>
+  </div>`;
+
 
   /* La risposta apre la pagina: è la domanda che uno si fa aprendo l'app.
      Avvisi, banner e riepiloghi vengono DOPO — prima si sa come si sta. */
@@ -4211,7 +4246,9 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:11px 13px;border-radius:12px;margin-top:12px">Nei giorni del ciclo è normale pesare <b>1-2 kg in più</b>: è acqua, non grasso. Non toccare il piano per questo — passa da sé.</div>`:""}
   ${physDurationNote()}
   <div class="hint" style="margin-top:14px">Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.</div>
-  <div class="mtools"><button class="btn ghost small" onclick="recalibrate()">Ricalibra la settimana</button></div>
+  <div class="mtools">
+    <button class="btn ghost small" onclick="recalibrateToday()">Solo oggi</button>
+    <button class="btn ghost small" onclick="recalibrate()">Tutta la settimana</button></div>
   </div>`;
 
   }
@@ -4248,7 +4285,10 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   /* Cambio di fase: non un riquadro in mezzo alla pagina, ma un avviso
      che compare UNA volta. Si legge, si preme OK e l'app si ritara da
      sola: è un fatto compiuto, non una cosa da ricordarsi di fare. */
-  if(!S.ui.vacanza&&cycPhase()&&cycPhaseDay()<=3&&S.ui.cycSeen!==cycPhaseKey()){
+  /* Solo a un cambio di fase VERO: nella prima fase in assoluto non è
+     «ripartito» un bel niente, si è appena cominciato. Serve che sia
+     già passato almeno un blocco di deficit. */
+  if(!S.ui.vacanza&&cycPhase()&&cycPhaseDay()<=3&&dietDayN()>cycDefDays()&&S.ui.cycSeen!==cycPhaseKey()){
     setTimeout(()=>cycAvvisoFase(),400);
   }
   if(densNudge())h+=`<div class="card nota buona">
@@ -4280,12 +4320,34 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   /* L'acqua in testa: in fondo alla pagina non la segnava nessuno. */
   const goal=waterGoal(di);
   const _vd=iso(VIEW);
-  h+=`<div class="card"><h2>Nota del giorno</h2>
-  <div class="hint">Fame, digestione, imprevisti: quello che i numeri non dicono.</div>
-  <textarea id="dayNote" rows="3" placeholder="Com'è andata?" onchange="setNote(${di},this.value)">${esc(cap(S.week.days[di].note||""))}</textarea>
-  <div class="hint">Finisce nell'esportazione e nell'analisi dei pattern.</div>
-  </div>`;
+  h+=`<div class="gsec">Acqua e movimento</div>`;
+  h+=`<div class="card"><h2>Acqua</h2>${acquaRiga(di,"Bicchieri di oggi")}`;
+  h+=`<div class="hint">Obiettivo: ${goal} bicchieri da <b>200 ml</b> (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
+  // Sonno & Stress
+  h+=`<div class="gsec">A tavola</div>`;
+  h+=`<div class="card"><h2>I pasti</h2><div class="hint">✓ mangiato · ✗ saltato · ○ da fare · ⏳ quando l'AI elabora · 📸 scatta la foto · 🖼️ scegline una dalla galleria</div></div>`;
+  const items=dayItems(di);
+  if(items.length)items.forEach(it=>h+=mealCard(it.pdi,it.mi));
+  else h+=`<div class="hint">Nessun pasto assegnato a questo giorno.</div>`;
+  // Extra v5: card COMPLETE come i pasti (✓/✗, ✏️, 📸, 🗑) — niente eliminazioni per sbaglio
+  S.week.days[di].extras.forEach((e,ei)=>{const done=e.st!=="skip";
+    h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina 🗑</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
+    <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
+      done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
+    <div class="mdesc">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g proteine${e.c!=null?` · ${e.c} g carboidrati`:""}${e.f!=null?` · ${e.f} g grassi`:""}${e.fib!=null?` · ${e.fib} g fibre`:""}${e.z!=null?` · ${e.z} g zuccheri`:""}</div>
+    <div class="mtools" style="margin-top:6px">
+      <button class="ibtn" title="Modifica (ricalcola macro)" onclick="editExtra(${di},${ei})">✏️</button>
+      <button class="ibtn" title="📸 Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">📸</button>
+        <button class="ibtn" title="🖼️ Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">🖼️</button>
+      <button class="ibtn" title="Barcode: scansiona i prodotti di questo extra" onclick="scanStart(${di},null,null,${ei})"><svg width="16" height="14" viewBox="0 0 24 20" style="vertical-align:-2px"><g fill="currentColor"><rect x="1" y="2" width="2" height="16"/><rect x="5" y="2" width="1" height="16"/><rect x="8" y="2" width="3" height="16"/><rect x="13" y="2" width="1" height="16"/><rect x="16" y="2" width="2" height="16"/><rect x="20" y="2" width="1" height="16"/><rect x="22" y="2" width="1.5" height="16"/></g></svg></button>
+      <button class="ibtn" title="Elimina definitivamente" onclick="delExtraAsk(${di},${ei})">🗑</button>
+    </div></div></div></div>`;});
+  h+=`<div class="mtools" style="margin-top:4px">
+    <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
+    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
+  <div class="hint">⚖️ <b>Ribilancia le calorie residue</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
 
+  // Acqua con obiettivo dinamico
   h+=`<div class="gsec">Il bilancio della giornata</div>`;
   if(S.ui.vacanza){
   h+=`<div class="gaugecard"><div style="font-size:40px">🏖️</div><h2>Modalità vacanza</h2>
@@ -4326,42 +4388,6 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
                     :(q!=null?esc(qLabel(q)):(aiOn()?"spunta i pasti per saperlo":"serve la chiave AI"));})()}</div></div>
     </div>`;})()}
     ${(function(){const t=waterPredict(di);return t?`<div class="hint" style="background:var(--menta);padding:9px;border-radius:10px;margin-top:10px">${t}</div>`:"";})()}</div>`;}
-  h+=`<div class="gsec">Acqua e movimento</div>`;
-  h+=`<div class="card"><h2>Acqua</h2>${acquaRiga(di,"Bicchieri di oggi")}`;
-  h+=`<div class="hint">Obiettivo: ${goal} bicchieri da <b>200 ml</b> (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L${(+S.profile.waterGoalL>0)?", scelto in Io":", proposto sul peso"})${S.week.days[di].workouts.some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 💧":""}.</div></div>`;
-  // Sonno & Stress
-   {const wk=(S.week.days[di].workouts)||[],br=burnedOfDay(di);
-  h+=`<div class="gsec">A tavola</div>`;
-  h+=`<div class="card"><h2>I pasti</h2><div class="hint">✓ mangiato · ✗ saltato · ○ da fare · ⏳ quando l'AI elabora · 📸 scatta la foto · 🖼️ scegline una dalla galleria</div></div>`;
-  const items=dayItems(di);
-  if(items.length)items.forEach(it=>h+=mealCard(it.pdi,it.mi));
-  else h+=`<div class="hint">Nessun pasto assegnato a questo giorno.</div>`;
-  // Extra v5: card COMPLETE come i pasti (✓/✗, ✏️, 📸, 🗑) — niente eliminazioni per sbaglio
-  S.week.days[di].extras.forEach((e,ei)=>{const done=e.st!=="skip";
-    h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina 🗑</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
-    <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
-      done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
-    <div class="mdesc">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g P${e.c!=null?` · ${e.c} g C`:""}${e.f!=null?` · ${e.f} g G`:""}${e.fib!=null?` · ${e.fib} g F`:""}${e.z!=null?` · ${e.z} g Z`:""}</div>
-    <div class="mtools" style="margin-top:6px">
-      <button class="ibtn" title="Modifica (ricalcola macro)" onclick="editExtra(${di},${ei})">✏️</button>
-      <button class="ibtn" title="📸 Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">📸</button>
-        <button class="ibtn" title="🖼️ Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">🖼️</button>
-      <button class="ibtn" title="Barcode: scansiona i prodotti di questo extra" onclick="scanStart(${di},null,null,${ei})"><svg width="16" height="14" viewBox="0 0 24 20" style="vertical-align:-2px"><g fill="currentColor"><rect x="1" y="2" width="2" height="16"/><rect x="5" y="2" width="1" height="16"/><rect x="8" y="2" width="3" height="16"/><rect x="13" y="2" width="1" height="16"/><rect x="16" y="2" width="2" height="16"/><rect x="20" y="2" width="1" height="16"/><rect x="22" y="2" width="1.5" height="16"/></g></svg></button>
-      <button class="ibtn" title="Elimina definitivamente" onclick="delExtraAsk(${di},${ei})">🗑</button>
-    </div></div></div></div>`;});
-  h+=`<div class="mtools" style="margin-top:4px">
-    <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
-    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
-  <div class="hint">⚖️ <b>Ribilancia le calorie residue</b> ricalcola la giornata tenendo conto dei pasti già spuntati fino ad ora, alleggerendo solo quelli ancora da consumare.</div>`;
-
-  // Acqua con obiettivo dinamico
-    h+=`<div class="card"><h2>${ic("sport",19)} Allenamenti di oggi</h2>
-   <div class="hint">${wk.length
-     ? wk.length+(wk.length===1?" allenamento":" allenamenti")+" registrati · <b>"+br+" kcal</b> bruciate, già contate nel bilancio."
-     : "Nessun allenamento oggi. Se ti muovi, registralo: entra nel bilancio della giornata."}</div>
-   ${wk.length?`<div class="mini" style="margin-top:10px">${wk.map(w=>`<span class="chip">${esc(w.sport||"Attività")} · ${Math.round(w.min||0)}′</span>`).join("")}</div>`:""}
-   <div class="mtools"><button class="btn ${wk.length?"ghost ":""}small" onclick="show('sport')">${wk.length?"Gestisci":"Registra un allenamento"}</button></div>
-   </div>`;}
   el.innerHTML=h;
   /* i box AI si mostrano solo quando hanno contenuto: gli id possono non
      esserci più in questa pagina (alcuni sono passati in Tools), quindi si
@@ -4405,31 +4431,8 @@ window.scanStart=(di,pdi,mi,ei)=>{
   if(window._noScan||typeof Html5Qrcode==="undefined")return dlgAlert("Scanner non disponibile: serve internet al primo avvio per caricare la libreria.");
   SCANQ={di,pdi:(pdi!=null?pdi:null),mi:(mi!=null?mi:null),ei:(ei!=null?ei:null),items:[]};
   renderScanQ();scanOne();};
-window.startScan=(di)=>scanStart(di,null,null); // compatibilità
-function scanOne(){
-  const box=document.getElementById("scanLive");if(box)box.style.display="block";
-  try{scanner=new Html5Qrcode("scanreader2");}catch(_){return;}
-  scanner.start({facingMode:"environment"},{fps:10,qrbox:{width:230,height:120}},
-    async code=>{await stopCam();
-      try{
-        const r=await fetch("https://world.openfoodfacts.org/api/v0/product/"+code+".json");
-        const j=await r.json();
-        if(j.status!==1){dlgAlert("Prodotto non trovato su Open Food Facts. Aggiungilo a mano con ＋.");renderScanQ();return;}
-        const nm=j.product.product_name||"Prodotto",nu=j.product.nutriments||{};
-        SCANQ.items.push({name:nm,
-          k100:Math.round(nu["energy-kcal_100g"]||0),
-          p100:Math.round((nu["proteins_100g"]||0)*10)/10,
-          c100:Math.round((nu["carbohydrates_100g"]||0)*10)/10,
-          f100:Math.round((nu["fat_100g"]||0)*10)/10,
-          fib100:Math.round((nu["fiber_100g"]||0)*10)/10,
-          z100:Math.round((nu["sugars_100g"]||0)*10)/10,
-          g:100});
-        renderScanQ();
-      }catch(e){dlgAlert("Errore di rete verso Open Food Facts.");renderScanQ();}
-    },()=>{}).catch(()=>{dlgAlert("Fotocamera non disponibile (permessi o contesto non sicuro).");});}
 async function stopCam(){if(scanner){try{await scanner.stop();}catch(_){}scanner=null;}
   const b=document.getElementById("scanLive");if(b)b.style.display="none";}
-window.stopScan=()=>{stopCam();const b=document.getElementById("scanbox");if(b)b.style.display="none";};
 function scanTotals(){let k=0,p=0,c=0,f=0,fib=0,z=0;
   SCANQ.items.forEach(it=>{const r=it.g/100;k+=it.k100*r;p+=it.p100*r;c+=it.c100*r;f+=it.f100*r;fib+=(it.fib100||0)*r;z+=(it.z100||0)*r;});
   return{k:Math.round(k),p:Math.round(p),c:Math.round(c),f:Math.round(f),fib:Math.round(fib),z:Math.round(z)};}
@@ -4462,10 +4465,10 @@ function renderScanQ(){
   <div class="hint">Scansiona <b>più prodotti</b> uno dopo l'altro, correggi i <b>grammi</b> e conferma la <b>somma</b>.</div>
   <div id="scanLive" style="display:none;margin-top:8px"><div id="scanreader2" style="width:100%;border-radius:14px;overflow:hidden"></div>
   <button class="btn warn small" onclick="stopCam();renderScanQ()">Ferma fotocamera</button></div>`;
-  SCANQ.items.forEach((it,i)=>{inner+=`<div class="wline"><span style="flex:1">${esc(it.name)}<br><small style="color:var(--grigio)">${it.k100} kcal · ${it.p100} g P /100g</small></span>
+  SCANQ.items.forEach((it,i)=>{inner+=`<div class="wline"><span style="flex:1">${esc(it.name)}<br><small style="color:var(--grigio)">${it.k100} kcal · ${it.p100} g proteine /100g</small></span>
     <input type="number" value="${it.g}" style="width:74px" onchange="scanG(${i},this.value)"> <small>g</small>
     <span class="del" onclick="scanDel(${i})">✕</span></div>`;});
-  if(t)inner+=`<div class="daytotal" style="padding-top:8px">Totale: <span>~${t.k} kcal · ${t.p} g P · ${t.c} g C · ${t.f} g G · ${t.fib} g F · ${t.z} g Z</span></div>`;
+  if(t)inner+=`<div class="daytotal" style="padding-top:8px">Totale: <span>~${t.k} kcal · ${t.p} g proteine · ${t.c} g carboidrati · ${t.f} g grassi · ${t.fib} g fibre · ${t.z} g zuccheri</span></div>`;
   inner+=`<div class="mtools" style="margin-top:10px">
     <button class="btn ghost small" onclick="scanMore()">📷 Scansiona ${SCANQ.items.length?"un altro":""}</button>
     <button class="btn ghost small" onclick="scanManual()">＋ A mano</button></div>
@@ -4526,7 +4529,16 @@ window.genShop=async(silent)=>{
       try{
     const t=await aiAsk("Da questi pasti dei prossimi 7 giorni ("+shopWindowLabel()+") crea la lista della spesa SETTIMANALE"+((!shopForMe()&&(S.family||[]).length)?" per "+(Math.round(famUnits()*100)/100)+" porzioni di riferimento (donna adulta=1, uomo=1,25, adolescente=1,10, bambino=0,75, infante=0,50)":" per UNA persona")+
       " con le quantita totali stimate. Sono già esclusi i pasti in mensa e quelli fuori casa: non aggiungere nulla per quelli. Raggruppa gli stessi ingredienti in una voce sola con la quantità totale della settimana. "+
-      "IMPORTANTE — SPESA SENZA SPRECHI: arrotonda ai FORMATI COMMERCIALI italiani realmente in vendita (ricotta 250 g, yogurt 125 g, mozzarella 125 g, tonno 80 g, legumi in scatola 400 g, latte 1 l, uova da 6) e, quando un formato avanza, indica fra parentesi come si distribuisce (es. «Ricotta 250 g (metà lunedì, metà mercoledì)»). Non far comprare 130 g di un prodotto che si vende solo da 250. "+dietStr()+" Non inserire alimenti incompatibili con l'impostazione alimentare, le intolleranze o le esclusioni dichiarate. Usa ESCLUSIVAMENTE queste categorie, nell'ordine dato, saltando quelle vuote: "+JSON.stringify(SHOP_CATS)+". Ogni prodotto va nella categoria giusta per la sua natura (es. lo yogurt in 'Uova e latticini', il pane in 'Cereali, pane e derivati', le patate in 'Verdura'). Rispondi SOLO con un JSON array di coppie [categoria, [prodotti]]. Pasti: "+JSON.stringify(meals));
+      (shopFormati()
+        ? "FORMATI COMMERCIALI — regola stretta. Arrotonda SOLO i prodotti che si vendono davvero in confezioni fisse: "+
+          "yogurt e skyr (125/150 g), ricotta (250 g), mozzarella (125 g), tonno e sgombro in scatola (80 g), "+
+          "legumi in scatola (400 g), latte e bevande vegetali (1 l), uova (confezioni da 4, 6, 10), "+
+          "pasta, riso e farina (500 g o 1 kg), passata (700 g), surgelati in busta. "+
+          "NON arrotondare MAI carne, pesce fresco, salumi al banco, formaggi al banco, frutta e verdura: "+
+          "si comprano al peso, e scrivere «pollo 520 g» invece di 550 g è un arrotondamento a un formato che non esiste. "+
+          "Per questi lascia la quantità esatta che serve. "+
+          "Quando un formato fisso avanza, indica fra parentesi come si distribuisce, per esempio «Ricotta 250 g (metà lunedì, metà mercoledì)». "
+        : "Scrivi SOLO il nome del prodotto e la quantità totale della settimana, senza formati commerciali, senza numero di confezioni e senza indicazioni fra parentesi su come distribuirla: chi compra sa già come si vende. ")+dietStr()+" Non inserire alimenti incompatibili con l'impostazione alimentare, le intolleranze o le esclusioni dichiarate. Usa ESCLUSIVAMENTE queste categorie, nell'ordine dato, saltando quelle vuote: "+JSON.stringify(SHOP_CATS)+". Ogni prodotto va nella categoria giusta per la sua natura (es. lo yogurt in 'Uova e latticini', il pane in 'Cereali, pane e derivati', le patate in 'Verdura'). Rispondi SOLO con un JSON array di coppie [categoria, [prodotti]]. Pasti: "+JSON.stringify(meals));
     const o=parseAIJSON(t);
     if(!Array.isArray(o)||!o.length)throw new Error("formato non valido");
     const pulita=o.filter(x=>Array.isArray(x)&&x.length>=2&&Array.isArray(x[1])&&x[1].length)
@@ -4662,44 +4674,59 @@ function dlgChoice(titolo,voci){
    Prima erano un menù a tendina e un pulsante pieno dentro una riga di
    testo: stonavano. Ora ogni riga ha una scritta a destra che apre una
    scelta, come «Aprine uno ›». */
+/* Formato italiano: 13/08/2026. toLocaleDateString cambia a seconda
+   della lingua del telefono, e su un dispositivo inglese usciva 8/13. */
+function dataIT(iso8601){
+  const d=safeDate(String(iso8601||"")+"T12:00:00");
+  if(!d)return "";
+  const z=n=>String(n).padStart(2,"0");
+  return z(d.getDate())+"/"+z(d.getMonth()+1)+"/"+d.getFullYear();}
+/* I nomi lunghi degli sport mandano a capo le righe e sfondano le
+   colonne strette: si accorciano mantenendo la parola riconoscibile. */
+const SPORT_CORTO={
+  "allenamento funzionale":"Funzionale","corpo libero":"Corpo libero",
+  "camminata veloce":"Camminata","corsa leggera":"Corsa","cyclette":"Cyclette",
+  "nuoto libero":"Nuoto","pesi in palestra":"Pesi","sala pesi":"Pesi",
+  "bicicletta":"Bici","mountain bike":"MTB","ellittica":"Ellittica",
+  "ginnastica dolce":"Ginnastica","stretching e mobilità":"Stretching",
+  "arti marziali":"Arti marziali","danza o zumba":"Danza",
+  "calcetto o calcio":"Calcio","padel o tennis":"Padel"};
+function sportCorto(n,max){
+  const t=String(n||"").trim(); if(!t)return t;
+  const k=SPORT_CORTO[t.toLowerCase()];
+  if(k)return k;
+  const m=max||14;
+  return t.length<=m?t:(t.slice(0,m-1).replace(/\s+\S*$/,"")+"…");}
 function giorniPeriodo(ap){
   const a=safeDate((ap&&ap.start||"")+"T12:00:00");
   return a?Math.max(1,Math.round((new Date()-a)/864e5)+1):0;}
 window.periodoApri=async()=>{
   const t=await dlgChoice("Che periodo apri?",[
     ["dieta","📉 Dieta — sei in deficit e vuoi misurarlo"],
-    ["libero","🍃 Libero — mangi normale, senza obiettivo"]]);
+    ["libero","🍃 Libero — mangi a mantenimento, senza deficit"]]);
   if(!t)return;
   startPeriod(t);};
-window.periodoAzioni=async(id)=>{
+/* L'identificativo NON si passa più dall'onclick: arrivava come testo
+   mentre i periodi lo hanno numerico, e «x.id===id» falliva in silenzio.
+   Il periodo aperto è uno solo: lo si prende qui. */
+window.periodoAzioni=async()=>{
   const ap=activePeriod();if(!ap)return;
   const scelta=await dlgChoice("Periodo "+cap(ap.type)+", aperto da "+giorniPeriodo(ap)+" giorni",[
     ["soft", (reverseOn()?"📈 Chiudi l'uscita morbida":"📈 Passa all'uscita morbida — risali piano dal deficit")],
-    ["vac",  (S.ui.vacanza?"🏖️ Esci dalla modalità vacanza":"🏖️ Modalità vacanza — congela deficit e serie")],
+    ["vac",  (S.ui.vacanza?"🏖️ Esci dalla modalità vacanza":"🏖️ Modalità vacanza — sospendi tutto per qualche giorno")],
     ["fine", "🏁 Chiudi il periodo"]]);
   if(scelta==="soft")return reverseToggle();
   if(scelta==="vac")return toggleVacanza();
-  if(scelta==="fine")return endPeriod(id||ap.id);};
+  if(scelta==="fine")return endPeriod(ap.id);};
 window.eventoScegli=async(vd,di,today)=>{
   const opt=["Giornata no","Compleanno","Natale","Capodanno","Pasqua","Festa / party",
              "Cena fuori","Lavoro / trasferta","Matrimonio","Ferragosto","Vacanza breve","Malattia","Altro…"];
   const cur2=(S.dayEvents||{})[vd]||"";
   const scelta=await dlgChoice("Evento del giorno",
-    [["","— nessuno —"]].concat(opt.map(o=>[o,(o===cur2?"● ":"")+o])));
+    [["","Nessuno"]].concat(opt.map(o=>[o,(o===cur2?"● ":"")+o])));
   if(scelta===null)return;
   setDayEvent(vd,scelta);
   applyCtl(vd,di,today?1:0);};
-window.vaiGenere=()=>{
-  show("io");
-  setTimeout(()=>{
-    const e=document.getElementById("pGen");if(!e)return;
-    const card=e.closest(".card")||e;
-    card.scrollIntoView({block:"center",behavior:"smooth"});
-    e.style.transition="box-shadow .4s";
-    e.style.boxShadow="0 0 0 3px var(--menta)";
-    try{e.focus();}catch(_){}
-    setTimeout(()=>{e.style.boxShadow="";},2000);
-  },260);};
 window.vaiPasto=(pdi,mi)=>{
   show("oggi");
   setTimeout(()=>{
@@ -4741,7 +4768,7 @@ window.pantryCucina=async()=>{
     let h="<b>"+j.giorni.length+(j.giorni.length===1?" giorno coperto":" giorni coperti")+" con quello che hai.</b><br><br>";
     j.giorni.forEach(g=>{
       h+="<b>Giorno "+(g.n||"")+"</b><br>";
-      (g.pasti||[]).forEach(m=>{h+="· "+esc(m.nome||"")+": "+esc(m.piatto||"")+" <span style=\"color:var(--grigio)\">("+Math.round(m.kcal||0)+" kcal, "+Math.round(m.prot||0)+" g P)</span><br>";});
+      (g.pasti||[]).forEach(m=>{h+="· "+esc(m.nome||"")+": "+esc(m.piatto||"")+" <span style=\"color:var(--grigio)\">("+Math.round(m.kcal||0)+" kcal, "+Math.round(m.prot||0)+" g proteine)</span><br>";});
       h+="<br>";});
     if(Array.isArray(j.manca)&&j.manca.length)
       h+="<b>Per arrivare a sette giorni ti manca:</b><br>"+j.manca.map(x=>"· "+esc(prodottoPrima(x))).join("<br>")+"<br><br>";
@@ -4839,7 +4866,11 @@ const SHOP_STOP=/^(condit[oaie]|abbinat[oaie]|accompagnat[oaie]|serv[a-z]+|cott[
 const SHOP_COOK=/(condit|abbinat|accompagnat|servit|cott|grigliat|lessat|saltat|tostat|scottat|bollit|arrostit|sbucciat|privat|tagliat|frullat|mescolat)[oaie]/i;
 function shopParts(txt){
   return String(txt||"")
-    .replace(/\([^)]*\)/g," ")                       /* via le note fra parentesi */
+    /* ATTENZIONE: le parentesi NON sono note, contengono le grammature —
+       «Pasta integrale (100g)». Buttarle via faceva sparire tutte le
+       quantità dalla lista rigenerata. Si tolgono solo quelle che non
+       contengono un numero, che sono note vere: «(a crudo)», «(facoltativo)». */
+    .replace(/\((?![^)]*\d)[^)]*\)/g," ")
     .split(/\+|,|;|\bcon\b|\be\b|\bo\b|\boppure\b|\babbinat[oaie]\sa\b|\baccompagnat[oaie]\sda\b/i)
     .map(x=>x.replace(/\s+/g," ").trim())
     /* via i participi di cottura attaccati all'inizio o alla fine del pezzo */
@@ -5051,36 +5082,8 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   <div class="mtools"><button class="btn small" onclick="marketAdd()">+ Aggiungi supermercato</button></div>
   ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:10px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)"> 🏷️ Mostra prima i prodotti in <b>offerta</b></label>`:""}
   ${markets().length&&!markets().some(m=>m.p)?`<div class="hint" style="margin-top:8px">Vuoi vedere prima le <b>offerte</b>? Tocca ➕🏷️ accanto al negozio: ti guido in due passaggi.</div>`:""}</div>
-<div class="gsec">La spesa che hai fatto</div>
-  <div class="card"><h2>Scontrino e dispensa</h2>
-  ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
-   "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
-  ${(function(){
-    const v=spesaVoto();
-    if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
-    const f=spesaFaccia(v.v);
-    return `<div class="svoto">
-      <div class="sfaccia">${f[0]}</div>
-      <div class="sdett">
-        <div class="stit">${f[1]}</div>
-        <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
-        <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
-      </div></div>
-    ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
-    ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
-    ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
-  <div class="mtools">
-    <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
-    ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
-  </div>
-  <div class="aibox" id="scoOut" style="display:none"></div>
-  ${pantry().items.length?`
-    <label>In dispensa · ${pantry().items.length} prodotti</label>
-    <div class="pantry">${pantry().items.map((i,k)=>
-      `<span class="pchip">${esc(prodottoPrima(i.n))}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
-    <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
-  </div>
   <div class="card"><h2>Lista della spesa</h2>
+  <label class="ck"><input type="checkbox" ${shopFormati()?"checked":""} onchange="shopFmtSet(this.checked)"> Indica i formati del supermercato (2 confezioni da 80 g)</label>
   <div class="hint">☐ spunta · 🔗 cerca sul sito della spesa · 🤖 alternativa se esaurito · ✕ rimuovi. Le spunte restano salvate.</div>
   ${(S.family||[]).length?`<label>Per chi fai la spesa?</label>
   <div class="ckgrid">
@@ -5122,6 +5125,12 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <span><a class="ibtn" target="_blank" rel="noopener" href="${esc(safeUrl(l.u))}">🛒 Apri</a><span class="del" onclick="delLink(${i})">✕</span></span></div>`;});
   h+=`<button class="btn ghost small" onclick="addLink()">+ Aggiungi prodotto</button></div>`;
   el.innerHTML=h;}
+/* I formati commerciali aiutano chi non vuole sprechi, ma allungano
+   ogni riga con «(2 confezioni da 80 g)» e a chi fa la spesa da anni
+   danno solo fastidio. Si sceglie. */
+function shopFormati(){return (S.shopFmt===undefined)?false:!!S.shopFmt;}
+window.shopFmtSet=(v)=>{S.shopFmt=!!v;save();render("spesa");
+  toast(v?"La lista indicherà i formati del supermercato":"Solo prodotto e quantità");};
 function shopForMe(){return (S.shopFor||((S.family||[]).length?"fam":"me"))==="me";}
 window.shopForSet=(v)=>{S.shopFor=v;save();render("spesa");
   toast(v==="me"?"Dosi per una persona — rigenera la lista per applicarle":"Dosi per tutta la famiglia — rigenera la lista per applicarle");};
@@ -5176,7 +5185,7 @@ function renderSport(){const el=document.getElementById("pg-sport");const ti=vie
   PLAN.forEach((d,di)=>{const ws=S.week.days[di].workouts;if(ws.length){anyw=true;
     h+=`<div style="font-weight:700;color:var(--bosco);font-size:13px;margin-top:6px">${d.day}</div>`;
     ws.forEach((w,wi)=>{const k=workoutKcal(w);tot+=k;
-      h+=`<div class="wline"><span>${esc(cap(w.sport))} · ${w.min} min · ${w.int}</span><span><b style="color:var(--salvia)">~${k} kcal</b><span class="del" onclick="delW(${di},${wi})">✕</span></span></div>`;});}});
+      h+=`<div class="wline"><span>${esc(cap(sportCorto(w.sport)))} · ${w.min} min · ${w.int}</span><span><b style="color:var(--salvia)">~${k} kcal</b><span class="del" onclick="delW(${di},${wi})">✕</span></span></div>`;});}});
   if(!anyw)h+=`<div class="hint">Ancora nessun allenamento questa settimana.</div>`;
   h+=`<div class="daytotal" style="margin-top:8px">Totale settimana: <span>~${tot} kcal bruciate</span></div></div>`;
   el.innerHTML=h;}
@@ -5204,6 +5213,19 @@ window.addSportType=async()=>{const n=(await dlgPrompt("Nome del nuovo sport? (e
    14. STORICO: recap, salvataggio con AI (report PT + correlazioni +
        check TDEE), grafici Chart.js, WhatsApp, Report PDF
    ═══════════════════════════════════════════════════════════════ */
+/* Genera l'analisi di una settimana già archiviata, su richiesta */
+window.weekAnalisi=async(i)=>{
+  const wk=S.history[i];if(!wk)return;
+  if(!aiOn())return aiFail(new Error("nokey"));
+  const box=genBox();
+  if(box){box.style.display="block";genBoxMostra(box);box.textContent="📊 Analizzo la settimana…";}
+  try{
+    const t=await aiAsk('Sei un personal trainer rigoroso ma motivante. Dati settimana (dieta; sonno, relax e umore in scala 1=basso 5=alto; sgarri kcal): '+JSON.stringify(wk.days)+'. Deficit medio '+wk.avgDef+' kcal, proteine medie '+wk.avgProt+'g. Rispondi SOLO con {"report":"3-4 frasi sul risultato e su cosa migliorare","corr":"eventuali legami fra umore, sonno, allenamenti e alimentazione, 1 frase; se non ce ne sono scrivi stringa vuota"}');
+    const j=parseAIJSON(t);
+    wk.ai={report:j.report,corr:j.corr};save();
+    if(box)box.textContent="";genBoxVia();
+    render("storico");toast("Analisi pronta ✓");
+  }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 function weekSummary(){
   const days=PLAN.map((d,di)=>{const e=eatenOfDay(di),pl=plannedOfDay(di),D=S.week.days[di];
     // si salva TUTTO ciò che serve all'esportazione: le settimane archiviate
@@ -5324,7 +5346,6 @@ function cycPhaseKey(){
   const n=dietDayN();if(!n)return "";
   const tot=cycDefDays()+cycMaintDays();
   return Math.floor((n-1)/tot)+"_"+cycPhase();}
-window.cycDismiss=()=>{S.ui.cycSeen=cycPhaseKey();save();render("oggi");};
 let CYC_AVVISO=false;
 async function cycAvvisoFase(){
   if(CYC_AVVISO)return;                 /* uno alla volta */
@@ -5363,10 +5384,21 @@ function periodStats(p){
   return{nDays,nDone:done.length,avgEat:avg("eat"),avgProt:avg("prot"),avgFib:avg("fib"),avgDef:avg("def"),workouts,w0,w1,dW};}
 window.startPeriod=async (type)=>{
   if(activePeriod())return dlgAlert("C'è già un periodo aperto ("+periodLabel(activePeriod())+"). Chiudilo prima di iniziarne uno nuovo.");
-  const start=await dlgPrompt("Data di inizio (AAAA-MM-GG):",iso(new Date()));if(!start)return;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(start))return dlgAlert("Formato data non valido.");
-  const exp=parseInt(await dlgPrompt("Con che aspettativa di impegno parti? (1–5 stelle)","4"));
-  const note=await dlgPrompt("Motivazione di inizio (perché cominci, cosa vuoi ottenere):","")||"";
+  /* La data di partenza è quasi sempre oggi: la si chiede solo a chi
+     vuole indietreggiare, con un tocco in più invece che sempre. */
+  let start=iso(new Date());
+  if(!await dlgConfirm("Apro il periodo a partire da <b>"+dataIT(start)+"</b>?",
+     {ok:"Sì, da oggi",ko:"Scelgo la data"})){
+    start=await dlgPrompt("Data di inizio (AAAA-MM-GG):",iso(new Date()));
+    if(!start)return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(start))return dlgAlert("Formato data non valido.");}
+  /* Aspettativa e motivazione hanno senso quando ci si impegna in
+     qualcosa. In un periodo LIBERO non ci si impegna a niente: chiederle
+     è un modulo da compilare senza motivo. */
+  let exp=3,note="";
+  if(type!=="libero"){
+    exp=parseInt(await dlgPrompt("Con che aspettativa di impegno parti? (1–5 stelle)","4"));
+    note=await dlgPrompt("Motivazione di inizio (perché cominci, cosa vuoi ottenere):","")||"";}
   S.periods.push({id:Date.now(),type,n:nextPeriodN(type),start,end:null,
     expStars:Math.max(1,Math.min(5,exp||3)),expNote:note,endStars:null,endNote:"",aiStars:null,aiText:""});
   save();render(cur);toast(periodLabel(S.periods[S.periods.length-1])+" iniziato ✓");};
@@ -5571,7 +5603,6 @@ window.onbNext=()=>{if(onbSave())onbGo(S.onboard.step+1);};
 window.onbBack=()=>{try{onbSave(true);}catch(e){}onbGo(S.onboard.step-1);};
 /* Il percorso non si salta più: senza profilo ogni numero dell'app sarebbe
    inventato. Resta la funzione per compatibilità, ma avvisa e basta. */
-window.onbSkip=()=>dlgAlert("La configurazione serve per calcolare il tuo fabbisogno: bastano pochi campi.\n\nSe non vuoi l'AI o il backup, puoi lasciarli vuoti e proseguire.");
 window.onbFinish=(mode)=>{
   try{onbSave(true);}catch(e){}   /* niente si perde uscendo dal percorso */
   S.onboard.done=true;save();
@@ -5729,9 +5760,9 @@ function renderBenvenuto(){
     </select>
     <div id="obCycPers" style="display:${(cycPresetNow()==="pers"||S.ui.cycPers)?"block":"none"}">
       <div class="duo" style="margin-top:12px">
-        <div><label>Settimane in deficit</label>
+        <div><label>Sett. in deficit</label>
           <input type="number" id="obCycDefW" min="1" max="52" value="${Math.round(cycDefDays()/7)}"></div>
-        <div><label>Settimane di mantenimento</label>
+        <div><label>Sett. mantenimento</label>
           <input type="number" id="obCycMaiW" min="1" max="26" value="${Math.round(cycMaintDays()/7)}"></div>
       </div>
     </div>
@@ -6005,9 +6036,9 @@ function rulesCardHTML(){
     `<button class="btn ghost small" style="margin-top:6px" onclick="cycPresetSet(document.getElementById('rCycPreset').value)">Applica</button>`+
     ((cycPresetNow()==="pers"||S.ui.cycPers)?`
       <div class="duo" style="margin-top:12px">
-        <div><label>Settimane in deficit</label>
+        <div><label>Sett. in deficit</label>
           <input type="number" id="cycDefW" min="1" max="52" value="${Math.round(cycDefDays()/7)}"></div>
-        <div><label>Settimane di mantenimento</label>
+        <div><label>Sett. mantenimento</label>
           <input type="number" id="cycMaiW" min="1" max="26" value="${Math.round(cycMaintDays()/7)}"></div>
       </div>
       <div class="mtools"><button class="btn small" onclick="cycPersSave()">Salva le settimane</button></div>`:""))}
@@ -6092,14 +6123,6 @@ window.promptShow=()=>{
   el.style.display="block";
   el.innerHTML='<div style="font-size:11.5px;line-height:1.5;white-space:pre-wrap">'+esc(t)+'</div>'+
     '<div class="hint" style="margin-top:8px">Sono '+t.length+' caratteri. Questo testo viene aggiunto a <b>ogni</b> richiesta: generazione del piano, ribilanciamento, alternative, strumenti.</div>';};
-window.resetRules=async ()=>{
-  if(!await dlgConfirm("Riporto tutte le regole ai valori consigliati?"))return;
-  Object.assign(S.profile,{bmrF:"auto",metMode:"netto",minMeal:250,protLock:true,realOnly:true,defMode:"pct",defPct:20,kcalMin:null,prud:0,
-    cyclePct:5,lactFull:500,lactPart:250,cycleDays:7,pregT1:70,pregT2:260,pregT3:450,injPct:50,illPct:30,
-    cycDefDays:90,cycMaintDays:30,cycPhases:true,
-    protKg:null,rgpPct:10,rgpMin:150,rgpCap:25,rgpCapMax:400,rgpDays:5});
-  INT.bassa=.8;INT.media=1;INT.alta=1.2;S.profile.intOverride={bassa:.8,media:1,alta:1.2};
-  save();render("regole");toast("Regole riportate ai valori consigliati ✓");};
 /* Segnalazione allo sviluppatore: apre il client di posta (Gmail sul telefono)
    con destinatario, oggetto e corpo già compilati. */
 const DEV_MAIL="alberto.scian@gmail.com";
@@ -6227,46 +6250,6 @@ window.sendBug=()=>{
     "&body="+encodeURIComponent(body);
   location.href=url;
   setTimeout(()=>toast("Si apre la tua email: premi invia per spedire"),300);};
-window.saveRules=()=>{const p=S.profile,g=id=>document.getElementById(id);
-  const n=(id,def)=>{const e=g(id);return e?(parseFloat(e.value)||def):def;};
-  const v=(id,def)=>{const e=g(id);return e?e.value:def;};
-  p.bmrF=v("rBmrF","auto");
-  p.act=parseFloat(v("rAct",p.act))||p.act;
-  p.baseSteps=Math.max(0,n("rSteps",3000));
-  p.prud=Math.max(0,Math.min(20,n("rPrud",0)));
-  p.defMode=v("rDefMode","pct");
-  p.defPct=Math.max(5,Math.min(30,n("rDefPct",20)));
-  p.kcalMin=Math.max(1000,n("rKcalMin",kcalFloorMin()));
-  S.diet.ritmo=v("rRitmo",S.diet.ritmo||"0.5");
-  p.metMode=v("rMet","netto");
-  INT.bassa=Math.max(.3,n("rIntB",.8));INT.media=Math.max(.3,n("rIntM",1));INT.alta=Math.max(.3,n("rIntA",1.2));
-  p.intOverride={bassa:INT.bassa,media:INT.media,alta:INT.alta};
-  {const gv=n("rGoalWk",goalWkList());p.goalWk=(gv===goalWkList())?null:Math.max(0,Math.min(14,gv));}
-  p.minMeal=Math.max(100,n("rMinMeal",250));
-  p.protLock=v("rProtLock","si")==="si";
-  p.realOnly=v("rReal","si")==="si";
-  p.cyclePct=Math.max(0,Math.min(15,n("rCyclePct",cyclePct())));
-  p.cycleDays=Math.max(3,Math.min(14,n("rCycleDays",cycleDaysMax())));
-  p.pregT1=Math.max(0,Math.min(600,n("rPregT1",(+p.pregT1>0?+p.pregT1:70))));
-  p.pregT2=Math.max(0,Math.min(600,n("rPregT2",(+p.pregT2>0?+p.pregT2:260))));
-  p.pregT3=Math.max(0,Math.min(600,n("rPregT3",(+p.pregT3>0?+p.pregT3:450))));
-  p.cycDefDays=Math.max(1,Math.min(52,n("rCycDef",Math.round(cycDefDays()/7))))*7;
-  p.cycMaintDays=Math.max(1,Math.min(16,n("rCycMaint",Math.round(cycMaintDays()/7))))*7;
-  p.injPct=Math.max(0,Math.min(90,n("rInjPct",injPct())));
-  p.illPct=Math.max(0,Math.min(90,n("rIllPct",illPct())));
-  p.lactFull=Math.max(200,Math.min(900,n("rLactFull",500)));
-  p.lactPart=Math.max(100,Math.min(600,n("rLactPart",250)));
-  p.protKg=Math.max(.8,Math.min(3,n("rProtKg",protKgAuto())));
-
-  p.rgpPct=Math.max(0,Math.min(30,n("rRgpPct",10)));
-  p.rgpMin=Math.max(0,n("rRgpMin",150));
-  p.rgpCap=Math.max(5,Math.min(50,n("rRgpCap",25)));
-  p.rgpCapMax=Math.max(50,n("rRgpCapMax",400));
-  p.rgpDays=Math.max(1,Math.min(7,n("rRgpDays",5)));
-  S.rules.custom=((g("rCustom")&&g("rCustom").value)||"").trim();
-  save();render("regole");toast("Regole salvate ✓");};
-window.showRulesAI=()=>{const b=document.getElementById("rulesOut");
-  b.style.display="block";b.textContent=rulesForAI();};
 /* ═══ CARATTERISTICHE ALIMENTARI ═══════════════════════════════════ */
 /* ══ COMPONENTI A SPUNTA (usati nel benvenuto e in Regole) ══ */
 function parseSlots(s){return String(s||"").split(",").map(x=>x.trim()).filter(Boolean);}
@@ -6297,6 +6280,69 @@ function readMensaChecks(pre){const out=[];
    chiedono piu a mano (era un doppio inserimento che confondeva). */
 function fuoriCount(str){const m=parseMensa(str);let n=0;
   Object.keys(m).forEach(k=>{n+=(m[k]==="entrambi")?2:1;});return n;}
+/* Le intolleranze da sole non bastano: «cibi acidi» non dice all'AI che
+   il pomodoro è acido, e infatti proponeva i pomodorini a chi l'aveva
+   spuntata. Qui ogni voce porta con sé gli alimenti che esclude. */
+const INTOL_ESPANDI={
+  "nichel":"evita nichel: pomodoro, legumi, cacao, frutta secca, avena, mais, spinaci, asparagi, cipolla, pere, kiwi, conserve in latta",
+  "istamina":"evita alimenti ricchi di istamina o istamino-liberatori: formaggi stagionati, salumi, pesce conservato o non freschissimo, crostacei, pomodoro, spinaci, melanzane, fragole, agrumi, cioccolato, alcol, alimenti fermentati",
+  /* «Acido» ha TRE sensi diversi, e riguardano tre organi diversi:
+
+     1. STOMACO ed esofago — conta il pH dell'alimento. Il limone ha
+        pH ~2 e su una mucosa infiammata da reflusso o gastrite brucia.
+     2. INTESTINO — al colon il limone NON arriva acido: l'acidità è già
+        stata neutralizzata dai bicarbonati pancreatici nel duodeno, e
+        il suo residuo metabolico è alcalino. Quello che irrita un colon
+        irritabile è tutt'altro: FODMAP, grassi, caffeina, piccante.
+     3. EQUILIBRIO ACIDO-BASE dell'organismo — il limone è fra gli
+        alimenti più ALCALINIZZANTI che esistono.
+
+     Escludere il limone a chi ha il colon irritabile è quindi un errore:
+     gli si toglie un alimento utile per un problema che non ha. Qui la
+     lista cambia a seconda di DOVE sta il disturbo. */
+  "cibi acidi":"__ACIDI__",
+
+  "lattosio":"evita latte e derivati freschi; ammessi i formaggi stagionati oltre 24 mesi e i prodotti delattosati",
+  "glutine":"nessun alimento con glutine e attenzione alle contaminazioni: solo prodotti certificati senza glutine"
+};
+/* Gli integratori NON sono decorazione: cambiano davvero il piano.
+   Le proteine in polvere entrano nel conteggio proteico, il ferro non
+   va preso col caffè, la vitamina D ha bisogno di grassi, i probiotici
+   di fibra. Prima erano una lista che l'AI riceveva e ignorava. */
+const INTEG_REGOLE={
+  "proteine in polvere":"le proteine in polvere contano NEL target proteico giornaliero: scala dai pasti la quota che copre, non sommarla sopra",
+  "ferro":"chi prende ferro: mettilo lontano da caffè, tè e latticini, e accompagna gli alimenti ricchi di ferro con vitamina C nello stesso pasto",
+  "vitamina D":"la vitamina D si assorbe con i grassi: il pasto in cui la prende deve contenere olio, frutta secca o pesce grasso",
+  "calcio":"il calcio compete con il ferro: non nello stesso pasto",
+  "creatina":"con la creatina servono più liquidi: alza l'obiettivo acqua di 2-3 bicchieri",
+  "magnesio":"il magnesio la sera favorisce il sonno: se serve, collocalo nel pasto serale",
+  "omega 3":"chi già integra omega 3 non ha bisogno che tu forzi il pesce grasso più di 2 volte a settimana",
+  "probiotici":"i probiotici funzionano meglio con fibra fermentabile: prevedi verdura, legumi o cereali integrali nello stesso giorno",
+  "postbiotici":"chi prende postbiotici non ha bisogno di alimenti fermentati aggiuntivi ogni giorno",
+  "fermenti lattici":"chi prende fermenti lattici non ha bisogno di yogurt o kefir tutti i giorni: bastano 2-3 volte a settimana",
+  "multivitaminico":"chi prende un multivitaminico non ha bisogno di alimenti fortificati: non proporli",
+  "vitamina B12":"chi integra B12 non ha bisogno di alimenti fortificati con B12"};
+function integForAI(txt){
+  const t=String(txt||"").toLowerCase();
+  const r=Object.keys(INTEG_REGOLE).filter(k=>t.indexOf(k)>-1).map(k=>INTEG_REGOLE[k]);
+  if(!r.length)return "";
+  return " INTEGRATORI GIÀ IN USO — tienine conto e non proporne altri: "+r.join("; ")+".";}
+const ACIDI_STOMACO="disturbo allo STOMACO (reflusso, gastrite): evita agrumi e loro succhi, pomodoro e derivati (passata, pelati, ketchup, pomodorini), aceto, sottaceti, ananas, kiwi, bevande gassate, caffè, cioccolato, menta, piccante e fritti";
+const ACIDI_INTESTINO="disturbo all'INTESTINO (colon irritabile): NON escludere il limone né gli agrumi — al colon arrivano già neutralizzati dai bicarbonati e il loro residuo è alcalino. Quello che irrita il colon è altro: alimenti ad alto FODMAP (aglio, cipolla, legumi interi, mele, pere, dolcificanti in -olo), pasti molto grassi o fritti, caffeina, alcol, piccante, bevande gassate e fibra insolubile in eccesso durante gli episodi acuti";
+function intolForAI(txt,cond){
+  const t=String(txt||"").toLowerCase(), c=String(cond||"").toLowerCase();
+  const note=Object.keys(INTOL_ESPANDI).filter(k=>t.indexOf(k)>-1).map(k=>{
+    const v=INTOL_ESPANDI[k];
+    if(v!=="__ACIDI__")return v;
+    /* Dove sta il problema lo dice la condizione dichiarata. Se non è
+       chiaro, si dicono entrambe le cose invece di indovinare. */
+    const colon=/colon irritabile|ibs/.test(c), stom=/reflusso|gastrite|esofag/.test(c);
+    if(colon&&!stom)return ACIDI_INTESTINO;
+    if(stom&&!colon)return ACIDI_STOMACO;
+    if(colon&&stom)  return ACIDI_STOMACO+". E in più, per l'intestino: "+ACIDI_INTESTINO;
+    return "la persona ha indicato i «cibi acidi» ma non dove le danno fastidio. Se è lo stomaco: "+ACIDI_STOMACO+". Se è l'intestino: "+ACIDI_INTESTINO+". Nel dubbio chiediglielo prima di togliere alimenti utili";
+  });
+  return note.length?(" In pratica: "+note.join("; ")+"."):"";}
 const INTOL_LIST=["lattosio","glutine","nichel","istamina","cibi acidi",
                   "uova","frutta a guscio","pesce e crostacei","soia"];
 /* Condizioni legate all'alimentazione: etichetta + indicazione operativa che
@@ -6323,7 +6369,7 @@ const PAT_LIST=[
    qualche settimana e si spegne: sta fra gli stati temporanei, in Oggi →
    Come stai, insieme a ciclo, infortunio e malattia. */
 const REL_LIST=["niente carne di maiale","niente carne di alcun tipo","halal","kosher","niente alcol"];
-const INTEG_LIST=["vitamina D","magnesio","omega 3","creatina","proteine in polvere","multivitaminico","ferro","vitamina B12","probiotici"];
+const INTEG_LIST=["vitamina D","magnesio","omega 3","creatina","proteine in polvere","multivitaminico","ferro","vitamina B12","probiotici","postbiotici","fermenti lattici"];
 const OCC_LIST=["cena fuori il sabato","pranzo in famiglia la domenica","aperitivo del venerdì","pausa dolce al bar","cene di lavoro","allenamento la sera tardi"];
 /* Come tagChecksHTML, ma ogni voce ha anche la frequenza: «vitamina D
    settimanalmente» e «vitamina D tutti i giorni» sono due cose diverse
@@ -6366,7 +6412,29 @@ function readTagChecks(pre,key,list){const out=[];
   return out.join(", ");}
 /* I PROTOCOLLI sono schemi alimentari, non condizioni di salute: stanno in una
    sezione loro. Ognuno porta con sé le indicazioni operative per l'AI. */
+/* ── Dieta del gruppo sanguigno ────────────────────────────────────
+   Quella del dott. Mozzi È la dieta dei gruppi sanguigni: Mozzi è la
+   versione italiana della teoria di D'Adamo, non un protocollo diverso.
+   Va detto chiaramente: NON ha alcun sostegno scientifico. La revisione
+   sistematica del 2013 sull'American Journal of Clinical Nutrition ha
+   esaminato 1.415 studi e non ne ha trovato uno che la confermi, e
+   l'AIRC la considera inattendibile. Si può seguire — è una scelta di
+   chi usa l'app — ma il minimo proteico e le regole di sicurezza
+   restano vincolanti sopra di essa. */
+const GRUPPI={
+  "0":"gruppo 0: carne magra, pesce, verdura; ridurre cereali con glutine e latticini",
+  "A":"gruppo A: impostazione prevalentemente vegetale, pesce, legumi, cereali; poca carne rossa",
+  "B":"gruppo B: carne (non pollo secondo la teoria), latticini, verdura; ridurre mais, grano saraceno, lenticchie",
+  "AB":"gruppo AB: pesce, latticini, verdura, tofu; poca carne rossa"};
 const PROT_LIST=[
+ /* Progetto DIANA — «DIeta e ANdrogeni» — dell'Istituto Nazionale dei
+    Tumori di Milano. A differenza della dieta dei gruppi sanguigni,
+    questa poggia su studi pubblicati: DIANA-5, concluso nel 2016, ha
+    misurato l'effetto di alimentazione e attività fisica sulle recidive
+    del tumore al seno. Qui viene proposta come STILE ALIMENTARE —
+    integrale, vegetale, povero di zuccheri — non come terapia. */
+ {k:"diana",l:"🌾 Integrale e vegetale (DIANA)",ai:"stile alimentare del progetto DIANA: cereali NON raffinati (riso integrale, orzo, farro, miglio, grano saraceno, pane integrale a lievitazione naturale), legumi tutti i giorni, verdura in abbondanza e di stagione, frutta intera. Riduci molto zucchero, farine bianche, riso bianco, patate e bevande zuccherate. Poca carne, soprattutto rossa e conservata; latte e latticini in quantità contenute; niente alcol o pochissimo. Semi oleosi e olio extravergine a crudo. Dolci solo senza zucchero raffinato. Mantieni comunque il minimo proteico indicato, coprendolo con legumi, pesce, uova e cereali integrali combinati"},
+ {k:"gruppo sanguigno",l:"🩸 Dieta dei gruppi sanguigni",ai:"la persona segue la dieta dei gruppi sanguigni. IMPORTANTE: rispetta le sue preferenze MA non scendere mai sotto il minimo proteico indicato e non escludere interi gruppi di nutrienti; se una regola del gruppo sanguigno confligge con la sicurezza nutrizionale, vince la sicurezza"},
  {k:"basso fodmap",l:"🌾 Basso FODMAP",ai:"schema a basso contenuto di FODMAP: niente aglio e cipolla, legumi solo in piccole quantità e ben cotti, frutta e verdura scelte fra quelle a basso FODMAP, nessun dolcificante poliolo"},
  {k:"digiuno intermittente",l:"⏱️ Digiuno intermittente",ai:"finestra alimentare ristretta (tipo 16/8): concentra i pasti in 8 ore, niente calorie fuori dalla finestra, i pasti restano pochi e sostanziosi"},
  {k:"low carb",l:"🥑 Low carb",ai:"carboidrati contenuti (circa 100-130 g al giorno), più grassi buoni e proteine, cereali solo in porzioni piccole e integrali"},
@@ -6381,7 +6449,21 @@ const PROT_LIST=[
 function protChecksHTML(pre,D){
   const cur=String(D.protocolli||"").toLowerCase();
   let h=`<div class="ckgrid">`+PROT_LIST.map((x,i)=>
-    `<label class="ck"><input type="checkbox" id="${pre}Pr${i}" ${cur.indexOf(x.k)>-1?"checked":""}> ${x.l}</label>`).join("")+`</div>`;
+    `<label class="ck"><input type="checkbox" id="${pre}Pr${i}" ${cur.indexOf(x.k)>-1?"checked":""} ${x.k==="gruppo sanguigno"?`onchange="grpUI('${pre}',this.checked)"`:""}> ${x.l}</label>`).join("")+`</div>`;
+  /* Il gruppo si chiede SOLO se hai spuntato quel protocollo: a tutti
+     gli altri non serve, e un campo in più che non serve è rumore. */
+  h+=`<div id="${pre}Grp" style="display:${cur.indexOf("gruppo sanguigno")>-1?"block":"none"}">
+    <label>Il tuo gruppo sanguigno</label>
+    <select id="${pre}Gruppo" onchange="gruppoSet(this.value)">
+      <option value="">— non lo so —</option>
+      ${Object.keys(GRUPPI).map(g=>`<option value="${g}" ${gruppoSangue()===g?"selected":""}>${g}</option>`).join("")}
+    </select>
+    <div class="hint" style="background:var(--zaffbg);padding:11px 13px;border-radius:12px;margin-top:9px">
+      <b>Nessuno studio conferma questa dieta.</b> Una revisione del 2013 ha esaminato 1.415 lavori senza trovarne uno a sostegno, e l'AIRC la considera inattendibile. Puoi seguirla lo stesso — è una tua scelta — ma il minimo proteico e le regole di sicurezza restano validi sopra di essa.
+    </div></div>`;
+  if(cur.indexOf("diana")>-1)h+=`<div class="hint" style="background:var(--menta);padding:11px 13px;border-radius:12px;margin-top:9px">
+    <b>DIANA</b> sta per «DIeta e ANdrogeni»: è lo stile alimentare studiato dall'Istituto Nazionale dei Tumori di Milano — cereali integrali, legumi, verdura, pochissimo zucchero e poca carne. Qui è proposto come modo di mangiare, non come terapia: per qualunque uso clinico parlane con il tuo medico.
+  </div>`;
   const extra=parseSlots(D.protocolli).filter(x=>!PROT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1)).join(", ");
   h+=`<label>Altri protocolli</label>
   <input type="text" id="${pre}Prtxt" value="${esc(extra)}" placeholder="es. dieta a rotazione, Mind, dissociata">`;
@@ -6690,13 +6772,16 @@ window.genPlanAI=async()=>{
           }catch(e){lastE=e;}
         }
         if(d)break;
-        /* niente lavoro buttato: si riprova solo il giorno che non è arrivato */
-        if(box)box.textContent="";genBoxVia();
+        /* Niente lavoro buttato: si riprova SOLO il giorno mancante, e
+           l'elenco dei passaggi resta a schermo. Prima veniva svuotato e
+           sostituito da una riga di testo: sembrava che tutto il lavoro
+           fatto fosse andato perso, e chi guardava non capiva più a che
+           punto era. */
         const msg="Il giorno "+dayName+" non è arrivato"+(lastE?" ("+aiReason(lastE)+")":"")+
           ".\n\nI "+i+" giorni già costruiti sono al sicuro: riprovo solo questo?";
         if(!await dlgConfirm(msg,{ok:"Riprova "+dayName,ko:"Interrompi tutto"}))
           {if(box)box.textContent="";genBoxVia();return;}
-        if(box){box.style.display="block";genBoxMostra(box);box.textContent="✨ Riprovo il giorno "+(i+1)+" di 7 — "+dayName+"…";}
+        genPassi(box,i);   /* si riprende dall'elenco, dove era rimasto */
         await wait(1200);
       }
       const day={day:dayName,ctx:d.ctx||"",meals:(d.meals||[]).map(m=>({
@@ -6970,6 +7055,8 @@ function exportCardHTML(){
   </div>
   <div class="mtools" style="margin-top:10px">
     <button class="btn ghost small" onclick="doExportCSV()">⬇️ CSV</button>
+    <button class="btn ghost small" onclick="doExportJSON()">⬇️ JSON</button>
+    <button class="btn ghost small" onclick="doExportCopy()">📋 Copia</button>
     <button class="btn small" onclick="aiPatterns()">🔎 Analizza i pattern</button>
   </div>
   ${hint2("Il CSV si apre in Excel o Fogli Google: una riga per giorno, note comprese.",
@@ -7010,7 +7097,10 @@ async function autoCloseStaleWeeks(){
   let guard=0;
   while(weekStale()&&guard<8){guard++;
     await closeWeekCore(true);}
-  if(guard)toast("📅 Settimana archiviata automaticamente (modificabile in Storico)");}
+  /* Nessun avviso: l'archiviazione è automatica per definizione, e
+     annunciarla ogni lunedì è rumore. Chi vuole vedere la settimana
+     passata la trova in Numeri, dove se l'aspetta. */
+  }
 
 let PESCH=null;
 function drawWeightsChart(){
@@ -7063,6 +7153,35 @@ function renderTools(){
   let h=`<div class="card"><h2>Tools</h2>
   ${hint2(`Aiuti per il momento in cui la dieta rischia di saltare. Agiscono su <b>${fmtDateShort(VIEW)}</b> e sul pasto che scegli in ogni riquadro.`,
  "Creare un piatto con quello che hai in casa, scegliere al ristorante, gestire una voglia improvvisa, cucinare per tutta la famiglia, trovare i piatti tipici del posto dove sei.")}</div>`;
+  h+=`<div class="gsec">La spesa che hai fatto</div>
+    <div class="card"><h2>Scontrino e dispensa</h2>
+    ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
+     "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
+    ${(function(){
+      const v=spesaVoto();
+      if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
+      const f=spesaFaccia(v.v);
+      return `<div class="svoto">
+        <div class="sfaccia">${f[0]}</div>
+        <div class="sdett">
+          <div class="stit">${f[1]}</div>
+          <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
+          <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
+        </div></div>
+      ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
+      ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
+      ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
+    <div class="mtools">
+      <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
+      ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
+    </div>
+    <div class="aibox" id="scoOut" style="display:none"></div>
+    ${pantry().items.length?`
+      <label>In dispensa · ${pantry().items.length} prodotti</label>
+      <div class="pantry">${pantry().items.map((i,k)=>
+        `<span class="pchip">${esc(prodottoPrima(i.n))}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
+      <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
+    </div>`;
   if(di<0){h+=`<div class="card"><div class="hint">Il giorno che stai guardando non è nella settimana in corso: torna a <b>Oggi</b> per usare gli strumenti.</div></div>`;el.innerHTML=h;return;}
   h+=`<div class="gsec">Sto per cedere</div>`;
   h+=`<div class="card"><h2>Ho una voglia…</h2>
@@ -7313,6 +7432,9 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       <span class="pill">${wk.avgEat} kcal medie</span><span class="pill">${wk.avgProt} g prot</span>
       <span class="pill">${wk.totBurn} kcal sport</span><span class="pill">peso ${wk.weight} kg</span>`;
     if(wk.ai&&wk.ai.report)h+=`<div class="aibox">🏋️ ${esc(wk.ai.report)}${wk.ai.corr?"\n\n🔍 "+esc(wk.ai.corr):""}</div>`;
+    /* L'analisi non si genera più da sola alla chiusura: si chiede qui,
+       quando si guarda la settimana e si ha voglia di leggerla. */
+    else if(aiOn())h+=`<div class="mtools"><button class="btn ghost small" onclick="weekAnalisi(${i})">Chiedi l'analisi della settimana</button></div>`;
     if(editWeekIdx===i){h+=renderWeekEditForm(i,wk);}
     else{
       wk.days.forEach(d=>{if(d.note||d.workouts.length)h+=`<div style="margin-top:5px"><b>${d.day}:</b> ${esc(d.workouts.join(", "))}${d.note?" — 📝 "+esc(d.note):""}</div>`;});
@@ -7765,15 +7887,16 @@ window.askDiaryQuestion=async()=>{
       return;}
     if(box)box.textContent=t;
   }catch(e){if(box)box.style.display="none";genBoxVia();aiFail(e);}};
-window.closeWeek=async()=>{ // chiusura manuale (usata solo dai flussi legacy)
-  if(!await dlgConfirm("Salvo la settimana nello storico e azzero la nuova?\n\nℹ️ La settimana salvata resta comunque modificabile in seguito da Storico → Settimane passate → ✏️ Modifica."))return;
-  return closeWeekCore(false);};
 /* Nucleo riusabile: silent=true per l'archiviazione AUTOMATICA di fine
    settimana (niente confirm, niente alert, niente AI che blocca). */
 async function closeWeekCore(silent){
   const wk=weekSummary();
-  // AI: report PT + correlazioni (una sola chiamata)
-  if(aiOn()){try{
+  /* L'analisi della settimana costa una richiesta e qualche minuto. Nella
+     chiusura AUTOMATICA — quella che scatta al primo avvio del lunedì —
+     non si fa: partiva da sola appena si riapriva l'app, senza che nessuno
+     l'avesse chiesta. Il report si genera dallo Storico, quando lo vuoi.
+     Nella chiusura manuale, invece, l'hai chiesta tu. */
+  if(aiOn()&&!silent){try{
     const t=await aiAsk('Sei un personal trainer rigoroso ma motivante. Dati settimana (dieta; sonno, relax e umore in scala 1=basso 5=alto; sgarri kcal): '+JSON.stringify(wk.days)+'. Deficit medio '+wk.avgDef+' kcal, proteine medie '+wk.avgProt+'g. Rispondi SOLO JSON: {"report":"commento di massimo 3 frasi in italiano","corr":"1 correlazione interessante trovata tra sonno/relax/umore e alimentazione, 1 frase; se non ce ne sono scrivi stringa vuota"}');
     const j=parseAIJSON(t);wk.ai={report:j.report,corr:j.corr};
   }catch(e){/* senza AI si salva comunque */}}
@@ -7935,7 +8058,7 @@ async function wizGenerate(){
 /* Riga unica con TUTTI i macro stimati del piatto */
 function macroLine(o){
   if(!o||!o.k)return "da stimare";
-  const bits=["~"+o.k+" kcal",(o.p||0)+" g P"];
+  const bits=["~"+o.k+" kcal",(o.p||0)+" g proteine"];
   if(o.c!=null)bits.push(o.c+" g C");
   if(o.f!=null)bits.push(o.f+" g G");
   if(o.fib!=null)bits.push(o.fib+" g F");
@@ -8078,6 +8201,18 @@ const DIGIUNI={
     ai:"DIGIUNO RELIGIOSO in corso: rispetta gli orari e le restrizioni indicate dalla persona nelle sue regole, ridistribuendo i pasti senza ridurre il totale."}
 };
 function digiunoOn(){return !!(S.phys&&S.phys.digiuno);}
+/* Il gruppo sanguigno serve solo se si è scelto quel protocollo */
+function gruppoOn(){return String((S.diet&&S.diet.prot)||"").toLowerCase().indexOf("gruppo sanguigno")>-1;}
+function gruppoSangue(){const g=S.profile&&S.profile.gruppo;return GRUPPI[g]?g:"";}
+window.grpUI=(pre,on)=>{
+  const b=document.getElementById(pre+"Grp");
+  if(b)b.style.display=on?"block":"none";};
+window.gruppoSet=(v)=>{S.profile.gruppo=v;save();render(cur);
+  toast(v?("Gruppo "+v+" salvato"):"Gruppo non indicato");};
+function gruppoForAI(){
+  if(!gruppoOn())return "";
+  const g=gruppoSangue();
+  return g?(" Gruppo sanguigno "+g+" — "+GRUPPI[g]+"."):" La persona segue la dieta dei gruppi sanguigni ma non ha indicato il gruppo: chiediglielo prima di applicare restrizioni.";}
 function digiunoTipo(){const t=S.phys&&S.phys.digTipo;return DIGIUNI[t]?t:"ramadan";}
 window.digiunoSet=async(on)=>{
   if(on&&!digiunoOn()){
@@ -9088,6 +9223,11 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     <label class="ck"><input type="radio" name="telOn" ${S.tel.on===false?"checked":""} onchange="telSet(false)"> 🚫 No, non inviare</label>
   </div>
   ${S.tel.on===null?`<div class="hint" style="background:var(--zaffbg);padding:9px 11px;border-radius:10px">Non hai ancora scelto: finché non lo fai, <b>non viene inviato nulla</b>.</div>`:""}
+  <label>Indirizzo di raccolta (facoltativo)</label>
+  <input type="text" id="telUrl" value="${esc((S.tel&&S.tel.url)||"")}" placeholder="https://script.google.com/…/exec">
+  <div class="mtools"><button class="btn ghost small" onclick="telUrlSave()">Salva indirizzo</button></div>
+  ${hint2("Senza indirizzo non parte niente da solo: resta il pulsante «Mandali», che apre la tua posta.",
+   "Con un indirizzo di raccolta l'invio diventa automatico, una volta al giorno e in sottofondo, e l'invito ogni 30 giorni non compare più. Serve uno script su Google Apps Script: chiedilo allo sviluppatore, sono cinque minuti di configurazione.")}
   <label>Cosa esce, esattamente</label>
   <div class="aibox" style="display:block;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap">${esc(JSON.stringify(telPayload(),null,2))}</div>
   <div class="hint">Questo è il pacchetto reale, generato adesso con i tuoi dati. Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo.</div>
@@ -9117,7 +9257,11 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <button class="btn" onclick="sendBug()">✉️ Invia allo sviluppatore</button></div>`;
   // AI
   el.innerHTML=h;}
-window.toggleVacanza=()=>{S.ui.vacanza=!S.ui.vacanza;save();render("io");};
+window.toggleVacanza=()=>{
+  S.ui.vacanza=!S.ui.vacanza;save();
+  /* si ridisegna la pagina in cui sei: da «La giornata» non cambiava nulla */
+  render(cur);
+  toast(S.ui.vacanza?"Modalità vacanza attiva · deficit e serie congelati":"Modalità vacanza chiusa");};
 /* (rimosso duplicato legacy di saveDiet che sovrascriveva quello vero) */
 /* BMI dell'obiettivo e classificazione (salubrità) */
 function bmiFor(w){const h=S.profile.h;if(!h||!w)return null;return Math.round(w/Math.pow(h/100,2)*10)/10;}
@@ -9204,7 +9348,7 @@ window.saveWeighIn=()=>{const p=S.profile;
   save();render("io");
   toast("Pesata registrata ✓ "+nw+" kg");
   setTimeout(()=>{try{checkPlanAge();}catch(e){}},600);};
-window.saveProfile=()=>{saveAnagrafica();};   // compatibilità
+   // compatibilità
 /* Modifica di una pesata già registrata: si possono correggere i valori o
    aggiungere quelli che mancavano, anche molto dopo. */
 window.editWeight=async i=>{
@@ -9515,7 +9659,9 @@ function unmarkedOfDay(di){return dayItems(di).filter(it=>{const st=S.week.days[
 function dayCompleted(di){return dayItems(di).length>0&&unmarkedOfDay(di)===0;}
 /* Settimana "scaduta": è iniziata prima del lunedì corrente e viene archiviata */
 function weekStale(){const m=new Date();m.setHours(12,0,0,0);m.setDate(m.getDate()-wd(m));return S.week.started<iso(m);}
-function needWeekBanner(){return weekStale()&&S.ui.dismissWeek!==iso(new Date());}
+/* Il banner della nuova settimana diceva la stessa cosa dell'avviso,
+   con un'altra forma: due modi diversi di comunicare lo stesso fatto. */
+function needWeekBanner(){return false&&weekStale()&&S.ui.dismissWeek!==iso(new Date());}
 window.dismissWeek=()=>{S.ui.dismissWeek=iso(new Date());save();render("oggi");};
 /* v5 — Revisione persistente: i giorni passati con pasti non spuntati (o ieri
    senza sport) restano in un banner FISSO finché non premi "Completa" su

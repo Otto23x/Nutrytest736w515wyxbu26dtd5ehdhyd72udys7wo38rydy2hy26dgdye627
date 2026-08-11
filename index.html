@@ -186,9 +186,11 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
    Stessa forma degli stati del corpo: nome, effetto sotto, comando a
    destra. Prima erano tre strisce con il bordo, l'unico elemento
    dell'app che lo aveva ancora. */
-.glist{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.glist{display:flex;flex-direction:column;gap:2px;margin-top:12px;margin-bottom:-6px}
+.mname.tap,.mdesc.tap{cursor:pointer;-webkit-tap-highlight-color:rgba(11,61,44,.08)}
+.mname.tap:active,.mdesc.tap:active{opacity:.6}
 .grow{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--linea);flex-wrap:wrap}
-.grow:last-child{border-bottom:0}
+.grow:last-child{border-bottom:0;padding-bottom:0}
 .gl{flex:1 1 150px;min-width:0}
 .gl b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.3}
 .gl small{display:block;font-size:11.5px;color:var(--grigio);margin-top:3px;line-height:1.4}
@@ -378,6 +380,13 @@ body.onb .fab{display:none}
 .sheetrow em{font-style:normal;color:var(--grigio);font-size:19px;line-height:1}
 .sheetrow:active{background:var(--menta)}
 .hbtn.on{background:var(--menta);color:var(--bosco)}
+/* ── Guida ad accordion: sei sezioni chiuse, si apre quella che serve ── */
+.gdet>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;-webkit-tap-highlight-color:transparent}
+.gdet>summary::-webkit-details-marker{display:none}
+.gdet>summary h2{margin:0;flex:1}
+.gdet-arrow{color:var(--grigio);font-size:15px;transition:transform .2s var(--ease)}
+.gdet[open] .gdet-arrow{transform:rotate(180deg)}
+.gdet-body{margin-top:10px}
 .sheetbody{padding:2px 4px 4px}
 .sheetbody .btn{width:100%}
 .pstars{display:flex;gap:8px;margin-top:6px}
@@ -795,6 +804,7 @@ body.onb{padding-bottom:0}
 <div class="page" id="pg-sport"></div>
 <div class="page" id="pg-storico"></div>
 <div class="page" id="pg-io"></div>
+<div class="page" id="pg-sistema"></div>
 <div class="page" id="pg-regole"></div>
 <div class="page" id="pg-benvenuto"></div>
 <div class="page" id="pg-tools"></div>
@@ -962,7 +972,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.38.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.39.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1523,7 +1533,7 @@ async function gemRefreshModels(silent){
     if(!list.length)throw new Error("nessun modello disponibile");
     S.ai.models={at:Date.now(),list:list};save();
     if(!silent){
-      render("io");                       /* la tendina si ricostruisce coi modelli trovati */
+      render(cur);                        /* la tendina si ricostruisce coi modelli trovati */
       await dlgAlert("Modelli disponibili sul tuo account: "+list.length+"\n\nI più recenti:\n• "+list.slice(0,6).join("\n• ")+
         "\n\nLi trovi ora nella tendina qui sotto. In modalità «auto» l'app usa il migliore disponibile e scende agli altri se non risponde: quando Google pubblica un modello nuovo lo prende da solo, senza aggiornare l'app.");
     }
@@ -1968,7 +1978,7 @@ window.telMail=()=>{
 window.telSet=async(v)=>{
   if(v&&!telOn()){
     if(!await dlgConfirm("📊 Un favore da 1 secondo\n\nMi mandi le statistiche di quanto usi Nutry?\n\n<b>Nessun dato personale o della tua dieta</b>: né peso, né cibo, né nome, né note. Escono solo da quanti giorni ce l'hai, quanti giorni l'hai aperta e quante spunte hai fatto.\n\nIl pacchetto esatto lo vedi qui sotto, e lo spegni quando vuoi.",
-      {ok:"Va bene, aiutami a migliorarla",ko:"No grazie"})){S.tel.on=false;save();render("io");return;}
+      {ok:"Va bene, aiutami a migliorarla",ko:"No grazie"})){S.tel.on=false;save();render(cur);return;}
     /* Non basta il consenso: bisogna dire cosa succede in pratica,
        altrimenti uno accetta e poi non capisce perché non parte nulla. */
     await dlgAlert("Grazie. Ecco cosa succede adesso:<br><br>"+
@@ -1978,7 +1988,7 @@ window.telSet=async(v)=>{
       "· Puoi spegnere tutto in <b>Profilo → Dati d'uso</b>, quando vuoi.<br><br>"+
       "Il pacchetto è visibile lì: otto numeri, nessuna parola.");
   }
-  S.tel.on=!!v;save();render("io");
+  S.tel.on=!!v;save();render(cur);
   toast(v?"Grazie: aiuta a capire cosa non funziona":"Invio disattivato");};
 window.telUrlSave=()=>{
   const e=document.getElementById("telUrl");if(!e)return;
@@ -2022,7 +2032,8 @@ const ICONS={
   search:'<circle cx="10.8" cy="10.8" r="6"/><path d="m15.4 15.4 4.4 4.4"/>',
   tag:'<path d="M4 4h7.2l8.8 8.8-7.2 7.2L4 11.2V4Z"/><circle cx="8.5" cy="8.5" r="1.2"/>',
   plus:'<path d="M12 5.2v13.6M5.2 12h13.6"/>',
-  star:'<path d="m12 4.2 2.3 4.8 5.3.7-3.9 3.7.9 5.3L12 16.2l-4.6 2.5.9-5.3-3.9-3.7 5.3-.7Z"/>'
+  star:'<path d="m12 4.2 2.3 4.8 5.3.7-3.9 3.7.9 5.3L12 16.2l-4.6 2.5.9-5.3-3.9-3.7 5.3-.7Z"/>',
+  gear:'<circle cx="12" cy="12" r="3.1"/><path d="M12 3.4v2.2M12 18.4v2.2M3.4 12h2.2M18.4 12h2.2M5.9 5.9l1.6 1.6M16.5 16.5l1.6 1.6M18.1 5.9l-1.6 1.6M7.5 16.5l-1.6 1.6"/>'
 };
 function ic(n,sz){
   const p=ICONS[n];if(!p)return "";
@@ -2155,7 +2166,7 @@ window.aiDiagnosi=async()=>{
       : "Nessun modello risponde: la chiave è sbagliata, scaduta, o il limite gratuito è esaurito. Prova a crearne una nuova.")+"</div>";};
 function aiFail(e){const m=String(e&&e.message||e);
   const map={
-    nokey:"Chiave Gemini mancante: impostala nella pagina Io.",
+    nokey:"Chiave Gemini mancante: impostala in ⋯ → Sistema.",
     quota:"Hai raggiunto il limite gratuito di Gemini (troppe richieste al minuto o al giorno). Aspetta un minuto e riprova; se càpita spesso, in Io vedi il consumo di oggi.",
     busy:"I server Gemini sono momentaneamente sovraccarichi: riprova tra poco.",
     badkey:"Chiave non valida o senza permessi per questo modello (spesso i modelli Pro richiedono fatturazione). Controlla la chiave o scegli un modello Flash.",
@@ -2164,12 +2175,12 @@ function aiFail(e){const m=String(e&&e.message||e);
     rete:"La rete è caduta durante la richiesta, anche dopo alcuni tentativi. Controlla la connessione e riprova: quello che era già stato generato non è andato perso.",
     errore:"Connessione non riuscita dopo alcuni tentativi. Controlla la rete e riprova."
   };
-  dlgAlert("🤖 "+(map[m]||("Problema imprevisto nel contatto con Gemini ("+m+"): di solito è la rete che va e viene. Riprova tra poco; se persiste controlla connessione e chiave nella pagina Io.")));}
+  dlgAlert("🤖 "+(map[m]||("Problema imprevisto nel contatto con Gemini ("+m+"): di solito è la rete che va e viene. Riprova tra poco; se persiste controlla connessione e chiave in ⋯ → Sistema.")));}
 
 /* ═══════════════════════════════════════════════════════════════
    7. NAVIGAZIONE
    ═══════════════════════════════════════════════════════════════ */
-const pages=["punto","oggi","piano","spesa","sport","storico","io","regole","tools","guida","setup","benvenuto"];let cur="oggi";
+const pages=["punto","oggi","piano","spesa","sport","storico","io","sistema","regole","tools","guida","setup","benvenuto"];let cur="oggi";
 function show(p){
   /* Percorso guidato non finito: non si va da nessun'altra parte. Senza
      profilo l'app non sa nulla e ogni numero sarebbe inventato. */
@@ -2195,7 +2206,7 @@ const TABS=[["punto",((S.profile.name||"").trim().split(" ")[0])||"Punto"],
    per ciascuna, così la lista si legge in un colpo d'occhio. */
 const ALTRE=[["piano","Piano","piano"],["storico","Numeri","progressi"],
              ["tools","Strumenti","tools"],["regole","Regole","regole"],
-             ["io","Profilo","io"],["guida","Guida","guida"]];
+             ["io","Profilo","io"],["sistema","Sistema","gear"],["guida","Guida","guida"]];
 /* ═══ L'ASSISTENTE ══════════════════════════════════════════════════
    Diciassette strumenti non si cercano: si chiedono. Qui la domanda viene
    riconosciuta e porta dove serve. Quando la domanda non è una richiesta
@@ -2220,21 +2231,47 @@ const ASSIST_MAP=[
  {p:"sport",k:["sport","camminata","registrare l'allenamento","quanto ho bruciato"],t:"Allenamenti"},
  {p:"storico",k:["peso","pesata","progress","grafico","quanto ho perso","andamento","proiezione"],t:"Progressi"},
  {p:"regole",k:["regole","formula","calcolo","proteine per kg","deficit","minimo calorico","soglia"],t:"Regole del calcolo"},
- {p:"io",k:["profilo","altezza","obiettivo","backup","chiave ai","drive","vacanza"],t:"Il tuo profilo"},
+ {p:"io",k:["profilo","altezza","obiettivo","peso obiettivo","vacanza","pesata"],t:"Il tuo profilo"},
+ {p:"sistema",k:["backup","chiave ai","chiave gemini","drive","impostazioni","sistema","telemetria","ripristino","esport"],t:"Sistema"},
  {p:"guida",k:["guida","come funziona","non capisco","aiuto","spiegami l'app"],t:"Guida"}
 ];
+/* Normalizza per il confronto: minuscole e niente accenti, così
+   «menù», «menu» e «MENU'» sono la stessa parola. */
+function assistNorm(x){
+  return String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
 function assistFind(q){
-  const t=String(q||"").toLowerCase();
+  const t=assistNorm(q);
   if(!t.trim())return null;
-  let best=null,score=0;
-  ASSIST_MAP.forEach(r=>{
-    r.k.forEach(k=>{if(t.includes(k)&&k.length>score){best=r;score=k.length;}});});
-  return best;}
+  /* Prima si cerca sul testo SENZA l'impalcatura della domanda
+     («come funziona», «cos'e», «mi spieghi»): il tema deve vincere
+     sulla formula. Se spogliato non resta niente, si cerca sul testo
+     intero e la formula generica porta alla Guida. */
+  const nudo=t.replace(/\b(come funziona|come si usa|come faccio a?|come mai|cos ?e|che cos ?e|mi spieghi|spiegami|aiutami con|puoi dirmi|vorrei sapere)\b/g," ").trim();
+  const cerca=(testo)=>{let best=null,score=0;
+    ASSIST_MAP.forEach(r=>{
+      r.k.forEach(k=>{const kk=assistNorm(k);
+        if(testo.includes(kk)&&kk.length>score){best=r;score=kk.length;}});});
+    return best;};
+  return (nudo&&cerca(nudo))||cerca(t);}
+/* Ritrova una voce della mappa dal suo titolo (per la rotta suggerita
+   dall'AI): confronto normalizzato e tollerante. */
+function assistToolByLabel(lbl){
+  const t=assistNorm(lbl);if(!t.trim())return -1;
+  let hit=-1;
+  ASSIST_MAP.forEach((r,i)=>{
+    if(hit>-1)return;
+    const rt=assistNorm(r.t);
+    if(rt===t||rt.includes(t)||t.includes(rt))hit=i;});
+  return hit;}
+window.assistGo=(i)=>{
+  const r=ASSIST_MAP[i];if(!r)return;
+  assistClose();show(r.p);
+  if(r.a)setTimeout(()=>{try{const el=document.querySelector('[onclick^="'+r.a+'"]');if(el)el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}},420);};
 /* Quello che l'AI deve sapere per rispondere su COME È CONFIGURATA l'app */
 function assistContext(){
   const p=S.profile||{};
   const righe=[
-    "Sezioni dell'app: Oggi (pasti, acqua, come stai, allenamenti), Piano (i 7 giorni), Spesa, Progressi (peso, grafici, storico), e dal pulsante ⋯ in alto: Strumenti, Allenamenti, Regole del calcolo, Il tuo profilo, Guida.",
+    "Sezioni dell'app: Oggi (pasti, acqua, come stai, allenamenti), Piano (i 7 giorni), Spesa, Progressi (peso, grafici, storico), e dal pulsante ⋯ in alto: Strumenti, Allenamenti, Regole del calcolo, Il tuo profilo, Sistema (chiave AI, Drive, backup), Guida.",
     "Strumenti disponibili: "+ASSIST_MAP.filter(r=>r.a).map(r=>r.t).join(", ")+".",
     "Configurazione attuale della persona: obiettivo «"+(p.goal||"non impostato")+"»"+
       (goalWeightSet()?", peso obiettivo "+goalWeightSet()+" kg":"")+
@@ -2384,25 +2421,56 @@ function assistRender(){
       :`<div class="askmsg">Ciao${S.profile.name?" "+esc(S.profile.name.split(" ")[0]):""}. Cosa ti serve adesso?</div>`)+
     `<div class="askchips">${["Ho fame","Sono a cena fuori","Mi sento gonfio","Il frigo è vuoto","Ho sgarrato","Stasera ospiti","Come sono configurato?"].map(chip).join("")}</div>`;
   b.scrollTop=b.scrollHeight;}
+/* Una DOMANDA non è un comando: «come funziona la spesa?» vuole una
+   risposta, non essere teletrasportati sulla pagina Spesa. Le domande
+   vanno all'AI (con il bottone del tool come scorciatoia); i comandi
+   secchi — «ho fame», «spesa» — continuano a portare dritti al posto. */
+function assistIsQuestion(t){
+  const n=assistNorm(t).trim();
+  return /\?\s*$/.test(t)||/^(come|perche|cosa|che |chi |quanto|quanti|quante|quando|dove|posso|devo|puoi|mi spieghi|spiegami|perch)/.test(n);}
 window.assistSay=(t)=>{
   const i=document.getElementById("askIn");
   if(i&&!t){t=i.value.trim();if(!t)return;i.value="";}
   ASKLOG.push({me:1,t:t});assistRender();
   const r=assistFind(t);
-  if(r){
+  const domanda=assistIsQuestion(t);
+  if(r&&!domanda){
     ASKLOG.push({t:"Ti porto su <b>"+esc(r.t)+"</b>."});assistRender();
     setTimeout(()=>{assistClose();show(r.p);
       if(r.a)setTimeout(()=>{try{const el=document.querySelector('[onclick^="'+r.a+'"]');if(el)el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}},420);},700);
     return;}
   if(!aiOn()){
+    if(r){/* senza AI la domanda non si può discutere, ma il posto giusto sì */
+      const ti=ASSIST_MAP.indexOf(r);
+      ASKLOG.push({t:"Senza chiave AI non posso rispondere a parole, ma la risposta sta qui:<div style=\"margin-top:10px\"><button class=\"btn small\" onclick=\"assistGo("+ti+")\">Apri: "+esc(r.t)+" ›</button></div>"});
+      return assistRender();}
     ASKLOG.push({t:"Non ho capito, e senza chiave AI non posso ragionarci. Prova con una parola più semplice — «fame», «spesa», «peso» — oppure apri la <b>Guida</b>."});
     return assistRender();}
   ASKLOG.push({t:'<span class="askwait">Ci penso…</span>'});assistRender();
+  /* L'AI non risponde più solo a parole: classifica il bisogno e, se
+     esiste lo strumento giusto, la risposta arriva con il bottone che
+     ci porta. La chat è un centralino, non un oracolo. */
+  /* Gli ultimi scambi entrano nel prompt: «e per la cena?» dopo una
+     risposta sul pranzo deve avere un senso, non ripartire da zero. */
+  const storia=ASKLOG.slice(0,-2).slice(-6)
+    .map(m=>(m.me?"Utente: ":"Assistente: ")+String(m.t).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,180))
+    .filter(x=>x.length>10).join(" || ");
   aiAsk("Sei l'assistente dell'app Nutry e rispondi in italiano, in massimo 3 frasi, con tono pratico e amichevole. "+
     "Rispondi SOLO su Nutry, su come è configurata per questa persona e su cosa può fare con l'app. "+
-    "Se la risposta sta in una sezione precisa, dillo. Contesto: "+assistContext()+
-    " Domanda: «"+t+"»")
-  .then(r2=>{ASKLOG.pop();ASKLOG.push({t:esc(String(r2||"").trim()).replace(/\n/g,"<br>")});assistRender();})
+    "Questo è l'elenco degli strumenti e delle sezioni, con il loro nome esatto: "+
+    JSON.stringify(ASSIST_MAP.map(r=>r.t))+". "+
+    "Se il bisogno espresso si risolve con UNO di questi, indicane il nome esatto nel campo tool; se nessuno c'entra davvero, tool resta vuoto. "+
+    "Contesto: "+assistContext()+
+    (storia?(" Conversazione fin qui: "+storia+"."):"")+
+    ' Domanda: «'+t+'». Rispondi SOLO JSON: {"reply":"2-3 frasi","tool":"nome esatto o stringa vuota"}')
+  .then(r2=>{
+    ASKLOG.pop();
+    let reply="",ti=-1;
+    try{const j=parseAIJSON(r2);reply=String(j.reply||"").trim();ti=assistToolByLabel(j.tool);}catch(_){}
+    if(!reply)reply=String(r2||"").trim();
+    let msg=esc(reply).replace(/\n/g,"<br>");
+    if(ti>-1)msg+='<div style="margin-top:10px"><button class="btn small" onclick="assistGo('+ti+')">Apri: '+esc(ASSIST_MAP[ti].t)+' ›</button></div>';
+    ASKLOG.push({t:msg});assistRender();})
   .catch(()=>{ASKLOG.pop();ASKLOG.push({t:"Non sono riuscito a rispondere. Riprova fra poco."});assistRender();});};
 window.moreOpen=()=>{
   const w=document.getElementById("moreSheet"),l=document.getElementById("moreList");
@@ -2462,7 +2530,7 @@ function mealCard(pdi,mi){
   let h=`<div class="${cls}" data-meal="${pdi}-${mi}">
     <div class="chk ${st.done?"c":""}${st.skip?" s":""}" role="button" tabindex="0" onclick="tgl(${pdi},${mi})">${sym}</div>
     <div class="mbody">
-      <div class="mtop"><span class="mname">${esc(dispName)}${st.skip?" (saltato)":""}</span>${
+      <div class="mtop"><span class="mname tap" onclick="editMeal(${pdi},${mi})" title="Tocca per modificare">${esc(dispName)}${st.skip?" (saltato)":""}</span>${
         st.done&&!st.skip
           ? (function(){const q=qOf(st,o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
           : ""}</div>
@@ -2479,7 +2547,6 @@ function mealCard(pdi,mi){
     <select onchange="moveSlot(${pdi},${mi},this.value)">`;
   SLOTS.forEach(s=>{h+=`<option ${((st.movedAs||m.n)===s)?"selected":""}>${s}</option>`;});
   h+=`</select></div><div class="mtools" style="margin-top:6px">
-    <button class="ibtn" title="Modifica ingredienti (ricalcola kcal e macro)" onclick="editMeal(${pdi},${mi})">${ic("pencil",17)}</button>
     <button class="ibtn" title="Inventami un'alternativa con gli stessi macro" onclick="altMeal(${pdi},${mi})">${ic("dice",17)}</button>
     <button class="ibtn" title="Non ho un ingrediente: 3 sostituzioni AI" onclick="subIngr(${pdi},${mi})">${ic("swap",17)}</button>
     <button class="ibtn" title="Scatta la foto del piatto adesso" onclick="mealPhoto(${pdi},${mi})">${ic("camera",17)}</button>
@@ -2590,12 +2657,20 @@ window.editMeal=async(d,m)=>{
   const o=mealOpt(d,m); // funziona anche su pasti modificati/ribilanciati: parte dal testo attuale
   const nd=await dlgPrompt("Modifica gli ingredienti del pasto (OK anche senza cambiare nulla per ristimare):",o.d);
   if(nd==null||!nd.trim())return;
-  const txt=nd.trim();
+  let txt=nd.trim();
+  /* Pasto fuori casa (libero/mensa): non lo prepari tu, quindi la
+     descrizione resta indicativa e nello stesso stile corto del piano.
+     Per i pasti normali il TUO testo non si tocca: le grammature che
+     scrivi sono legge. */
+  const fuori=(PLAN[d]&&PLAN[d].meals[m]&&(PLAN[d].meals[m].type==="free"||PLAN[d].meals[m].type==="mensa"));
   let k=o.k,p=o.p,j=null;
   if(aiOn()){
     try{
-      const t=await aiAsk('Stima calorie e macro di questo pasto: "'+txt.replace(/"/g,"'")+'". Se nel testo sono indicate grammature, usale ESATTAMENTE come scritte (sono state corrette a mano dall\'utente); stima le porzioni solo per gli elementi senza peso. Rispondi SOLO JSON: {"kcal":numero,"prot":numero,"carb":numero,"gras":numero,"fibre":numero,"zuccheri":numero}');
+      const t=await aiAsk('Stima calorie e macro di questo pasto: "'+txt.replace(/"/g,"'")+'". '+(fuori
+        ?'Il pasto è fuori casa (mensa/ristorante): riscrivi anche la descrizione in forma INDICATIVA e sintetica, massimo 12 parole, componenti separate da virgole, senza grammature precise. '
+        :'Se nel testo sono indicate grammature, usale ESATTAMENTE come scritte (sono state corrette a mano dall\'utente); stima le porzioni solo per gli elementi senza peso. ')+'Rispondi SOLO JSON: {"piatto":"descrizione","kcal":numero,"prot":numero,"carb":numero,"gras":numero,"fibre":numero,"zuccheri":numero}');
       j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);
+      if(fuori&&j.piatto&&String(j.piatto).trim())txt=String(j.piatto).trim();
       dlgAlert("Stima AI: ~"+k+" kcal · ~"+p+" g prot");
     }catch(e){aiFail(e);
       k=parseInt(await dlgPrompt("Calorie?",o.k))||o.k;p=parseInt(await dlgPrompt("Proteine (g)?",o.p))||o.p;}
@@ -3995,7 +4070,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     <button class="btn ghost small" onclick="planForecast()">🔮 Stima risultati</button>
   </div>
   ${hint2("Da qui gestisci il piano: modificarlo, generarne uno nuovo, importarne uno che hai già.",
- `✏️ <b>Gestisci</b> — modifica pasti, orari, tipo e alternative.<br>
+ `✏️ <b>Gestisci</b> — modifica pasti, tipo e alternative; kcal e qualità si ristimano da sole.<br>
   ${seasonEmoji()} <b>Alternativa stagionale</b> — aggiunge un'opzione di stagione, senza toccare il piano base.<br>
   ✨ <b>Genera nuovo piano</b> — l'AI costruisce sette giorni su misura.<br>
   📸 <b>Importa da foto</b> — fotografa un piano su carta o PDF e l'AI lo trascrive.<br>
@@ -4245,7 +4320,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
      cali di energia, nota e ricalibratura, separati da righine grigie.
      Ora sono blocchi distinti, ciascuno con il suo titolo e la sua forma. */
   if(densMin("full")){
-  h+=`<div class="card"><h2>Come stai oggi</h2>
+  h+=`<div class="card"><h2>Sonno e umore</h2>
   ${hint2("Due tocchi: 1 = male · 5 = alla grande.",
    "Servono all'analisi di fine settimana per capire cosa influenza davvero i tuoi risultati: sonno e umore pesano più di quanto sembri.")}
   <div class="duo" style="margin-top:14px">
@@ -4255,7 +4330,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   ${crashHTML(di)}
   </div>`;
 
-  h+=`<div class="card"><h2>Il tuo corpo in questi giorni</h2>
+  h+=`<div class="card"><h2>Il tuo corpo</h2>
   ${hint2("Situazioni temporanee che cambiano il fabbisogno. Ricordati di spegnerle quando finiscono.",
    "Non sono etichette: cambiano davvero le calorie del giorno e le grammature dei pasti. Il ciclo si spegne da solo; le altre restano finché non le togli tu, e finché restano il target è tarato su una condizione che potrebbe non esserci più.")}
   ${(function(){
@@ -4329,7 +4404,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   if(!aiOn()&&!S.ui.dismissAI)avvisi.push(`<div class="card nota riga">
     <div style="flex:1;font-size:13.5px">🤖 <b>Manca la chiave AI</b>: senza, restano spenti piano automatico, stime dei piatti, foto, menù, ribilanciamenti e recuperi. È gratuita e si crea in un minuto.</div>
     <a class="btn small" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="text-decoration:none">Crea la chiave ↗</a>
-    <button class="btn ghost small" onclick="show('io')">Incollala</button>
+    <button class="btn ghost small" onclick="show('sistema')">Incollala</button>
     <button class="ibtn" onclick="S.ui.dismissAI=1;save();render('oggi')" title="Nascondi">${ic("x",15)}</button></div>`);
   if(densNudge())avvisi.push(`<div class="card nota buona">
     <div style="font-size:13.5px">${dens()==="base"
@@ -4387,9 +4462,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina 🗑</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
     <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
       done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
-    <div class="mdesc">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g proteine${e.c!=null?` · ${e.c} g carboidrati`:""}${e.f!=null?` · ${e.f} g grassi`:""}${e.fib!=null?` · ${e.fib} g fibre`:""}${e.z!=null?` · ${e.z} g zuccheri`:""}</div>
+    <div class="mdesc tap" onclick="editExtra(${di},${ei})" title="Tocca per modificare">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g proteine${e.c!=null?` · ${e.c} g carboidrati`:""}${e.f!=null?` · ${e.f} g grassi`:""}${e.fib!=null?` · ${e.fib} g fibre`:""}${e.z!=null?` · ${e.z} g zuccheri`:""}</div>
     <div class="mtools" style="margin-top:6px">
-      <button class="ibtn" title="Modifica (ricalcola macro)" onclick="editExtra(${di},${ei})">${ic("pencil",17)}</button>
       <button class="ibtn" title="Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">${ic("camera",17)}</button>
         <button class="ibtn" title="Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">${ic("gallery",17)}</button>
       <button class="ibtn" title="Barcode: scansiona i prodotti di questo extra" onclick="scanStart(${di},null,null,${ei})"><svg width="16" height="14" viewBox="0 0 24 20" style="vertical-align:-2px"><g fill="currentColor"><rect x="1" y="2" width="2" height="16"/><rect x="5" y="2" width="1" height="16"/><rect x="8" y="2" width="3" height="16"/><rect x="13" y="2" width="1" height="16"/><rect x="16" y="2" width="2" height="16"/><rect x="20" y="2" width="1" height="16"/><rect x="22" y="2" width="1.5" height="16"/></g></svg></button>
@@ -5100,9 +5174,8 @@ window.removeShopItem=async (ci,ii)=>{
   ensureCustomShop();const cat=S.customShop[ci];if(!cat)return;
   cat[1].splice(ii,1);if(!cat[1].length)S.customShop.splice(ci,1);S.shop={};save();render("spesa");
   toast("Prodotto rimosso dalla lista ✓");};
-window.addShopItem=async (ci)=>{ensureCustomShop();const cat=S.customShop[ci];if(!cat)return;
-  const v=await dlgPrompt("Aggiungi un prodotto a “"+cat[0]+"”");if(!v||!v.trim())return;
-  cat[1].push(v.trim());save();render("spesa");};
+/* addShopItem rimosso: le categorie del piano sono automatiche, e per
+   il resto c'è la sezione Extra in fondo alla lista. */
 /* «Nuova categoria» e «Ripristina dal piano» non servono più: le
    categorie le decide la lista costruita dal piano, e l'allineamento
    al piano avviene da solo a ogni modifica (pianoCambiato). */
@@ -5239,9 +5312,9 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   ${markets().length&&!markets().some(m=>m.p)?`<div class="hint" style="margin-top:8px">Vuoi vedere prima le <b>offerte</b>? Tocca ➕🏷️ accanto al negozio: ti guido in due passaggi.</div>`:""}</div>
   <div class="card"><h2>Lista della spesa</h2>
   ${hint2("La lista si costruisce <b>da sola</b> dagli ingredienti del piano e si aggiorna quando lo modifichi: non c'è niente da rigenerare.",
-   "Vale anche per quello che aggiungi tu: cambia un pasto dal Piano e il prodotto entra in lista da sé. Per una cosa fuori piano usa il ＋ accanto alla categoria. Copre i 7 giorni da oggi e i pasti fuori casa non vengono comprati.")}
+   "Vale anche per quello che aggiungi tu: cambia un pasto dal Piano e il prodotto entra in lista da sé. Per una cosa fuori piano c'è la sezione <b>Extra</b> in fondo, che sopravvive anche quando la lista si rigenera. Copre i 7 giorni da oggi e i pasti fuori casa non vengono comprati.")}
   ${(function(){
-    const tot=SHOPCUR().reduce((a,c)=>a+((c[1]||[]).length),0);
+    const tot=SHOPCUR().reduce((a,c)=>a+((c[1]||[]).length),0)+((S.shopExtra||[]).length);
     if(!tot)return "";
     const presi=Math.min(tot,Object.values(S.shop||{}).filter(Boolean).length);
     const pc=Math.round(presi/tot*100);
@@ -5265,20 +5338,37 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
     <div class="hint">${planIsEmpty()
       ?"La lista si costruisce dal piano: appena avrai un piano attivo, la spesa della settimana comparirà qui da sola."
       :"Hai tolto tutto a mano. La lista si riallinea al piano al prossimo cambiamento del piano, oppure aggiungi i prodotti con ＋."}</div></div>`;
-  SHOPCUR().forEach(([cat,items],ci)=>{h+=`<div class="shopcat">${esc(cat)} <button class="ibtn" title="Aggiungi prodotto" style="float:right" onclick="addShopItem(${ci})">${ic("plus",16)}</button></div><div class="shopitems">`;
-    items.forEach((it,ii)=>{const id=ci+"_"+ii,c=S.shop[id];
-      h+=`<div class="shopitem ${c?"c":""}">
+  const rigaShop=(id,it,delFn)=>{const c=S.shop[id];
+    return `<div class="shopitem ${c?"c":""}">
         <span class="box" onclick="tglShop('${id}')">${c?"✓":""}</span>
         <span class="st" onclick="tglShop('${id}')">${esc(prodottoPrima(it))}</span>
                 ${shopTplNow()?`<a class="ibtn" target="_blank" rel="noopener" href="${shopLink(it)}" title="Cerca nel tuo supermercato">${ic("link",16)}</a>`:`<button class="ibtn" title="Imposta il link del tuo supermercato in cima alla pagina" onclick="dlgAlert('Imposta prima il link di ricerca del tuo supermercato, in cima alla pagina Spesa.')">${ic("link",16)}</button>`}
         <button class="ibtn" title="Alternativa AI" onclick="subAI('${it.replace(/'/g,"\\'")}')">${ic("ai",16)}</button>
-        <button class="ibtn" title="Rimuovi dalla lista" onclick="removeShopItem(${ci},${ii})">${ic("x",15)}</button></div>`;});
+        <button class="ibtn" title="Rimuovi dalla lista" onclick="${delFn}">${ic("x",15)}</button></div>`;};
+  SHOPCUR().forEach(([cat,items],ci)=>{h+=`<div class="shopcat">${esc(cat)}</div><div class="shopitems">`;
+    items.forEach((it,ii)=>{h+=rigaShop(ci+"_"+ii,it,`removeShopItem(${ci},${ii})`);});
     h+=`</div>`;});
-  
-/* «I miei prodotti salvati» non esiste più: i prodotti arrivano dal
-     piano (anche quelli che aggiungi tu ai pasti), e per una cosa fuori
-     piano c'è il ＋ della categoria. Lo dice la spiegazione in cima. */
+  /* ── EXTRA: gli acquisti fuori dal piano ──────────────────────────
+     Vivono in una lista separata (S.shopExtra), così sopravvivono alle
+     rigenerazioni automatiche della lista: il piano cambia, i tuoi
+     appunti restano. La riga «Aggiungi» sta in fondo, allineata come
+     un prodotto: niente più ＋ sparsi sulle categorie. */
+  {const ex=S.shopExtra||[];
+   h+=`<div class="shopcat">Extra — fuori dal piano</div><div class="shopitems">`;
+   ex.forEach((it,ii)=>{h+=rigaShop("x_"+ii,it,`removeShopExtra(${ii})`);});
+   h+=`<div class="shopitem" onclick="addShopExtra()" style="cursor:pointer">
+     <span class="box" style="border-style:dashed;color:var(--salvia);line-height:21px">＋</span>
+     <span class="st" style="color:var(--grigio)">Aggiungi prodotto…</span></div>`;
+   h+=`</div>`;}
   el.innerHTML=h;}
+window.addShopExtra=async()=>{
+  const v=await dlgPrompt("Cosa devi comprare, fuori dal piano?");if(!v||!v.trim())return;
+  S.shopExtra=S.shopExtra||[];S.shopExtra.push(v.trim());save();render("spesa");};
+window.removeShopExtra=(ii)=>{
+  (S.shopExtra||[]).splice(ii,1);
+  /* le spunte degli extra scalano con l'indice: si azzerano solo le loro */
+  Object.keys(S.shop||{}).forEach(k=>{if(/^x_/.test(k))delete S.shop[k];});
+  save();render("spesa");};
 /* I formati commerciali aiutano chi non vuole sprechi, ma allungano
    ogni riga con «(2 confezioni da 80 g)» e a chi fa la spesa da anni
    danno solo fastidio. Si sceglie. */
@@ -5293,6 +5383,8 @@ window.resetShop=()=>{S.shop={};save();render("spesa");};
 window.waShop=()=>{let t="🛒 *Spesa della settimana*%0A";
   SHOPCUR().forEach(([cat,items],ci)=>{const rest=items.filter((x,ii)=>!S.shop[ci+"_"+ii]);
     if(rest.length){t+="%0A*"+cat+"*%0A";rest.forEach(x=>t+="• "+encodeURIComponent(x)+"%0A");}});
+  {const rest=(S.shopExtra||[]).filter((x,ii)=>!S.shop["x_"+ii]);
+   if(rest.length){t+="%0A*Extra*%0A";rest.forEach(x=>t+="• "+encodeURIComponent(x)+"%0A");}}
   window.open("https://wa.me/?text="+t,"_blank");};
 
 /* ═══════════════════════════════════════════════════════════════
@@ -5674,21 +5766,8 @@ function exportRange(){
 window.doExportCSV=()=>{const{from,to}=exportRange();
   const rows=exportRows(from,to);if(!rows.length)return dlgAlert("Nessun giorno tracciato nel periodo scelto.");
   dlFile("nutry_"+(from||"inizio")+"_"+(to||"oggi")+".csv","text/csv;charset=utf-8","\uFEFF"+exportCSV(from,to));};
-window.doExportJSON=()=>{const{from,to}=exportRange();
-  const rows=exportRows(from,to);if(!rows.length)return dlgAlert("Nessun giorno tracciato nel periodo scelto.");
-  const keys=EXPORT_COLS.map(c=>c[0]);
-  const obj={profilo:{eta:age(),sesso:S.profile.gender,altezza:S.profile.h,peso:S.profile.w,
-      attivita:S.profile.act,passi_base:S.profile.baseSteps||3000,tdee:tdee(),obiettivo:S.profile.goal||""},
-    regole:rulesSnapshot(),dieta:S.diet||{},
-    periodo:{da:from||rows[0][0],a:to||rows[rows.length-1][0]},
-    giorni:rows.map(r=>{const o={};keys.forEach((k,i)=>o[k]=r[i]);return o;})};
-  dlFile("nutry_"+(from||"inizio")+"_"+(to||"oggi")+".json","application/json",JSON.stringify(obj,null,1));};
-window.doExportCopy=async()=>{const{from,to}=exportRange();
-  const rows=exportRows(from,to);if(!rows.length)return dlgAlert("Nessun giorno tracciato nel periodo scelto.");
-  const txt="Dati Nutry dal "+(from||rows[0][0])+" al "+(to||rows[rows.length-1][0])+
-    " (separatore ;)\n"+exportCSV(from,to);
-  try{await navigator.clipboard.writeText(txt);toast("Tabellone copiato: incollalo dove vuoi analizzarlo");}
-  catch(e){dlgAlert("Copia non riuscita: usa il download CSV.");}};
+/* Esportazioni JSON e Copia rimosse: restano il CSV (che si apre in
+   Excel e Fogli) e l'analisi AI, che coprono i due usi veri. */
 function dlFile(name,type,content){
   busy("Preparo il file…");
   const b=new Blob([content],{type}),u=URL.createObjectURL(b);
@@ -6252,7 +6331,7 @@ function rulesCardHTML(){
   ${row("Tetto · massimo","Vale il più basso fra percentuale e massimo. Il resto slitta ai giorni successivi.",num("rRgpCapMax",r.recupero_max_kcal_giorno,50,50,null,"kcal"))}
   ${row("Giorni recuperabili","Quanti giorni indietro possono comparire nel menu Recupero.",num("rRgpDays",(+p.rgpDays||5),1,1,7,"giorni"))}
   </table></div>`
-  :`<div class="card"><div class="hint">Le formule di calcolo (basale, allenamenti, soglie di recupero) sono nascoste a questo livello. Per vederle passa a <b>Esperto</b> in Il tuo profilo → Quanto vuoi vedere.</div></div>`}
+  :`<div class="card">${hint2("Le formule di calcolo (basale, allenamenti, soglie di recupero) sono nascoste a questo livello.","Per vederle passa a <b>Esperto</b> in Il tuo profilo → Quanto vuoi vedere.")}</div>`}
   `;}
 
 window.nutriSave=()=>{
@@ -6381,7 +6460,7 @@ window.cleanupRun=async ()=>{
   if(ck("clShop")&&b.spesa)rep.push("• lista della spesa svuotata");
   if(ck("clRecipes"))rep.push("• piatti salvati eliminati: "+(b.piatti||0));
   // ridisegna TUTTO, intestazione compresa: la fiamma vive lì
-  renderHeader();render("io");
+  renderHeader();render(cur);
   dlgAlert(rep.length
     ? "Pulizia completata ✓\n\n"+rep.join("\n")+"\n\nSe qualcosa non torna, recuperi tutto da 🛟 Ripristino di emergenza."
     : "Non c'era nulla da rimuovere con questi criteri.\n\nControlla il periodo selezionato: con un intervallo di date vengono toccati solo pesate, settimane archiviate ed eventi che ci ricadono dentro.");};
@@ -6714,10 +6793,10 @@ function dietCardHTML(){const D=S.diet;
   ${vegChecksHTML("d",D.tipo)}
   ${hint2("Lo <b>stile di fondo</b>: cosa mangi per scelta o convinzione.",
  "Gli schemi tecnici stanno nei <b>protocolli</b> qui sotto, le esclusioni fra le <b>intolleranze</b>. Possono convivere tutti e tre: per esempio mediterranea + basso FODMAP + digiuno intermittente.")}
-  <div class="hint">⚠️ Nutry non fa diagnosi e non sostituisce un professionista. Le impostazioni particolari (chetogenica, digiuno, eliminazioni) <b>vanno concordate con un medico o un nutrizionista</b>, soprattutto in presenza di patologie, gravidanza o terapie in corso.</div>
+  ${hint2("⚠️ Nutry non fa diagnosi e non sostituisce un professionista.","Le impostazioni particolari (chetogenica, digiuno, eliminazioni) <b>vanno concordate con un medico o un nutrizionista</b>, soprattutto in presenza di patologie, gravidanza o terapie in corso.")}
   <label>Quanta varietà vuoi nel piano</label>
   ${sel("dVar",D.varieta||"media",["bassa","media","alta"])}
-  <div class="hint">Varietà <b>bassa</b>: poche fonti proteiche e pochi contorni che tornano più volte, spesa corta e poco da cucinare. <b>Alta</b>: ogni giorno diverso, spesa più lunga.</div>
+  ${hint2("Varietà <b>bassa</b>: poche fonti proteiche e pochi contorni che tornano più volte, spesa corta e poco da cucinare.","<b>Alta</b>: ogni giorno diverso, spesa più lunga.")}
   <label>Quali pasti fai davvero</label>
   ${slotsChecksHTML("d",D.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena")}
   <div class="hint">Spunta solo quelli che fai: il numero di pasti al giorno esce da qui, e il piano non proporrà quelli spenti.</div>
@@ -6747,11 +6826,11 @@ function dietCardHTML(){const D=S.diet;
   ${tagChecksHTML("d","R",REL_LIST,D.religiose,"Vincoli religiosi o etici","")}
   <label>Protocolli alimentari che segui</label>
   ${protChecksHTML("d",D)}
-  <div class="hint">Gli <b>schemi alimentari</b> che segui: ognuno porta con sé le sue regole operative, che entrano in tutte le proposte dell'AI. Lascia vuoto se non segui nessun protocollo.</div>
+  ${hint2("Gli <b>schemi alimentari</b> che segui: ognuno porta con sé le sue regole operative, che entrano in tutte le proposte dell'AI.","Lascia vuoto se non segui nessun protocollo.")}
   ${famCardHTML("d")}
   <label>Condizioni da tenere presenti</label>
   ${patChecksHTML("d",D)}
-  <div class="hint">Ogni spunta diventa un criterio operativo in tutte le proposte dell'AI (piano, ribilanci, alternative, spesa). È informazione di contesto, <b>non</b> una terapia: le indicazioni cliniche restano di competenza del medico e del nutrizionista.</div>
+  ${hint2("Ogni spunta diventa un criterio operativo in tutte le proposte dell'AI (piano, ribilanci, alternative, spesa).","È informazione di contesto, <b>non</b> una terapia: le indicazioni cliniche restano di competenza del medico e del nutrizionista.")}
   ${tagChecksHTML("d","G",INTEG_LIST,D.integratori,"Integratori in uso","Servono all'AI per non proporti doppioni.")}
   <label>Occasioni ricorrenti</label>
   <input type="text" id="dOcc" value="${esc(D.liberi||"")}" placeholder="es. cena fuori il sabato, pranzo in famiglia la domenica">
@@ -7218,12 +7297,10 @@ function exportCardHTML(){
   </div>
   <div class="mtools" style="margin-top:10px">
     <button class="btn ghost small" onclick="doExportCSV()">⬇️ CSV</button>
-    <button class="btn ghost small" onclick="doExportJSON()">⬇️ JSON</button>
-    <button class="btn ghost small" onclick="doExportCopy()">📋 Copia</button>
     <button class="btn small" onclick="aiPatterns()">🔎 Analizza i pattern</button>
   </div>
   ${hint2("Il CSV si apre in Excel o Fogli Google: una riga per giorno, note comprese.",
- "<b>Analizza i pattern</b> fa leggere gli stessi dati all'AI, che cerca le correlazioni fra sonno, umore, allenamenti e alimentazione. Separatore punto e virgola.")}
+ "<b>Analizza i pattern</b> fa leggere gli stessi dati all'AI, che cerca le correlazioni fra sonno, umore, allenamenti e alimentazione. Separatore punto e virgola.",null,"e l'analisi AI?")}
   <div class="aibox" id="expOut" style="display:none"></div></div>`;}
 function extendedRecapHTML(){
   /* Riepilogo esteso v5.1: MEDIE per periodo (come il recap), su tutta la
@@ -7355,13 +7432,13 @@ function renderTools(){
   
   <div class="aibox" id="craveOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>Tentazione improvvisa</h2>
-  <div class="hint">Non si dice di no: si dice <b>metà, e adesso</b>. L'AI spiega quando mangiarla per limitare il picco glicemico e toglie l'equivalente dal pasto scelto qui sopra.</div>
+  ${hint2("Non si dice di no: si dice <b>metà, e adesso</b>.","L'AI spiega quando mangiarla per limitare il picco glicemico e toglie l'equivalente dal pasto scelto qui sopra.")}
   ${mealSelHtml("treatTarget",di)}
   <div class="mtools"><button class="btn small" onclick="treatDefuse(${di})">Dimmi come gestirla</button></div>
   
   <div class="aibox" id="treatOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>Ho una fame incontrollabile</h2>
-  <div class="hint">Stesse calorie, molto più volume nello stomaco: verdure ricche d'acqua, zuppe, albumi montati. La fame meccanica si spegne senza sforare.</div>
+  ${hint2("Stesse calorie, molto più volume nello stomaco: verdure ricche d'acqua, zuppe, albumi montati.","La fame meccanica si spegne senza sforare.")}
   ${mealSelHtml("volTarget",di)}
   <div class="mtools"><button class="btn small" onclick="volumeSOS(${di})">Aumenta il volume</button></div>
   
@@ -7373,7 +7450,7 @@ function renderTools(){
   
   <div class="aibox" id="grazOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>Ridurre gonfiore</h2>
-  <div class="hint">L'AI guarda le ultime 48 ore e riscrive i pasti che restano in versione più digeribile. Sulla bilancia è gas e acqua, non grasso.</div>
+  ${hint2("L'AI guarda le ultime 48 ore e riscrive i pasti che restano in versione più digeribile.","Sulla bilancia è gas e acqua, non grasso.")}
   ${mealSelHtml("bloatTarget",di)}
   <div class="mtools"><button class="btn small" onclick="bloatSOS(${di})">Alleggerisci i pasti</button></div>
   
@@ -7392,7 +7469,7 @@ function renderTools(){
   // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
 
   h+=`<div class="card"><h2>Bilanciamento predittivo</h2>
-  <div class="hint">Lo sgarro si gestisce <b>prima</b>. Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano.</div>
+  ${hint2("Lo sgarro si gestisce <b>prima</b>.","Dici quando e cosa mangerai; l'AI mette da parte quelle calorie con piccoli tagli sui pasti che restano. Le proteine non si toccano.")}
   <label>Quando sarà l'occasione?</label>
   <div class="row2"><select id="predDay" onchange="predFillMeals()">${(function(){let o="";for(let k=di;k<7;k++){if(PLAN[k])o+=`<option value="${k}">${PLAN[k].day}${k===di?" (oggi)":""}</option>`;}return o;})()}</select>
   <select id="predMeal"></select></div>
@@ -7460,7 +7537,7 @@ function renderTools(){
   <div class="aibox" id="menuOut" style="display:none"></div></div>`;
   // 🗺️ Piatti tipici del posto in cui ti trovi
   h+=`<div class="card"><h2>Piatti tipici di dove sei</h2>
-  <div class="hint">In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare. La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.</div>
+  ${hint2("In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare.","La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.")}
   ${mealSelHtml("geoTarget",di)}
   <div class="btngrid2">
     <button class="btn small" onclick="geoDishes(${di})">📍 Usa la mia posizione</button>
@@ -7552,7 +7629,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   h+=`<div class="card chart"><div class="cht">Macronutrienti</div><canvas id="chAnMacro" height="160"></canvas></div>`;
   h+=`<div class="card">
   <button class="btn" style="width:100%" onclick="askProgress()">Chiedi un'analisi dei progressi</button>
-  <div class="hint">Considera pasti, resoconti settimanali, sonno/relax/umore e allenamenti del periodo scelto sopra. Solo suggerimenti: nessun parametro viene cambiato in automatico.</div>
+  ${hint2("Considera pasti, resoconti settimanali, sonno/relax/umore e allenamenti del periodo scelto sopra.","Solo suggerimenti: nessun parametro viene cambiato in automatico.")}
   <div class="aibox" id="anAI" style="display:none"></div></div>`;
   // 🎯 Obiettivo e proiezione (curva non lineare vs peso reale)
   h+=`<div class="card"><h2>Obiettivo e proiezione</h2>
@@ -8101,12 +8178,12 @@ window.delSnap=async i=>{const list=snapshots(),x=list[i];if(!x)return;
   list.splice(i,1);
   try{if(list.length)localStorage.setItem(SNAP_KEY,JSON.stringify(list));else localStorage.removeItem(SNAP_KEY);}
   catch(e){return dlgAlert("Eliminazione non riuscita: "+e.message);}
-  render("io");toast("Copia eliminata ✓");};
+  render(cur);toast("Copia eliminata ✓");};
 window.delAllSnaps=async ()=>{const n=snapshots().length;
   if(!n)return dlgAlert("Non c'è nessuna copia da eliminare.");
   if(!await dlgConfirm("Elimino TUTTE le copie di sicurezza ("+n+")?\n\nI dati attuali non vengono toccati, ma non potrai più tornare indietro a uno stato precedente.",{ok:"Elimina tutte",ko:"No"}))return;
   try{localStorage.removeItem(SNAP_KEY);}catch(e){return dlgAlert("Eliminazione non riuscita: "+e.message);}
-  render("io");toast("Copie eliminate ✓");};
+  render(cur);toast("Copie eliminate ✓");};
 window.delWeek=async i=>{if(await dlgConfirm("Eliminare questa settimana dallo storico?",{ok:"Elimina",ko:"No"})){S.history.splice(i,1);save();render("storico");}};
 window.waWeek=()=>{const w=weekSummary();
   let t="📊 *Recap settimana*%0A";
@@ -8230,7 +8307,12 @@ function macroLine(o){
 window.wizSet=(di,mi,f,v)=>{if(f==="d")v=cap(String(v||"").trim());
   const o=WIZ.plan[di].meals[mi].o[0];
   if(f==="d")o.d=v;else WIZ.plan[di].meals[mi][f]=v;
-  const el=document.getElementById("wzTot"+di);if(el)el.textContent=wizDayTot(di);};
+  const el=document.getElementById("wzTot"+di);if(el)el.textContent=wizDayTot(di);
+  const tg=document.getElementById("wzTgt"+di);if(tg)tg.textContent=wizDayTarget(di);
+  /* Cambi il piatto → kcal, macro e qualità si ricalcolano DA SOLI:
+     niente pulsante Stima da ricordarsi, il totale del giorno e il
+     raggiungimento del target restano sempre veri. */
+  if(f==="d"&&aiOn())wizEstim(di,mi);};
 /* 🤖 Stima: calorie e macro li calcola l'AI dal testo del piatto, così i numeri
    corrispondono sempre a quello che c'è scritto (niente valori inventati a mano). */
 window.wizEstim=async(di,mi,oi)=>{
@@ -8239,8 +8321,15 @@ window.wizEstim=async(di,mi,oi)=>{
   if(!o.d||!o.d.trim())return dlgAlert("Scrivi prima cosa contiene il pasto.");
   const cell=document.getElementById("wzv"+di+"_"+mi+(oi?"_"+oi:""));
   if(cell)cell.textContent="stimo…";
+  /* Un pasto che NON prepari tu (libero, mensa, ristorante) non può avere
+     grammature precise: la descrizione resta INDICATIVA e corta, nello
+     stesso stile sintetico del resto del piano. Prima queste modifiche
+     producevano testi enormi che sfondavano la card. */
+  const fuori=(WIZ.plan[di].meals[mi].type==="free"||WIZ.plan[di].meals[mi].type==="mensa");
   try{
-    const t=await aiAsk('Stima i valori nutrizionali REALI di: "'+o.d.replace(/"/g,"'")+'". Se mancano le grammature, assumi porzioni italiane tipiche e RISCRIVI la descrizione includendole. Rispondi SOLO JSON: {"desc":"descrizione con grammature","kcal":n,"prot":n,"carb":n,"gras":n,"fibre":n,"zuccheri":n}');
+    const t=await aiAsk('Stima i valori nutrizionali REALI di: "'+o.d.replace(/"/g,"'")+'". '+(fuori
+      ?'Questo pasto NON lo prepara la persona (mensa/fuori casa): RISCRIVI la descrizione in forma INDICATIVA e sintetica, massimo 12 parole, componenti separate da virgole, SENZA grammature precise. '
+      :'Se mancano le grammature, assumi porzioni italiane tipiche e RISCRIVI la descrizione includendole, sintetica, componenti separate da virgole. ')+'Rispondi SOLO JSON: {"desc":"descrizione","kcal":n,"prot":n,"carb":n,"gras":n,"fibre":n,"zuccheri":n}');
     const j=parseAIJSON(t);
     Object.assign(o,{d:j.desc||o.d,k:Math.round(j.kcal)||0,p:Math.round(j.prot)||0,
       c:Math.round(j.carb)||0,f:Math.round(j.gras)||0,
@@ -8848,6 +8937,14 @@ function qStreak(){
     n++;}
   return n;}
 function wizDayTot(di){let k=0,p=0;WIZ.plan[di].meals.forEach(m=>{k+=m.o[0].k;p+=m.o[0].p;});return "~"+k+" kcal · ~"+p+" g prot";}
+function wizDayTarget(di){
+  /* Raggiungimento del giorno rispetto al target: si capisce a colpo
+     d'occhio se il giorno "ci sta", senza fare i conti a mente. */
+  let k=0,p=0;WIZ.plan[di].meals.forEach(m=>{k+=m.o[0].k;p+=m.o[0].p;});
+  const tk=dayTargetK(),tp=dayTargetP();
+  const pk=tk?Math.round(k/tk*100):0;
+  const okK=pk>=95&&pk<=105,okP=p>=tp;
+  return (okK?"✓":"◦")+" "+pk+"% delle "+tk+" kcal target · "+(okP?"✓":"◦")+" proteine "+p+" su "+tp+" g"+((okK&&okP)?" — giornata in linea":"");}
 window.wizDelMealAsk=async (di,mi)=>{const m=WIZ.plan[di].meals[mi];
   if(await dlgConfirm("Rimuovo il pasto «"+(m.n||"")+"» di "+WIZ.plan[di].day+"?\n\n"+((m.o[0]&&m.o[0].d)||"").slice(0,80)))wizDelMeal(di,mi);};
 window.wizDelOptAsk=async (di,mi,oi)=>{const a=WIZ.plan[di].meals[mi].o[oi];
@@ -8923,8 +9020,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
       h+=`<div class="dayname">${esc(d.day)}</div><div class="dayctx">${esc(d.ctx)}</div>`;
       d.meals.forEach((m,mi)=>{const o=m.o[0];
         h+=`<div class="meal"><div class="mbody">
-        <div class="row3"><div><label>Fascia</label><select onchange="wizSet(${di},${mi},'n',this.value)">${SLOTS.map(s=>`<option ${m.n===s?"selected":""}>${s}</option>`).join("")}</select></div>
-        <div><label>Ora</label><input type="text" value="${esc(m.t)}" onchange="wizSet(${di},${mi},'t',this.value)"></div>
+        <div class="grid2"><div><label>Fascia</label><select onchange="wizSet(${di},${mi},'n',this.value)">${SLOTS.map(s=>`<option ${m.n===s?"selected":""}>${s}</option>`).join("")}</select></div>
         <div><label>Tipo</label><select onchange="wizSet(${di},${mi},'type',this.value)"><option value="norm" ${m.type==="norm"?"selected":""}>normale</option><option value="free" ${m.type==="free"?"selected":""}>libero</option><option value="mensa" ${m.type==="mensa"?"selected":""}>mensa</option></select></div></div>
         <label>Piatto</label><textarea onchange="wizSet(${di},${mi},'d',this.value)">${esc(o.d)}</textarea>
         <div class="wzval" id="wzv${di}_${mi}">${macroLine(o)}</div>
@@ -8944,10 +9040,10 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
           </div></div>`;});
         h+=`        </div></div>`;});
       h+=`<div class="mtools"><button class="btn ghost small" onclick="wizAddMeal(${di})">+ pasto</button></div>
-      <div class="daytotal">Totale: <span id="wzTot${di}">${wizDayTot(di)}</span></div>
+      <div class="daytotal">Giorno: <span id="wzTot${di}">${wizDayTot(di)}</span></div>
+      <div class="hint" id="wzTgt${di}">${wizDayTarget(di)}</div>
       <div class="mtools" style="margin-bottom:14px">
         <button class="btn small" onclick="wizBalance(${di})">⚖️ Bilancia la giornata con l'AI</button>
-        <span class="hint" style="margin:0">target ~${dayTargetK()} kcal · ${dayTargetP()} g prot</span>
       </div>`;});
     h+=`<div class="card"><div class="mtools">
     ${WIZ.editOnly?"":'<button class="btn ghost" onclick="wizNext(3)">← Rigenera</button>'}
@@ -8959,7 +9055,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
 
 /* ═══ PAGINA GUIDA (statica) ═══ */
 function renderGuida(){document.getElementById("pg-guida").innerHTML=`
-<div class="card"><h2>Tutto quello che Nutry sa fare</h2>
+<div class="card guida-sec"><details class="gdet" open><summary><h2>Tutto quello che Nutry sa fare</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="hint">Stai usando <b>Nutry ${APP_VER}</b>. Questa è la mappa completa delle funzioni: le voci con <span class="newtag">NEW</span> sono le novità delle versioni più recenti. Ogni funzione è poi spiegata in dettaglio nel resto della guida.</div>
 <table class="gtable">
 <tr><td>🧭</td><td><b>Percorso di benvenuto</b> — otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La <b>chiave Gemini si aggancia subito al passo 3</b><span class="newtag">NEW</span>, così tutti i passi successivi possono già usare l'AI.</td></tr>
@@ -9023,9 +9119,9 @@ function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <tr><td>🔄</td><td><b>Aggiornamento automatico</b> — a ogni avvio l'app controlla se c'è una versione nuova e si aggiorna da sola, senza gesti manuali; i dati non vengono toccati.<span class="newtag">NEW</span></td></tr>
 <tr><td>📱</td><td><b>Compatibilità iOS</b> — dialoghi interni all'app al posto di quelli di sistema: conferme, salvataggi e cancellazioni funzionano anche come web-app sulla schermata Home.<span class="newtag">NEW</span></td></tr>
 <tr><td>🔒</td><td><b>Privacy</b> — tutto vive sul tuo dispositivo: niente account, niente server, chiave AI e Drive solo tuoi; lo sviluppatore non vede nulla.</td></tr>
-</table></div>
+</table></div></details></div>
 
-<div class="card"><h2>Come funziona il sistema</h2>
+<div class="card guida-sec"><details class="gdet"><summary><h2>Come funziona il sistema</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="hint">Se leggi una cosa sola, leggi questa: spiega il modello su cui è costruita tutta l'app.</div>
 
 <div class="gsec">1 · Due numeri, non uno</div>
@@ -9066,9 +9162,9 @@ Le trovi tutte nella sezione <b>📐 Regole</b>, dove sono modificabili — e co
 <div class="gsec">7 · I tuoi dati</div>
 <p style="font-size:14.5px;line-height:1.55">Tutto vive sul telefono, senza account e senza server di Nutry. Il backup su Drive è facoltativo e finisce sul <b>tuo</b> account Google; la chiave AI resta su questo dispositivo. <b>Lo sviluppatore non ha accesso a nulla</b>: né ai dati, né al Drive, né alla chiave — non esiste un posto dove potrebbero arrivare.
 Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: una riga per giorno con pianificato, mangiato, macro completi, sport, sonno, relax, umore, acqua, evento, periodo di dieta, ribilanciamenti e recuperi. In CSV per il foglio di calcolo, oppure lasci che sia Nutry a cercarci i <b>pattern</b>. Il backup completo dell'app, quello che serve per rimettere tutto su un altro telefono, si scarica invece da <b>Io → Backup</b>.</p>
-</div>
+</div></details></div>
 
-<div class="card"><h2>Le pagine</h2><table class="gtable">
+<div class="card guida-sec"><details class="gdet"><summary><h2>Le pagine</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
 <tr><td>☀️</td><td><b>Oggi</b> — bilancio del giorno (anello con il <b>deficit</b> in grande e <b>Pianificato</b> = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.</td></tr>
 <tr><td>🍽️</td><td><b>Piano</b> — tutta la settimana con i sei comandi: ✏️ gestisci · ${seasonEmoji()} alternativa stagionale · 📋 ripeti questionario · ✨ genera nuovo piano · 📸 importa da foto · 🔮 stima risultati; più opzioni, orari e alternative per ogni pasto.</td></tr>
 <tr><td>🛒</td><td><b>Spesa</b> — checklist che si costruisce e si aggiorna da sola dal piano, ricerca sul sito del tuo supermercato, alternative AI, invio WhatsApp.</td></tr>
@@ -9076,10 +9172,11 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>📚</td><td><b>Storico</b> — recap settimanale, riepilogo esteso, mesi e settimane passate, <b>pesate e biometriche</b> in tabella (data, kg, Δ, %MG, %MM, pressione, SpO₂) con grafico dell'andamento, analisi ed esportazione, <b>Riepilogo esteso</b> (medie settimanali o mensili di tutta la storia, in un riquadro scorrevole), <b>Mesi passati</b> e <b>Settimane passate</b> sempre modificabili, grafici, report AI, stampa PDF.</td></tr>
 <tr><td>🔑</td><td><b>Codice piano</b> (in Regole → Il piano, o nell'ultimo passo del benvenuto): carica un piano già pronto. <b>00000000</b> è la dieta standard con cui è nata Nutry — mediterranea, cinque pasti, mensa il martedì e il giovedì.</td></tr>
 <tr><td>📐</td><td><b>Regole</b> — la configurazione del sistema: fabbisogno, formula degli allenamenti, soglie di ribilanciamento e recupero, obiettivo proteine, caratteristiche alimentari e gestione del piano.</td></tr>
-<tr><td>👤</td><td><b>Io</b> — quattro schede distinte con salvataggi separati: <b>Anagrafica</b> (nome, genere, nascita, altezza: cambiano di rado), <b>Nuova pesata</b> (peso, massa grassa e muscolare, pressione, SpO₂: ogni salvataggio aggiunge una riga allo storico), <b>Obiettivi</b> (peso, acqua, allenamenti) e <b>Attività di base</b> (moltiplicatore e passi base). Poi periodi, vacanza, percorso guidato, chiave AI, Drive, backup, ripristino, pulizia selettiva e segnalazioni.</td></tr>
-<tr><td>🧭</td><td><b>Percorso guidato</b> (in Piano) — lo stesso percorso di benvenuto, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. "Modifica il piano attuale" per ritocchi a mano. Sempre da validare con un nutrizionista.</td></tr></table></div>
+<tr><td>👤</td><td><b>Io</b> — solo il tuo corpo e i tuoi obiettivi: <b>Anagrafica</b>, <b>Nuova pesata</b> (ogni salvataggio aggiunge una riga allo storico), <b>Obiettivi</b>, <b>Attività di base</b>, promemoria, vacanza e percorso guidato.</td></tr>
+<tr><td>⚙️</td><td><b>Sistema</b> — tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.<span class="newtag">NEW</span></td></tr>
+<tr><td>🧭</td><td><b>Percorso guidato</b> (in Piano) — lo stesso percorso di benvenuto, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. "Modifica il piano attuale" per ritocchi a mano. Sempre da validare con un nutrizionista.</td></tr></table></div></details></div>
 
-<div class="card"><h2>I simboli</h2>
+<div class="card guida-sec"><details class="gdet"><summary><h2>I simboli</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">Sui pasti</div><table class="gtable">
 <tr><td>○ ✓ ✗</td><td>Tocca il cerchio per ciclare: <b>da fare → mangiato → saltato</b>. Solo i ✓ contano nel bilancio; i ✗ restano segnati come saltati.</td></tr>
 <tr><td>📍→</td><td>I due menu spostano il pasto in un altro <b>giorno</b> e/o <b>fascia</b> (anche pranzo↔cena dello stesso giorno). Il badge rosso ricorda da dove viene.</td></tr>
@@ -9123,17 +9220,17 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>📅</td><td>Fine settimana: l'archiviazione è <b>automatica</b> con quello che c'è, senza bottoni da premere. Le settimane chiuse restano <b>sempre modificabili</b> da Storico → Settimane passate → ✏️.</td></tr>
 <tr><td>🔗</td><td><b>Link di ricerca della spesa</b> (in cima a Spesa): quasi tutti i supermercati online richiedono prima la scelta del negozio, quindi non c'è un link universale. Fai una ricerca sul sito del TUO negozio, copia l'indirizzo e incollalo sostituendo la parola cercata con <b>{q}</b>: da lì ogni 🔗 della lista cerca direttamente nel tuo supermercato.</td></tr>
 <tr><td>🛒</td><td><b>Prodotti in lista</b> (in Spesa): arrivano tutti dal piano, compresi gli ingredienti dei pasti che modifichi o aggiungi tu — la lista si riallinea da sola. Per una cosa fuori piano usa il ＋ accanto alla categoria.</td></tr>
-</table></div>
+</table></div></details></div>
 
 
 
-<div class="card"><h2>Backup & aggiornamenti</h2>
+<div class="card guida-sec"><details class="gdet"><summary><h2>Backup & aggiornamenti</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="hint"><b>Dove sono i dati:</b> nel browser di questo dispositivo (non nel file). Per questo <b>aggiornare l'app non li tocca</b>: quando pubblichi una nuova versione su Git, riapri e ritrovi tutto (la versione in uso è scritta in Io).<br><br>
 <b>Drive</b> (Io → Sincronizzazione): dopo <b>"Connetti e sincronizza"</b> telefono e PC condividono gli stessi dati automaticamente (l'app carica e scarica da sola). <b>Disconnetti e desincronizza</b> = stacca solo questo dispositivo · <b>Elimina backup</b> = elimina il backup remoto. I dati vivono in una cartella privata riservata a quest'app (non tra i tuoi file visibili di Drive): è una scelta di sicurezza, così nessun'altra app o cartella tua può leggerli o mescolarsi.<br><br>
 <b>In locale</b>: Esporta/Importa = file .json sul dispositivo · Cancella = azzera tutto e ricomincia.<br><br>
-<b>Se cambi indirizzo del sito</b>: i dati non seguono da soli — Esporta su Drive dal vecchio, Importa dal nuovo.</div></div>
+<b>Se cambi indirizzo del sito</b>: i dati non seguono da soli — Esporta su Drive dal vecchio, Importa dal nuovo.</div></div></details></div>
 
-<div class="card"><h2>Configurazione API: Google Drive e Gemini</h2>
+<div class="card guida-sec"><details class="gdet"><summary><h2>Configurazione API: Google Drive e Gemini</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">Parte 1 — Google Drive</div>
 <div class="hint">
 <b>A) Progetto e API</b><br>
@@ -9164,12 +9261,12 @@ Finché l'app è in "Testing", Google blocca le email non autorizzate:<br>
 1. Vai su <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a><br>
 2. Clicca "Crea chiave"<br>
 3. Scegli o crea un progetto<br>
-4. Copia la chiave e incollala in <b>Io → Motore AI (Gemini)</b>
+4. Copia la chiave e incollala in <b>⋯ → Sistema → Motore AI (Gemini)</b>
 </div>
-<div class="hint" style="margin-top:6px;color:var(--rosso)">⚠️ Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.</div></div>
+<div class="hint" style="margin-top:6px;color:var(--rosso)">⚠️ Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.</div></div></details></div>
 
 <div class="card"><div class="hint">⚠️ Le stime di calorie, proteine e consumi sono <b>indicative</b>: l'app è un diario, non un medico. Il piano va validato col tuo professionista.</div>
-<button class="btn ghost small" onclick="show('oggi')">← Torna a Oggi</button></div>`;}
+</div>`;}
 
 /* Composizione in kg derivata da peso + percentuali. Il "resto" della massa
    magra non è "liquidi": è acqua extra-muscolare, ossa e organi. */
@@ -9278,6 +9375,24 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     <div><label class="ru">dalle ore</label><input type="number" id="nfAlle" min="18" max="24" value="${notifCfg().alle}" onchange="notifOre()"></div>
     <div><label class="ru">alle ore</label><input type="number" id="nfDalle" min="4" max="11" value="${notifCfg().dalle}" onchange="notifOre()"></div>
   </div></div>`;
+  h+=`<div class="gsec">Situazioni</div>`;
+  h+=`<div class="card"><h2>Modalità vacanza</h2>
+  <button class="btn ${S.ui.vacanza?"warn":"ghost"}" onclick="toggleVacanza()">${S.ui.vacanza?"Disattiva vacanza":"Attiva vacanza"}</button>
+  <div class="hint">In vacanza il deficit non viene giudicato e la serie 🔥 è congelata: l'app diventa un semplice diario.</div></div>`;
+  h+=periodsCardHTML(true);
+  h+=`<div class="card"><h2>Rifai il percorso guidato</h2>
+  ${hint2("Ripercorri i nove passi con i dati che hai già inserito.",
+   "Serve quando cambia qualcosa di grosso: obiettivo, abitudini, allenamenti. Nulla viene cancellato — trovi tutti i campi già compilati e cambi solo ciò che serve.")}
+  <div class="mtools"><button class="btn ghost small" onclick="restartOnboarding()">Ricomincia il percorso</button></div></div>`;
+  h+=`<div class="card"><h2>Sistema</h2>
+  <div class="hint">Chiave AI, Google Drive, backup, pulizia dei dati e interfaccia si sono spostati in una pagina dedicata: tutto il tecnico in un posto solo, il profilo resta sul <b>tuo</b> corpo.</div>
+  <button class="btn ghost small" onclick="show('sistema')">Apri Sistema ›</button></div>`;
+  el.innerHTML=h;}
+/* ═══ PAGINA SISTEMA ═════════════════════════════════════════════════
+   Il profilo parlava di te e, in mezzo, di chiavi API, backup e
+   telemetria. Ora il tecnico vive qui: Io resta corpo e obiettivi. */
+function renderSistema(){const el=document.getElementById("pg-sistema");const p=S.profile;
+  let h=`<div class="gsec">Interfaccia</div>`;
   h+=`<div class="card"><h2>Quanto vuoi vedere</h2>
   ${hint2("Tre livelli di dettaglio. <b>Nessuna funzione viene tolta</b>: cambia solo cosa è in vista.",
    "Con «Essenziale» restano pasti, spesa e peso, e il bilancio mostra i quattro numeri che contano. Con «Completo» tornano macro, fibre e fasi della dieta. Con «Esperto» compaiono anche tutte le formule di calcolo. Tutto il resto resta comunque raggiungibile dall'assistente e dal pulsante ⋯.")}
@@ -9293,11 +9408,6 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     ${DENS_COSA.expert.map(x=>`<div class="dline ${densMin("expert")?"on":""}">${esc(x)}${densMin("expert")?"":` <span class="dtag2">Esperto</span>`}</div>`).join("")}
   </div>
   <div class="hint">Le voci in grigio non sono state tolte: compaiono passando al livello indicato, e tutto resta comunque raggiungibile dall'assistente.</div></div>`;
-  h+=`<div class="gsec">Situazioni</div>`;
-  h+=`<div class="card"><h2>Modalità vacanza</h2>
-  <button class="btn ${S.ui.vacanza?"warn":"ghost"}" onclick="toggleVacanza()">${S.ui.vacanza?"Disattiva vacanza":"Attiva vacanza"}</button>
-  <div class="hint">In vacanza il deficit non viene giudicato e la serie 🔥 è congelata: l'app diventa un semplice diario.</div></div>`;
-  h+=periodsCardHTML(true);
   h+=`<div class="gsec">Impostazioni</div>`;
   h+=`<div class="card${aiOn()?"":" nota"}"><h2>Motore AI (Gemini)</h2>
   ${aiOn()?"":`${hint2("⚠️ <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto.",
@@ -9398,10 +9508,6 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   ${hint2(((S.tel.url||TEL_URL)?"Con «Sì, invia» parte da solo una volta al giorno: non devi fare nulla.":"L'invio automatico non è ancora attivo: per ora puoi mandarlo a mano con il pulsante qui sopra."),
    "Il pulsante ✉️ apre la tua app di posta con il pacchetto già scritto: parte solo se premi invia. Serve se vuoi segnalare qualcosa e allegare i numeri d'uso.")}
   </div>`;
-  h+=`<div class="card"><h2>Rifai il percorso guidato</h2>
-  ${hint2("Ripercorri i nove passi con i dati che hai già inserito.",
-   "Serve quando cambia qualcosa di grosso: obiettivo, abitudini, allenamenti. Nulla viene cancellato — trovi tutti i campi già compilati e cambi solo ciò che serve.")}
-  <div class="mtools"><button class="btn ghost small" onclick="restartOnboarding()">Ricomincia il percorso</button></div></div>`;
   h+=`<div class="gsec">Aiuto</div>`;
   h+=`<div class="card"><h2>Segnala un bug o un'idea</h2>
   <div class="hint">Hai trovato qualcosa che non funziona, o ti è venuta un'idea per migliorare Nutry? Scrivila qui: si apre la tua email già pronta per lo sviluppatore.</div>
@@ -9420,6 +9526,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <button class="btn" onclick="sendBug()">✉️ Invia allo sviluppatore</button></div>`;
   // AI
   el.innerHTML=h;}
+
 window.toggleVacanza=()=>{
   S.ui.vacanza=!S.ui.vacanza;save();
   /* si ridisegna la pagina in cui sei: da «La giornata» non cambiava nulla */
@@ -9550,7 +9657,7 @@ window.delWeight=async i=>{
 window.saveAI=()=>{
   S.ai.key=document.getElementById("gKey").value.trim();
   S.ai.model=document.getElementById("gModel").value;
-  save();dlgAlert(S.ai.key?"Impostazioni Gemini salvate: funzioni AI attive.":"Chiave rimossa.");render("io");};
+  save();dlgAlert(S.ai.key?"Impostazioni Gemini salvate: funzioni AI attive.":"Chiave rimossa.");render(cur);};
 window.exportData=()=>{const blob=new Blob([JSON.stringify(S)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
   a.download="diario_backup_"+iso(new Date())+".json";a.click();};
@@ -9615,7 +9722,7 @@ window.driveConnect=()=>{
       scope:"https://www.googleapis.com/auth/drive.appdata",
       callback:async t=>{driveSaveToken(t);S.drive.on=true;save();
         document.getElementById("driveStatus").textContent="✅ Connesso. Sincronizzo…";
-        await driveSyncOnStart();render("io");}});
+        await driveSyncOnStart();render(cur);}});
     tokenClient.requestAccessToken();});};
 async function driveFind(){
   const r=await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%27diario_backup.json%27&fields=files(id,modifiedTime)",
@@ -9754,7 +9861,7 @@ window.driveDelete=async(silent)=>{
     for(const f of all)
       await fetch("https://www.googleapis.com/drive/v3/files/"+f.id,{method:"DELETE",headers:{Authorization:"Bearer "+DTOKEN}});
     if(!silent){const st=document.getElementById("driveStatus");if(st)st.textContent="🗑️ Backup eliminati da Drive ("+all.length+").";
-      render("io");dlgAlert("Eliminati da Drive: "+all.length+" file (backup principale e copie datate).");}
+      render(cur);dlgAlert("Eliminati da Drive: "+all.length+" file (backup principale e copie datate).");}
   }catch(e){if(!silent)dlgAlert("Errore eliminazione: "+e.message);}};
 /* Tutti i file dell'app su Drive: backup principale + copie datate */
 async function driveListAll(){
@@ -9866,7 +9973,7 @@ function errorCardHTML(where,e){
   <div class="mtools" style="margin-top:10px">
     <button class="btn small" onclick="location.reload()">🔄 Ricarica</button>
     <button class="btn ghost small" onclick="show('oggi')">🏠 Vai a Oggi</button>
-    <button class="btn ghost small" onclick="show('io')">🛟 Ripristino e backup</button>
+    <button class="btn ghost small" onclick="show('sistema')">🛟 Ripristino e backup</button>
     <button class="btn ghost small" onclick="reportCrash('${esc(where)}',${JSON.stringify((e&&e.message)||String(e))})">✉️ Segnala</button>
   </div></div>`;}
 window.reportCrash=(where,msg)=>{
@@ -9887,7 +9994,7 @@ function render(p){
   setTimeout(()=>{const e=document.getElementById("aiSpin");
     if(e)e.classList.toggle("on",AIBUSY>0);},0);
   const M={punto:renderPunto,oggi:renderOggi,piano:renderPiano,spesa:renderSpesa,sport:renderSport,
-  storico:renderStorico,io:renderIo,regole:renderRegole,tools:renderTools,benvenuto:renderBenvenuto,guida:renderGuida,setup:renderSetup};
+  storico:renderStorico,io:renderIo,sistema:renderSistema,regole:renderRegole,tools:renderTools,benvenuto:renderBenvenuto,guida:renderGuida,setup:renderSetup};
   const fn=M[p];if(!fn)return;
   safeRender(p,fn);}
 

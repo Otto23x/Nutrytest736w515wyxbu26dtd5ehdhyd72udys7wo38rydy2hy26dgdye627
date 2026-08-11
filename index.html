@@ -759,6 +759,28 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .wkhead{display:flex;gap:8px;margin:2px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--grigio)}
 .wkhead span{min-width:0}
 .btngrid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 6px}
+/* Righe-azione nei pannelli: titolo + spiegazione, tutta la riga è toccabile */
+.shrow{display:block;width:100%;text-align:left;background:var(--cremina,#faf8f4);border:1px solid var(--linea);
+  border-radius:14px;padding:12px 14px;margin:8px 0;cursor:pointer;font:inherit;color:inherit}
+.shrow:active{transform:scale(.985)}
+.shrow b{display:block;color:var(--bosco);font-size:14.5px;margin-bottom:2px}
+.shrow small{display:block;color:var(--grigio);font-size:12.5px;line-height:1.45}
+/* ── Micro-animazioni ─────────────────────────────────────────────
+   Piccole, veloci, mai bloccanti. Il blocco vive dentro una media
+   query: chi ha "riduci animazioni" sul telefono non le vede. */
+@media (prefers-reduced-motion: no-preference){
+  .chk.c{animation:chkpop .32s var(--ease)}
+  @keyframes chkpop{0%{transform:scale(.6)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .qwrap{animation:qfade .45s ease}
+  @keyframes qfade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+  .meal{transition:box-shadow .25s,border-color .25s}
+  .card{transition:box-shadow .3s}
+  .btn:active,.ibtn:active,.shrow:active{transition:transform .08s}
+  .hungry span{transition:transform .15s var(--ease),background .2s}
+  .hungry span:active{transform:scale(1.25)}
+  .sheetbox{transition:transform .32s var(--ease)}
+  .badge{animation:qfade .4s ease}
+}
 .btngrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 6px}
 .btngrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 6px}
 .btngrid4 .btn{margin:0;width:100%;padding:9px 4px;font-size:11.5px;white-space:normal;line-height:1.2}
@@ -778,7 +800,6 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .hungry span.on{background:var(--zaff);border-color:var(--zaff)}
 body.onb .tabs{display:none}
 body.onb{padding-bottom:0}
-.newtag{display:inline-block;background:var(--bosco);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 6px;vertical-align:2px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -972,7 +993,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.39.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.42.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /* ⚠️⚠️⚠️  SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  ⚠️⚠️⚠️
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2446,7 +2467,7 @@ window.assistSay=(t)=>{
       return assistRender();}
     ASKLOG.push({t:"Non ho capito, e senza chiave AI non posso ragionarci. Prova con una parola più semplice — «fame», «spesa», «peso» — oppure apri la <b>Guida</b>."});
     return assistRender();}
-  ASKLOG.push({t:'<span class="askwait">Ci penso…</span>'});assistRender();
+  ASKLOG.push({wait:1,t:'<span class="askwait">Ci penso…</span>'});assistRender();
   /* L'AI non risponde più solo a parole: classifica il bisogno e, se
      esiste lo strumento giusto, la risposta arriva con il bottone che
      ci porta. La chat è un centralino, non un oracolo. */
@@ -2455,18 +2476,39 @@ window.assistSay=(t)=>{
   const storia=ASKLOG.slice(0,-2).slice(-6)
     .map(m=>(m.me?"Utente: ":"Assistente: ")+String(m.t).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim().slice(0,180))
     .filter(x=>x.length>10).join(" || ");
+  /* ── Domande a step ────────────────────────────────────────────
+     Se il bisogno è ambiguo («ho un problema col cibo» può voler dire
+     fame, sgarro, spesa vuota…), l'AI non tira a indovinare: fa UNA
+     domanda breve con 2-4 opzioni toccabili. L'opzione toccata rientra
+     nel giro come messaggio, con tutta la storia dietro. Massimo due
+     giri di chiarimento, poi si sceglie comunque uno strumento. */
+  /* conta i chiarimenti consecutivi: salta i messaggi dell'utente e il
+     segnaposto "Ci penso…", si ferma alla prima risposta vera */
+  const giri=(function(){let n=0;for(let i=ASKLOG.length-1;i>=0;i--){const m=ASKLOG[i];if(m.me||m.wait)continue;if(m.ask)n++;else break;}return n;})();
   aiAsk("Sei l'assistente dell'app Nutry e rispondi in italiano, in massimo 3 frasi, con tono pratico e amichevole. "+
     "Rispondi SOLO su Nutry, su come è configurata per questa persona e su cosa può fare con l'app. "+
     "Questo è l'elenco degli strumenti e delle sezioni, con il loro nome esatto: "+
     JSON.stringify(ASSIST_MAP.map(r=>r.t))+". "+
     "Se il bisogno espresso si risolve con UNO di questi, indicane il nome esatto nel campo tool; se nessuno c'entra davvero, tool resta vuoto. "+
+    "SE il bisogno è ambiguo tra più strumenti o manca un dettaglio decisivo per scegliere, NON indovinare: "+
+    'lascia tool vuoto e compila ask (una sola domanda, max 12 parole) e opts (2-4 opzioni brevissime, max 5 parole ciascuna, concrete e mutuamente esclusive). '+
+    "Domande di chiarimento già fatte in questo giro: "+giri+" su 2 massime"+(giri>=2?" — LIMITE RAGGIUNTO: ora scegli lo strumento più probabile, ask deve restare vuota":"")+". "+
     "Contesto: "+assistContext()+
     (storia?(" Conversazione fin qui: "+storia+"."):"")+
-    ' Domanda: «'+t+'». Rispondi SOLO JSON: {"reply":"2-3 frasi","tool":"nome esatto o stringa vuota"}')
+    ' Messaggio: «'+t+'». Rispondi SOLO JSON: {"reply":"2-3 frasi o vuota se fai una domanda","tool":"nome esatto o stringa vuota","ask":"domanda o stringa vuota","opts":["…"] o []}')
   .then(r2=>{
     ASKLOG.pop();
-    let reply="",ti=-1;
-    try{const j=parseAIJSON(r2);reply=String(j.reply||"").trim();ti=assistToolByLabel(j.tool);}catch(_){}
+    let reply="",ti=-1,ask="",opts=[];
+    try{const j=parseAIJSON(r2);
+      reply=String(j.reply||"").trim();ti=assistToolByLabel(j.tool);
+      ask=String(j.ask||"").trim();
+      opts=(Array.isArray(j.opts)?j.opts:[]).map(x=>String(x).trim()).filter(Boolean).slice(0,4);
+    }catch(_){}
+    if(ask&&opts.length>=2&&giri<2){
+      /* giro di chiarimento: domanda + opzioni toccabili nel messaggio */
+      const chips=opts.map(o=>`<button class="askchip" onclick="assistSay('${o.replace(/'/g,"\\'")}')">${esc(o)}</button>`).join("");
+      ASKLOG.push({ask:1,t:(reply?esc(reply)+"<br>":"")+"<b>"+esc(ask)+"</b><div class=\"askchips\" style=\"margin-top:8px\">"+chips+"</div>"});
+      return assistRender();}
     if(!reply)reply=String(r2||"").trim();
     let msg=esc(reply).replace(/\n/g,"<br>");
     if(ti>-1)msg+='<div style="margin-top:10px"><button class="btn small" onclick="assistGo('+ti+')">Apri: '+esc(ASSIST_MAP[ti].t)+' ›</button></div>';
@@ -2532,9 +2574,9 @@ function mealCard(pdi,mi){
     <div class="mbody">
       <div class="mtop"><span class="mname tap" onclick="editMeal(${pdi},${mi})" title="Tocca per modificare">${esc(dispName)}${st.skip?" (saltato)":""}</span>${
         st.done&&!st.skip
-          ? (function(){const q=qOf(st,o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
-          : ""}</div>
-      <div class="mdesc">${esc(cap(o.d))}</div>
+          ? (function(){const q=qOf(st,o.d)??qPeek(o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
+          : (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="Qualità stimata del piatto in piano">${qDot(q)}${q}%</span>`:"";})()}</div>
+      <div class="mdesc tap" onclick="editMeal(${pdi},${mi})" title="Tocca per modificare">${esc(cap(o.d))}</div>
       <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
   h+=hungryHTML(pdi,mi);
   if(PLAN[pdi].meals[mi].o.length>1&&!st.custom){h+=`<div class="mopts">`+m.o.map((x,oi)=>
@@ -2653,9 +2695,21 @@ window.moveDay=(d,m,v)=>{const st=S.week.days[d].meals[m];st.movedTo=parseInt(v)
 window.moveSlot=(d,m,v)=>{S.week.days[d].meals[m].movedAs=v;applyMove(d,m);};
 window.resetMeal=(d,m)=>{S.week.days[d].meals[m].custom=null;save();render(cur);};
 /* ✏️ Modifica pasto + stima AI */
-window.editMeal=async(d,m)=>{
-  const o=mealOpt(d,m); // funziona anche su pasti modificati/ribilanciati: parte dal testo attuale
-  const nd=await dlgPrompt("Modifica gli ingredienti del pasto (OK anche senza cambiare nulla per ristimare):",o.d);
+window.editMeal=(d,m)=>{
+  /* Pannello con textarea: il pasto si vede TUTTO mentre lo modifichi.
+     La vecchia riga singola tagliava i piatti lunghi. */
+  const o=mealOpt(d,m);
+  sheetShow("Modifica il pasto",`
+    <textarea id="emTxt" rows="5" style="width:100%">${esc(o.d)}</textarea>
+    <div class="hint">Scrivi gli ingredienti come li hai mangiati: kcal e macro si ristimano da sole. Salva anche senza cambiare nulla per ristimare.</div>
+    <div class="mtools" style="margin-top:10px">
+      <button class="btn small" onclick="editMealGo(${d},${m})">Salva e ristima</button>
+      <button class="btn ghost small" onclick="sheetClose()">Annulla</button>
+    </div>`);};
+window.editMealGo=async(d,m)=>{
+  const o=mealOpt(d,m);
+  const nd=(document.getElementById("emTxt")||{}).value;
+  sheetClose();
   if(nd==null||!nd.trim())return;
   let txt=nd.trim();
   /* Pasto fuori casa (libero/mensa): non lo prepari tu, quindi la
@@ -2771,7 +2825,7 @@ window.recModal=(di)=>{
     <div class="btngrid3" style="margin-top:8px">
       <button class="btn small" onclick="recUse(${di},${i})">Usa per il pasto</button>
       <button class="btn ghost small" onclick="recExtra(${di},${i})">+ Extra</button>
-      <button class="btn warn small" onclick="recDel(${di},${i})">🗑 Elimina</button></div></div>`;});
+      <button class="btn warn small" onclick="recDel(${di},${i})">Elimina</button></div></div>`;});
   inner+=`<div class="mtools" style="margin-top:12px"><button class="btn warn" onclick="document.getElementById('recM').remove()">Chiudi</button></div></div>`;
   m.innerHTML=inner;};
 window.recUse=(di,i)=>{const r=S.recipes[i];
@@ -2802,10 +2856,10 @@ function renderSub(){
   SUB.opts.forEach((a,i)=>{inner+=`<button class="optbtn ${SUB.sel===i?"sel":""}" onclick="subPick(${i})">
     <b>${esc(cap(a.sost))}</b><br>${esc(cap(a.piatto))}<br><span style="color:var(--salvia);font-weight:700">~${a.k} kcal · ${a.p}g prot${a.c!=null?" · C "+a.c+"g":""}${a.f!=null?" · Gr "+a.f+"g":""}</span></button>`;});
   inner+=`<div class="mtools" style="margin-top:12px">
-    <button class="btn ghost small" onclick="subMore()">🔄 Altre proposte</button>
-    <button class="btn ghost small" onclick="subPhotoAdd()">📸 Fotografa${SUB.photos.length?" ("+SUB.photos.length+")":""}</button>
-    <button class="btn ghost small" onclick="subPhotoAdd(true)">🖼️ Galleria</button>
-    ${SUB.photos.length?'<button class="btn small" onclick="subPhotoAsk()">🍳 Proponi dalla foto</button>':""}</div>
+    <button class="btn ghost small" onclick="subMore()">Altre proposte</button>
+    <button class="btn ghost small" onclick="subPhotoAdd()">Fotografa${SUB.photos.length?" ("+SUB.photos.length+")":""}</button>
+    <button class="btn ghost small" onclick="subPhotoAdd(true)">Galleria</button>
+    ${SUB.photos.length?'<button class="btn small" onclick="subPhotoAsk()">Proponi dalla foto</button>':""}</div>
   <div class="mtools" style="margin-top:10px">
     <button class="btn" onclick="subOk()">OK</button>
     <button class="btn warn" onclick="closeSub()">Annulla</button></div></div>`;
@@ -3038,7 +3092,7 @@ let LASTDISH=null;
 function dishButtonsHTML(){return '\n\n<div class="btngrid3">'+
   '<button class="btn small" onclick="dishExtra()">+ Extra</button>'+
   '<button class="btn ghost small" onclick="dishReplace()">Selezionato</button>'+
-  '<button class="btn ghost small" onclick="dishSave()">⭐ Salva</button></div>';}
+  '<button class="btn ghost small" onclick="dishSave()">Salva</button></div>';}
 window.dishExtra=()=>{const d=LASTDISH;if(!d)return;
   S.week.days[d.di].extras.push({d:"Piatto creato: "+d.titolo,k:d.kcal,p:d.prot});
   save();render(cur);toast("Aggiunto come extra ✓");};
@@ -3129,10 +3183,10 @@ window.menuSearch=async(di,ancora)=>{
     h+='\n<div class="btngrid3">'+
        '<button class="btn small" onclick="mnUse()">Usa per '+esc(tgt.slot)+'</button>'+
        '<button class="btn ghost small" onclick="mnExtra()">+ Extra</button>'+
-       '<button class="btn ghost small" onclick="mnSave()">⭐ Salva</button></div>'+
+       '<button class="btn ghost small" onclick="mnSave()">Salva</button></div>'+
        '<div class="btngrid2" style="margin-top:6px">'+
-       '<button class="btn ghost small" onclick="menuSearch('+di+',true)">🔄 Altra combinazione</button>'+
-       '<button class="btn ghost small" onclick="mnRestart()">🔁 Ricomincia</button></div>';
+       '<button class="btn ghost small" onclick="menuSearch('+di+',true)">Altra combinazione</button>'+
+       '<button class="btn ghost small" onclick="mnRestart()">Ricomincia</button></div>';
     box.innerHTML=h;
   }catch(e){box.textContent="";if(e.message!=="annullato")aiFail(e);}};
 let MNPICK=null;
@@ -3159,10 +3213,11 @@ window.menuPhoto=async(di)=>{await mnAdd();return menuSearch(di);}; // compatibi
    La fame è il dato che manca a tutte le app: se torna sempre alla stessa
    ora, il problema non sono le calorie ma la composizione del pasto. */
 function hungryHTML(pdi,mi){
+  /* Sempre visibili, anche prima della spunta: la fame si registra
+     quando la senti, non quando ti ricordi di spuntare il pasto. */
   const st=S.week.days[pdi].meals[mi];
-  if(!st.done)return "";
   const v=+st.hunger||0;
-  return `<div class="hungry"><b>Che fame avevi?</b>`+
+  return `<div class="hungry"><b>${st.done?"Che fame avevi?":"Che fame hai?"}</b>`+
     [1,2,3,4,5].map(n=>`<span class="${v>=n?"on":""}" title="${n} = ${n===1?"nessuna":(n===5?"tantissima":"")}" onclick="setHunger(${pdi},${mi},${n})"></span>`).join("")+
     `${v?`<small style="color:var(--grigio);margin-left:6px">${v}/5</small>`:""}</div>`;}
 window.setHunger=(pdi,mi,n)=>{const st=S.week.days[pdi].meals[mi];
@@ -3200,7 +3255,7 @@ window.fuelPre=async(di)=>{
     FUEL.da.forEach(x=>{h+='• '+esc(x.slot)+': '+esc(x.nuovo)+' — ~'+Math.round(x.kcal||0)+' kcal · '+Math.round(x.prot||0)+' g prot'+(x.tolto?' <i>(tolto: '+esc(x.tolto)+')</i>':'')+'\n';});
     if(j.nota)h+='\n<i>'+esc(j.nota)+'</i>\n';
     h+='\n<div class="btngrid2"><button class="btn small" onclick="fuelApply()">Applica: mangio ora e aggiorno i pasti</button>'+
-       '<button class="btn ghost small" onclick="fuelPre('+di+')">🔄 Un\'altra idea</button></div>';
+       '<button class="btn ghost small" onclick="fuelPre('+di+')">Un\'altra idea</button></div>';
     box.innerHTML=h;
   }catch(e){box.textContent="";aiFail(e);}};
 let FUEL=null;
@@ -3258,7 +3313,7 @@ window.calibraGiornata=async()=>{
     CALI=arr;
     let h=(j.nota?'<i>'+esc(j.nota)+'</i>\n\n':'');
     arr.forEach(x=>{h+='• <b>'+esc(x.slot||"")+'</b>: '+esc(x.nuovo)+' — ~'+Math.round(x.kcal||0)+' kcal · '+Math.round(x.prot||0)+' g prot'+(x.perche?'\n  <i>'+esc(x.perche)+'</i>':'')+'\n';});
-    h+='\n<div class="btngrid2"><button class="btn small" onclick="calibraApply()">Applica ai pasti di oggi</button><button class="btn ghost small" onclick="calibraGiornata()">🔄 Riprova</button></div>';
+    h+='\n<div class="btngrid2"><button class="btn small" onclick="calibraApply()">Applica ai pasti di oggi</button><button class="btn ghost small" onclick="calibraGiornata()">Riprova</button></div>';
     if(box)box.innerHTML=h;
   }catch(e){if(box)box.textContent="";genBoxVia();aiFail(e);}};
 let CALI=null;
@@ -3317,7 +3372,7 @@ function toolBtns(di,pdi,mi,slot,d,k,p){
   return `<div class="btngrid3" style="margin:8px 0 4px">
     <button class="btn small" onclick="toolUse()">Usa per ${esc(slot||"il pasto")}</button>
     <button class="btn ghost small" onclick="toolExtra()">+ Extra</button>
-    <button class="btn ghost small" onclick="toolSave()">⭐ Salva</button></div>`;}
+    <button class="btn ghost small" onclick="toolSave()">Salva</button></div>`;}
 window.toolUse=()=>{const x=TOOLPICK;if(!x)return;
   let pdi=x.pdi,mi=x.mi;
   if(pdi===undefined||!PLAN[pdi]){const t=targetMealOf(x.di);
@@ -3398,7 +3453,7 @@ window.craveHack=(di)=>{
     j=>'🧭 <b>'+esc(j.nome||"")+'</b> — ~'+Math.round(j.kcal||0)+' kcal · '+Math.round(j.prot||0)+' g prot'+(j.min?' · '+j.min+' min':'')+
        '\n'+esc(j.d||"")+(j.perche?'\n<i>'+esc(j.perche)+'</i>':'')+
        toolBtns(di,t.pdi,t.mi,t.slot,String(j.nome||"")+" — "+String(j.d||""),Math.round(j.kcal)||0,Math.round(j.prot)||0)+
-       '<div class="btngrid2"><button class="btn ghost small" onclick="craveHack('+di+')">🔄 Un\'altra idea</button></div>');};
+       '<div class="btngrid2"><button class="btn ghost small" onclick="craveHack('+di+')">Un\'altra idea</button></div>');};
 
 /* ═══ 🤝 DIPLOMAZIA DI COPPIA ══════════════════════════════════════ */
 window.coupleFork=async(di)=>{
@@ -3804,7 +3859,7 @@ window.splitCook=async(di)=>{
     if(j.note)h+='\n<i>'+esc(j.note)+'</i>\n';
     h+='\n<div class="btngrid3"><button class="btn small" onclick="splitUse()">Usa per '+esc(tgt.slot)+'</button>'+
        '<button class="btn ghost small" onclick="splitExtra()">+ Extra</button>'+
-       '<button class="btn ghost small" onclick="splitSave()">⭐ Salva</button></div>';
+       '<button class="btn ghost small" onclick="splitSave()">Salva</button></div>';
     box.innerHTML=h;
   }catch(e){box.textContent="";aiFail(e);}};
 let SPLITDISH=null;
@@ -3894,11 +3949,11 @@ window.geoDishes=async(di,ancora)=>{
          '<div class="btngrid3" style="margin:6px 0 14px">'+
          '<button class="btn small" onclick="geoUse('+di+','+i+')">Usa per il pasto</button>'+
          '<button class="btn ghost small" onclick="geoExtra('+di+','+i+')">+ Extra</button>'+
-         '<button class="btn ghost small" onclick="geoSave('+i+')">⭐ Salva</button></div>';
+         '<button class="btn ghost small" onclick="geoSave('+i+')">Salva</button></div>';
     });
     h+='<div class="btngrid2" style="margin-top:4px">'+
-       '<button class="btn ghost small" onclick="geoDishes('+di+',true)">🔄 Altre proposte</button>'+
-       '<button class="btn ghost small" onclick="geoReset('+di+')">📍 Cambia posto</button></div>';
+       '<button class="btn ghost small" onclick="geoDishes('+di+',true)">Altre proposte</button>'+
+       '<button class="btn ghost small" onclick="geoReset('+di+')">Cambia posto</button></div>';
     box.innerHTML=h;
   }catch(e){box.textContent="";aiFail(e);}};
 /* ═══ FASE 1 · comandi ═══ */
@@ -4031,27 +4086,43 @@ function plannedTemplateOfDay(di){let k=0,p=0,c=0,f=0,fib=0,z=0;PLAN[di].meals.f
 function mealCardStatic(pdi,mi){const m=PLAN[pdi].meals[mi];const o=templateOpt(pdi,mi);
   const permObj=S.permMeals[pdi+"_"+mi];const isCustom=!!permObj;
   let h=`<div class="meal"><div class="mbody">
-    <div class="mtop"><span class="mname">${esc(cap(m.n))}</span></div>
-    <div class="mdesc">${esc(cap(o.d))}</div>
+    <div class="mtop"><span class="mname tap" onclick="editMealPerm(${pdi},${mi})" title="Tocca per modificare">${esc(cap(m.n))}</span>${
+      (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="Qualità stimata">${qDot(q)}${q}%</span>`:"";})()}</div>
+    <div class="mdesc tap" onclick="editMealPerm(${pdi},${mi})" title="Tocca per modificare">${esc(cap(o.d))}</div>
     <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
   if(m.o.length>1){h+=`<div class="mopts">`+m.o.map((x,oi)=>{
       const sel=isCustom?(permObj.d===x.d):(oi===0);
       return `<button class="${sel?"sel":""}" onclick="setPermOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`;}).join("")+`</div>`;}
   h+=`<div class="mtools" style="margin-top:4px">
-    <button class="ibtn" title="Modifica permanente" onclick="editMealPerm(${pdi},${mi})">✏️</button>
-    <button class="ibtn" title="Alternativa AI a parità di macro (permanente)" onclick="altMealPerm(${pdi},${mi})">🎲</button>`;
-  if(isCustom)h+=`<button class="ibtn" title="Ripristina originale" onclick="resetPerm(${pdi},${mi})">↩️</button>`;
+    <button class="ibtn" title="Alternativa AI a parità di macro (permanente)" onclick="altMealPerm(${pdi},${mi})">${ic("dice",17)}</button>`;
+  if(isCustom)h+=`<button class="ibtn" title="Ripristina originale" onclick="resetPerm(${pdi},${mi})">${ic("undo",17)}</button>`;
   h+=`</div></div></div>`;return h;}
 window.setPermOpt=(d,m,oi)=>{const o=PLAN[d].meals[m].o[oi];
   if(oi===0)delete S.permMeals[d+"_"+m];else S.permMeals[d+"_"+m]={d:o.d,k:o.k,p:o.p,c:o.c!=null?o.c:null,f:o.f!=null?o.f:null};
   save();render("piano");};
 window.resetPerm=(d,m)=>{delete S.permMeals[d+"_"+m];save();render("piano");};
-window.editMealPerm=async(d,m)=>{const o=templateOpt(d,m);const nd=await dlgPrompt("Modifica permanente del piano (resta effettiva sempre):",o.d);
+window.editMealPerm=(d,m)=>{
+  const o=templateOpt(d,m);
+  sheetShow("Modifica il piano (permanente)",`
+    <textarea id="empTxt" rows="5" style="width:100%">${esc(o.d)}</textarea>
+    <div class="hint">La modifica resta valida anche nelle settimane successive; kcal e macro si ristimano da sole.</div>
+    <div class="mtools" style="margin-top:10px">
+      <button class="btn small" onclick="editMealPermGo(${d},${m})">Salva e ristima</button>
+      <button class="btn ghost small" onclick="sheetClose()">Annulla</button>
+    </div>`);};
+window.editMealPermGo=async(d,m)=>{
+  const o=templateOpt(d,m);
+  const nd=(document.getElementById("empTxt")||{}).value;
+  sheetClose();
   if(nd==null||!nd.trim())return;let k=o.k,p=o.p,c=o.c,f=o.f;
-  if(aiOn()&&await dlgConfirm("Vuoi che l'AI ristimi kcal e macro del pasto modificato?")){
-    try{const t=await aiAsk('Stima calorie e macro di questo pasto: "'+nd+'". Rispondi SOLO JSON: {"kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
-      const j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);c=Math.round(j.carb)||null;f=Math.round(j.gras)||null;}catch(e){aiFail(e);return;}}
-  S.permMeals[d+"_"+m]={d:nd.trim(),k,p,c,f};pianoCambiato();save();render("piano");};
+  const fuori=(PLAN[d]&&PLAN[d].meals[m]&&(PLAN[d].meals[m].type==="free"||PLAN[d].meals[m].type==="mensa"));
+  let txt=nd.trim();
+  if(aiOn()){
+    try{const t=await aiAsk('Stima calorie e macro di questo pasto: "'+txt.replace(/"/g,"'")+'". '+(fuori
+        ?'Il pasto è fuori casa (mensa/ristorante): riscrivi anche la descrizione in forma INDICATIVA e sintetica, massimo 12 parole, senza grammature precise. ':'')+'Rispondi SOLO JSON: {"piatto":"descrizione","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
+      const j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);c=Math.round(j.carb)||null;f=Math.round(j.gras)||null;
+      if(fuori&&j.piatto&&String(j.piatto).trim())txt=String(j.piatto).trim();}catch(e){aiFail(e);return;}}
+  S.permMeals[d+"_"+m]={d:txt,k,p,c,f};pianoCambiato();save();render("piano");};
 window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));const o=templateOpt(d,m);
   try{const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+dietStr()+' Ingredienti comuni in Italia con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
     const j=parseAIJSON(t);
@@ -4061,30 +4132,50 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   let h=`<div class="card"><h2>La tua settimana</h2>
   ${hint2("Questo è il tuo <b>piano</b>: il modello fisso. Le spunte e il tracciamento si fanno in <b>Oggi</b>.",
  "Le modifiche fatte qui (opzione · ✏️ · 🎲) restano valide anche nelle settimane successive. Il piano <b>non cambia</b> quando ribilanci o correggi un pasto in Oggi: resta il riferimento con cui confrontare quello che mangi davvero.")}
-  <div class="btngrid2">
-    <button class="btn small" onclick="wizEditCurrent()">✏️ Gestisci piano</button>
-    <button class="btn ghost small" onclick="seasonalizePlan()">${seasonEmoji()} Alternativa stagionale</button>
-    <button class="btn ghost small" onclick="genPlanAI()">✨ Genera nuovo piano</button>
-    <button class="btn ghost small" onclick="importPlanPhotos()">📸 Importa da foto</button>
-    <button class="btn ghost small" onclick="vaiScontrino()">🧾 Cucina dalla spesa</button>
-    <button class="btn ghost small" onclick="planForecast()">🔮 Stima risultati</button>
+  <button class="btn" style="width:100%;margin:10px 0 8px" onclick="wizEditCurrent()">Gestisci piano</button>
+  <div class="btngrid2" style="margin-top:0">
+    <button class="btn ghost small" onclick="planForecast()">Stima risultati</button>
+    <button class="btn ghost small" onclick="planMoreSheet()">Altre azioni…</button>
   </div>
-  ${hint2("Da qui gestisci il piano: modificarlo, generarne uno nuovo, importarne uno che hai già.",
- `✏️ <b>Gestisci</b> — modifica pasti, tipo e alternative; kcal e qualità si ristimano da sole.<br>
-  ${seasonEmoji()} <b>Alternativa stagionale</b> — aggiunge un'opzione di stagione, senza toccare il piano base.<br>
-  ✨ <b>Genera nuovo piano</b> — l'AI costruisce sette giorni su misura.<br>
-  📸 <b>Importa da foto</b> — fotografa un piano su carta o PDF e l'AI lo trascrive.<br>
-  🧾 <b>Cucina dalla spesa</b> — fotografi lo scontrino e costruisco i pasti con quello che hai comprato, finché il cibo basta.<br>
-  🔮 <b>Stima risultati</b> — quanto perdi a settimana e quando arrivi all'obiettivo.`)}
   ${(function(){const d=planWeightDrift();
     if(Math.abs(d)<1)return "";
     return `<div class="hint" style="color:var(--zaff);font-weight:600">⚖️ Il piano è stato costruito a ${S.planW} kg, oggi ne pesi ${S.profile.w}: ${d>0?"−":"+"}${Math.abs(d)} kg.${Math.abs(d)>=PLANW_TRIGGER?` Il fabbisogno è cambiato: conviene <b>ritararlo</b> sui numeri di adesso.`:" Ancora nessuna differenza rilevante."}</div>`;})()}
   <div class="aibox genout" id="planOut" style="display:none"></div></div>`;
   h+=weekOutCardHTML();
+  h+=`<div class="gsec">La spesa che hai fatto</div>
+    <div class="card"><h2>Scontrino e dispensa</h2>
+    ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
+     "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
+    ${(function(){
+      const v=spesaVoto();
+      if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
+      const f=spesaFaccia(v.v);
+      return `<div class="svoto">
+        <div class="sfaccia">${f[0]}</div>
+        <div class="sdett">
+          <div class="stit">${f[1]}</div>
+          <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
+          <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
+        </div></div>
+      ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
+      ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
+      ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
+    <div class="mtools">
+      <button class="btn small" onclick="scontrinoScan()">Fotografa lo scontrino</button>
+      ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">Cucina quello che ho</button>`:""}
+    </div>
+    <div class="aibox" id="scoOut" style="display:none"></div>
+    ${pantry().items.length?`
+      <label>In dispensa · ${pantry().items.length} prodotti</label>
+      <div class="pantry">${pantry().items.map((i,k)=>
+        `<span class="pchip">${esc(prodottoPrima(i.n))}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
+      <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
+    </div>`;
+
   h+=`<div class="card" style="display:none">
   <div class="mtools" style="margin-top:8px">
     <input type="text" id="planCode" placeholder="codice piano" style="max-width:150px;margin:0">
-    <button class="btn ghost small" onclick="loadPlanCode(false)">🔑 Ripristina</button>
+    <button class="btn ghost small" onclick="loadPlanCode(false)">Ripristina</button>
   </div>
   <div class="hint">Con <b>00000000</b> ripristini il piano principale di Nutry.</div>
 </div>`;
@@ -4379,8 +4470,8 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     <h2 style="margin-top:4px">Non hai ancora un piano</h2>
     <div class="hint">Puoi comunque usare Nutry da subito: aggiungi <b>+ Extra</b> per registrare quello che mangi e segna gli allenamenti in Sport.</div>
     <div class="mtools" style="justify-content:center;margin-top:10px">
-      <button class="btn small" onclick="genPlanAI()">✨ Genera il piano</button>
-      <button class="btn ghost small" onclick="wizEditCurrent()">✍️ Lo scrivo io</button>
+      <button class="btn small" onclick="genPlanAI()">Genera il piano</button>
+      <button class="btn ghost small" onclick="wizEditCurrent()">Lo scrivo io</button>
     </div></div>`;}
 
   
@@ -4471,7 +4562,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     </div></div></div></div>`;});
   h+=`<div class="mtools" style="margin-top:4px">
     <button class="btn ghost small" onclick="addExtra(${di})">+ Extra</button>
-    <button class="btn small" onclick="rebalance(${di})">⚖️ Ribilancia le calorie residue</button></div>
+    <button class="btn small" onclick="rebalance(${di})">Ribilancia le calorie residue</button></div>
   ${hint2("⚖️ Ribilancia agisce solo sui pasti non ancora spuntati.",
    "Ricalcola la giornata tenendo conto di quello che hai già mangiato e alleggerisce solo ciò che resta: prima le grammature, poi eventuali sostituzioni. Le proteine non vengono mai ridotte.",null,"come funziona")}`;
 
@@ -4598,10 +4689,10 @@ function renderScanQ(){
     <span class="del" onclick="scanDel(${i})">✕</span></div>`;});
   if(t)inner+=`<div class="daytotal" style="padding-top:8px">Totale: <span>~${t.k} kcal · ${t.p} g proteine · ${t.c} g carboidrati · ${t.f} g grassi · ${t.fib} g fibre · ${t.z} g zuccheri</span></div>`;
   inner+=`<div class="mtools" style="margin-top:10px">
-    <button class="btn ghost small" onclick="scanMore()">📷 Scansiona ${SCANQ.items.length?"un altro":""}</button>
+    <button class="btn ghost small" onclick="scanMore()">Scansiona ${SCANQ.items.length?"un altro":""}</button>
     <button class="btn ghost small" onclick="scanManual()">＋ A mano</button></div>
   <div class="mtools" style="margin-top:8px">
-    <button class="btn small" onclick="scanConfirm()">✅ Conferma somma</button>
+    <button class="btn small" onclick="scanConfirm()">Conferma somma</button>
     <button class="btn warn small" onclick="closeScanQ()">Annulla</button></div></div>`;
   m.innerHTML=inner;}
 
@@ -4936,10 +5027,31 @@ window.vaiPasto=(pdi,mi)=>{
     el.style.boxShadow="0 0 0 3px var(--menta),0 10px 26px -18px rgba(12,31,23,.3)";
     setTimeout(()=>{el.style.boxShadow="";},1800);
   },260);};
+window.planMoreSheet=()=>{
+  /* Le azioni rare (rifare o importare il piano) stanno in un pannello:
+     la card resta pulita e ogni voce porta con sé la sua spiegazione,
+     così il glossario a parte non serve più. */
+  sheetShow("Altro sul piano",`
+    <button class="shrow" onclick="sheetClose();seasonalizePlan()">
+      <b>Alternativa stagionale</b>
+      <small>Aggiunge a ogni pasto un'opzione con ingredienti di stagione, senza toccare il piano base.</small>
+    </button>
+    <button class="shrow" onclick="sheetClose();genPlanAI()">
+      <b>Genera nuovo piano</b>
+      <small>L'AI costruisce sette giorni su misura per i tuoi obiettivi. Sostituisce il piano attuale.</small>
+    </button>
+    <button class="shrow" onclick="sheetClose();importPlanPhotos()">
+      <b>Importa da foto</b>
+      <small>Fotografa un piano su carta o PDF: l'AI lo trascrive dentro l'app.</small>
+    </button>
+    <button class="shrow" onclick="sheetClose();vaiScontrino()">
+      <b>Cucina dalla spesa</b>
+      <small>Dallo scontrino ai pasti: si cucina con quello che hai comprato, finché il cibo basta.</small>
+    </button>`);};
 window.vaiScontrino=()=>{
-  show("spesa");
+  show("piano");
   setTimeout(()=>{
-    const c=[...document.querySelectorAll("#pg-spesa .card h2")].find(x=>/Scontrino e dispensa/.test(x.textContent));
+    const c=[...document.querySelectorAll("#pg-piano .card h2")].find(x=>/Scontrino e dispensa/.test(x.textContent));
     if(!c)return;
     const card=c.closest(".card");
     card.scrollIntoView({block:"center",behavior:"smooth"});
@@ -5098,6 +5210,7 @@ function shopWindowLabel(){
    spunte già fatte sui prodotti che restano. */
 let _shopTimer=null;
 function pianoCambiato(){
+  qPlanPrecompute();          /* qualità dei piatti: si ricalcola solo ciò che manca */
   clearTimeout(_shopTimer);
   _shopTimer=setTimeout(()=>{
     try{
@@ -5156,7 +5269,7 @@ window.syncShopFromPlan=()=>{
     removed.forEach(x=>inner+=`<div class="shopitem"><span class="st">${esc(prodottoPrima(x))}</span></div>`);inner+=`</div>`;}
   inner+=`<div class="hint" style="margin-top:8px">La lista completa risultante avrà ${next.reduce((a,c)=>a+c[1].length,0)} voci in ${next.length} categorie.</div>
     <div class="mtools" style="margin-top:12px">
-      <button class="btn small" onclick="applyShopSync()">✅ Applica</button>
+      <button class="btn small" onclick="applyShopSync()">Applica</button>
       <button class="btn ghost small" onclick="document.getElementById('syncM').remove()">Annulla</button></div></div>`;
   m.innerHTML=inner;
   window._pendingShop=next;
@@ -5692,12 +5805,12 @@ function periodsCardHTML(forIo){
   let h=`<div class="card"><h2>Periodi (dieta / libero)</h2>`;
   if(ap){const st=periodStats(ap);
     h+=`<div class="hint">In corso: <b>${periodLabel(ap)}</b> dal ${ap.start} · giorno ${st.nDays} · aspettativa ${starsTxt(ap.expStars)}${ap.expNote?` · <i>"${esc(ap.expNote)}"</i>`:""}</div>
-    <div class="mtools"><button class="btn small" onclick="endPeriod(${ap.id})">🏁 Chiudi ${periodLabel(ap)}</button>
-    <button class="btn ghost small" onclick="editPeriod(${ap.id})">✏️</button></div>`;
+    <div class="mtools"><button class="btn small" onclick="endPeriod(${ap.id})">Chiudi ${periodLabel(ap)}</button>
+    <button class="btn ghost small" onclick="editPeriod(${ap.id})">${ic("pencil",15)}</button></div>`;
   }else{
     h+=`<div class="hint">Nessun periodo aperto. Aprine uno per raggruppare i dati: saprai sempre da quando è iniziato e potrai confrontare aspettativa, sensazione finale e comportamento reale.</div>
-    <div class="mtools"><button class="btn small" onclick="startPeriod('dieta')">🥗 Inizia Dieta ${nextPeriodN("dieta")}</button>
-    <button class="btn ghost small" onclick="startPeriod('libero')">🏖️ Inizia Periodo libero ${nextPeriodN("libero")}</button></div>`;}
+    <div class="mtools"><button class="btn small" onclick="startPeriod('dieta')">Inizia Dieta ${nextPeriodN("dieta")}</button>
+    <button class="btn ghost small" onclick="startPeriod('libero')">Inizia Periodo libero ${nextPeriodN("libero")}</button></div>`;}
   if(!forIo){ // in Storico: lista completa con metriche e valutazione AI
     const closed=S.periods.filter(p=>p.end).slice().reverse();
     closed.forEach(p=>{const st=periodStats(p);
@@ -5709,10 +5822,10 @@ function periodsCardHTML(forIo){
       ${p.aiText?`<div class="hint" style="background:var(--cardbg,#f6f4ef);border-radius:8px;padding:8px;margin-top:4px">${esc(p.aiText)}</div>`:""}
       <div class="hint" style="margin-top:4px">📊 ${st.nDone} giorni tracciati · ${st.avgEat} kcal medie · ${st.avgProt} g prot · ${st.avgFib} g fibre · deficit medio ${st.avgDef} · ${st.workouts} allenamenti${st.dW!=null?` · peso ${st.dW>0?"+":""}${st.dW} kg`:""}</div>
       <div class="mtools" style="margin-top:6px">
-      <button class="btn ghost small" onclick="aiRatePeriod(${p.id})">🤖 ${p.aiStars?"Rivaluta":"Valutazione AI"}</button>
-      <button class="btn ghost small" onclick="analyzePeriod(${p.id})">📊 Analizza</button>
-      <button class="btn ghost small" onclick="editPeriod(${p.id})">✏️</button>
-      <button class="btn ghost small" onclick="delPeriod(${p.id})">🗑️</button></div></div>`;});
+      <button class="btn ghost small" onclick="aiRatePeriod(${p.id})">${p.aiStars?"Rivaluta":"Valutazione AI"}</button>
+      <button class="btn ghost small" onclick="analyzePeriod(${p.id})">Analizza</button>
+      <button class="btn ghost small" onclick="editPeriod(${p.id})">${ic("pencil",15)}</button>
+      <button class="btn ghost small" onclick="delPeriod(${p.id})">${ic("trash",15)}</button></div></div>`;});
     if(!closed.length&&!ap)h+=`<div class="hint" style="margin-top:6px">Ancora nessun periodo registrato.</div>`;
   }
   h+=`</div>`;return h;}
@@ -6191,7 +6304,6 @@ function rulesCardHTML(){
   <div class="mtools">
     <button class="btn small" onclick="nutriSave()">Salva</button>
     <button class="btn ghost small" onclick="nutriReset()">Ripristina</button>
-    <button class="btn ghost small" onclick="promptShow()">👁️ Vedi il prompt completo</button>
   </div>
   <div class="aibox" id="promptOut" style="display:none"></div>
   <label>Regole tue, in parole tue</label>
@@ -6227,7 +6339,7 @@ function rulesCardHTML(){
   ${row("Fabbisogno usato per i target","Fabbisogno meno la prudenza.",out(tdeeTarget()+" kcal"))}
   ${row("Cambio di genere","Il genere entra nel <b>basale</b> (formule Mifflin e Harris), nel <b>peso ideale</b> di riferimento e nel <b>pavimento calorico</b> minimo. Cambiandolo in Io, fabbisogno, target e macro si ricalcolano <b>subito</b>; restano invece fissi il fabbisogno dei giorni già iniziati (congelato alla prima spunta) e le grammature del piano, che vanno ritarate con 🎯 Ricalibra.",out((S.profile.gender==="f"?"donna":"uomo")+" · basale "+bmr()+" kcal · pavimento "+kcalFloorMin()+" kcal"))}
   ${row("Peso di riferimento","Non il peso attuale: il grasso non richiede proteine, quindi si usa massa magra, peso obiettivo o peso corretto. <b>Nel tuo caso viene da: "+refWeightWhy()+"</b>."+
-    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:6px 0 0\" onclick=\"askGoalWeight()\">🎯 Imposta il peso obiettivo</button>")+" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi).",out(refWeight()+" kg"))}
+    (goalWeightSet()?"":" <button class=\"btn ghost small\" style=\"margin:6px 0 0\" onclick=\"askGoalWeight()\">Imposta il peso obiettivo</button>")+" Se preferisci un altro valore, cambia i dati da cui deriva (percentuale di grasso in Io, o peso obiettivo negli Obiettivi).",out(refWeight()+" kg"))}
   </table>
   <div class="gsec">Il tuo corpo, giorno per giorno</div>
   <table class="rules">
@@ -7278,13 +7390,23 @@ function notesCardHTML(){
   if(!rows.length)h+=`<div class="hint">Ancora nessuna nota. La scrivi dalla tua pagina, in <b>La giornata → Nota del giorno</b>: fame, imprevisti, come ti sentivi.</div></div>`;
   else{
     h+=`<div class="tbl-scroll" style="max-height:340px">`;
+    /* Le note della settimana in corso si correggono TOCCANDOLE: stesso
+       pannello della pagina del giorno. Le settimane archiviate restano
+       in sola lettura (si correggono da Storico → Modifica). */
+    const wkDi=(dateIso)=>{
+      if(!S.week||!S.week.started)return -1;
+      const st=safeDate(S.week.started+"T12:00:00"),d2=safeDate(dateIso+"T12:00:00");
+      if(!st||!d2)return -1;
+      const di=Math.round((d2-st)/86400000);
+      return (di>=0&&di<(S.week.days||[]).length)?di:-1;};
     rows.slice(0,120).forEach(d=>{
       const dt=safeDate(d.date+"T12:00:00");
       const gg=dt?dt.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"}):d.date;
-      h+=`<div style="padding:8px 0;border-bottom:1px solid var(--linea)">
-        <div style="font-weight:700;color:var(--bosco);font-size:12.5px">${esc(gg)}${d.eat?` · ${d.eat} kcal`:""}${d.workoutN?` · 🏃 ${d.workoutN}`:""}</div>
+      const di=wkDi(d.date);
+      h+=`<div style="padding:8px 0;border-bottom:1px solid var(--linea)"${di>=0?` class="tap" onclick="notaScrivi(${di})" title="Tocca per correggere"`:""}>
+        <div style="font-weight:700;color:var(--bosco);font-size:12.5px">${esc(gg)}${d.eat?` · ${d.eat} kcal`:""}${d.workoutN?` · 🏃 ${d.workoutN}`:""}${di>=0?` <span style="color:var(--salvia);font-weight:600">· tocca per correggere</span>`:""}</div>
         <div style="font-size:13.5px;white-space:pre-wrap">${esc(cap(d.note))}</div></div>`;});
-    h+=`</div><div class="hint">${rows.length} note in totale${rows.length>120?" (mostro le 120 più recenti)":""}. Per correggerne una vecchia: <b>Storico → Settimane passate → Modifica</b>.</div></div>`;}
+    h+=`</div><div class="hint">${rows.length} note in totale${rows.length>120?" (mostro le 120 più recenti)":""}. Quelle della settimana in corso si correggono toccandole; per una vecchia: <b>Storico → Settimane passate → Modifica</b>.</div></div>`;}
   return h;}
 function exportCardHTML(){
   const all=flattenDiet();
@@ -7296,8 +7418,8 @@ function exportCardHTML(){
     <div><label>Al</label><input type="date" id="expTo" value="${last}"></div>
   </div>
   <div class="mtools" style="margin-top:10px">
-    <button class="btn ghost small" onclick="doExportCSV()">⬇️ CSV</button>
-    <button class="btn small" onclick="aiPatterns()">🔎 Analizza i pattern</button>
+    <button class="btn ghost small" onclick="doExportCSV()">CSV</button>
+    <button class="btn small" onclick="aiPatterns()">Analizza i pattern</button>
   </div>
   ${hint2("Il CSV si apre in Excel o Fogli Google: una riga per giorno, note comprese.",
  "<b>Analizza i pattern</b> fa leggere gli stessi dati all'AI, che cerca le correlazioni fra sonno, umore, allenamenti e alimentazione. Separatore punto e virgola.",null,"e l'analisi AI?")}
@@ -7353,7 +7475,7 @@ function drawWeightsChart(){
     const goal=parseFloat((S.diet||{}).obiettivoPeso)||S.profile.goalW||null;
     PESCH=new Chart(cv,{type:"line",
       data:{labels:ws.map(x=>new Date(x.d).toLocaleDateString("it-IT",{day:"numeric",month:"short"})),
-        datasets:[{label:"Peso (kg)",data:ws.map(x=>x.w),tension:.3,borderColor:"#2F7D3B",pointRadius:2},
+        datasets:[{label:"Peso (kg)",data:ws.map(x=>x.w),tension:.3,borderColor:"#16A34A",pointRadius:2},
           ...(goal?[{label:"Obiettivo",data:ws.map(()=>goal),borderColor:"#2F5FA6",borderDash:[6,5],pointRadius:0}]:[]),
           ...(ws.some(x=>x.fat)?[{label:"Grasso %",hidden:true,data:ws.map(x=>x.fat||null),tension:.3,borderColor:"#C77A15",pointRadius:2,spanGaps:true,yAxisID:"y2"}]:[])]},
       options:{animation:false,plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},
@@ -7380,7 +7502,7 @@ function weightsCardHTML(){const p=S.profile,W=(p.weights||[]);
         <td class="n">${x.mus!=null&&x.mus!==""?x.mus:"–"}</td>
         <td class="n">${x.pa||"–"}</td>
         <td class="n">${x.spo2!=null&&x.spo2!==""?x.spo2:"–"}</td>
-        <td class="n" style="white-space:nowrap"><button class="ibtn" title="Modifica o completa questa pesata" onclick="editWeight(${i2})">✏️</button><button class="ibtn" title="Elimina questa pesata" onclick="delWeight(${i2})">🗑</button></td></tr>`;});
+        <td class="n" style="white-space:nowrap"><button class="ibtn" title="Modifica o completa questa pesata" onclick="editWeight(${i2})">${ic("pencil",15)}</button><button class="ibtn" title="Elimina questa pesata" onclick="delWeight(${i2})">${ic("trash",15)}</button></td></tr>`;});
     h+=`</table></div>
     ${hint2("Con ✏️ correggi una pesata o aggiungi valori che ti mancavano, anche a distanza di giorni. Con 🗑 la elimini.",
  "Δ = differenza rispetto alla pesata precedente · %MG massa grassa · %MM massa muscolare · PA pressione.")}</div>`;}
@@ -7393,35 +7515,6 @@ function renderTools(){
   let h=`<div class="card"><h2>Tools</h2>
   ${hint2(`Aiuti per il momento in cui la dieta rischia di saltare. Agiscono su <b>${fmtDateShort(VIEW)}</b> e sul pasto che scegli in ogni riquadro.`,
  "Creare un piatto con quello che hai in casa, scegliere al ristorante, gestire una voglia improvvisa, cucinare per tutta la famiglia, trovare i piatti tipici del posto dove sei.")}</div>`;
-  h+=`<div class="gsec">La spesa che hai fatto</div>
-    <div class="card"><h2>Scontrino e dispensa</h2>
-    ${hint2("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e cucino con quello che hai.",
-     "Gli scontrini si sommano: ogni spesa allunga quello che si può cucinare. Non si pretende di coprire la settimana intera — si copre quello che il cibo permette, e il resto lo dice cosa comprare la prossima volta. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave.")}
-    ${(function(){
-      const v=spesaVoto();
-      if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 14px;border-radius:14px">La dispensa è vuota. Fotografa uno scontrino per cominciare.</div>`;
-      const f=spesaFaccia(v.v);
-      return `<div class="svoto">
-        <div class="sfaccia">${f[0]}</div>
-        <div class="sdett">
-          <div class="stit">${f[1]}</div>
-          <div class="sbar"><i style="width:${v.v}%;background:${v.v>=70?"var(--salvia)":(v.v>=55?"var(--zaff)":"var(--rosso)")}"></i></div>
-          <div class="snum">${v.v}/100 · ${v.tot} prodotti · ${v.vf}% frutta e verdura</div>
-        </div></div>
-      ${v.piu.length?`<div class="hint" style="margin-top:10px">🟢 <b>Prendine di più:</b> ${v.piu.join(", ")}.</div>`:""}
-      ${v.meno.length?`<div class="hint">🔸 <b>Prendine di meno:</b> ${v.meno.join(", ")}.</div>`:""}
-      ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:10px">Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.</div>`:""}`;})()}
-    <div class="mtools">
-      <button class="btn small" onclick="scontrinoScan()">🧾 Fotografa lo scontrino</button>
-      ${pantry().items.length?`<button class="btn ghost small" onclick="pantryCucina()">🍳 Cucina quello che ho</button>`:""}
-    </div>
-    <div class="aibox" id="scoOut" style="display:none"></div>
-    ${pantry().items.length?`
-      <label>In dispensa · ${pantry().items.length} prodotti</label>
-      <div class="pantry">${pantry().items.map((i,k)=>
-        `<span class="pchip">${esc(prodottoPrima(i.n))}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}<button onclick="pantryDel(${k})" aria-label="Togli">×</button></span>`).join("")}</div>
-      <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">Svuota la dispensa</button></div>`:""}
-    </div>`;
   if(di<0){h+=`<div class="card"><div class="hint">Il giorno che stai guardando non è nella settimana in corso: torna a <b>Oggi</b> per usare gli strumenti.</div></div>`;el.innerHTML=h;return;}
   h+=`<div class="gsec">Sto per cedere</div>`;
   h+=`<div class="card"><h2>Ho una voglia…</h2>
@@ -7483,10 +7576,10 @@ function renderTools(){
   <div class="hint">Scatta PIÙ foto (frigo, congelatore, dispensa), poi "Crea": il piatto sarà tarato sul pasto di questo momento, compensando le calorie già accumulate oggi. In alternativa scrivi gli ingredienti qui sotto.</div>
   ${mealSelHtml("frTarget",di)}
   <div class="btngrid4">
-    <button class="btn small" onclick="frAdd()">📸 Fotografa<span id="frN">${FR.length?" ("+FR.length+")":""}</span></button>
-    <button class="btn ghost small" onclick="frAdd(true)">🖼️ Galleria</button>
-    <button class="btn small" onclick="frCreate(${di})">🍲 Crea</button>
-    <button class="btn ghost small" onclick="recModal(${di})">⭐ Piatti${S.recipes.length?" ("+S.recipes.length+")":""}</button>
+    <button class="btn small" onclick="frAdd()">Fotografa<span id="frN">${FR.length?" ("+FR.length+")":""}</span></button>
+    <button class="btn ghost small" onclick="frAdd(true)">Galleria</button>
+    <button class="btn small" onclick="frCreate(${di})">Crea</button>
+    <button class="btn ghost small" onclick="recModal(${di})">Piatti${S.recipes.length?" ("+S.recipes.length+")":""}</button>
   </div>
   
   <textarea id="fridgeIn" placeholder="…oppure scrivi: zucchine, uova, ricotta…"></textarea>
@@ -7524,9 +7617,9 @@ function renderTools(){
   <div class="hint">Scatta <b>più foto</b> (pagine diverse del menù), spunta le portate che vuoi fare e premi <b>Cerca</b>: l'AI compone il pasto scegliendo dal menù, ti dà il <b>totale</b> della combinazione e un'alternativa per ogni portata. Se non spunti nulla decide lei come comporlo. In alternativa incolla il testo qui sotto.</div>
   ${mealSelHtml("menuTarget",di)}
   <div class="btngrid3">
-    <button class="btn small" onclick="mnAdd()">📸 Fotografa<span id="mnN">${MN.length?" ("+MN.length+")":""}</span></button>
-    <button class="btn ghost small" onclick="mnAdd(true)">🖼️ Galleria</button>
-    <button class="btn small" onclick="menuSearch(${di})">🔎 Cerca</button>
+    <button class="btn small" onclick="mnAdd()">Fotografa<span id="mnN">${MN.length?" ("+MN.length+")":""}</span></button>
+    <button class="btn ghost small" onclick="mnAdd(true)">Galleria</button>
+    <button class="btn small" onclick="menuSearch(${di})">Cerca</button>
   </div>
   <label>Cosa vuoi ordinare</label>
   <div class="ckgrid">${MENU_CATS.map((c,i)=>`<label class="ck"><input type="checkbox" id="mnCat${i}" ${MNCATS.indexOf(c)>-1?"checked":""} onchange="mnCat(${i})"> ${c}</label>`).join("")}</div>
@@ -7540,8 +7633,8 @@ function renderTools(){
   ${hint2("In viaggio: tre <b>piatti tipici del posto</b> che stanno nel target, con la porzione e cosa farsi cambiare.","La posizione serve solo per capire la regione — arrotondata, mai salvata — oppure scrivi tu la città.<br>Sono piatti della tradizione, non il menù del locale: per quello usa il <b>selezionatore di menù</b>.")}
   ${mealSelHtml("geoTarget",di)}
   <div class="btngrid2">
-    <button class="btn small" onclick="geoDishes(${di})">📍 Usa la mia posizione</button>
-    <button class="btn ghost small" onclick="geoReset(${di})">✍️ Scrivo io il posto</button>
+    <button class="btn small" onclick="geoDishes(${di})">Usa la mia posizione</button>
+    <button class="btn ghost small" onclick="geoReset(${di})">Scrivo io il posto</button>
   </div>
   
   <div class="aibox" id="geoOut" style="display:none"></div></div>`;
@@ -7601,8 +7694,8 @@ function renderStorico(){const el=document.getElementById("pg-storico");
     ${S.history.length?(()=>{const L=S.history[S.history.length-1];const d1=w.avgDef-L.avgDef,d2=w.avgProt-L.avgProt,d3=Math.round((S.profile.w-L.weight)*10)/10;
       return `<div class="hint">📈 vs settimana scorsa: deficit ${d1>=0?"+":""}${d1} kcal · proteine ${d2>=0?"+":""}${d2} g · peso ${d3>0?"+":""}${d3} kg</div>`;})():""}
     <div class="hint">🔄 A fine settimana l'archiviazione è <b>automatica</b>; le settimane chiuse restano modificabili con ✏️ qui sotto.</div>
-    <button class="btn ghost" onclick="waWeek()">📤 WhatsApp</button>
-    <button class="btn ghost" onclick="printReport()">🖨️ Esporta Report PDF</button></div>`;
+    <button class="btn ghost" onclick="waWeek()">WhatsApp</button>
+    <button class="btn ghost" onclick="printReport()">Esporta report PDF</button></div>`;
   }
   h+=extendedRecapHTML();
   // Periodi (Dieta 1, Libero 1, …) con metriche e valutazione AI
@@ -7640,7 +7733,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   h+=`<div class="card"><h2>Cosa influenza i tuoi risultati</h2>
   <div class="hint" style="margin-top:0">Confronto tra sonno, umore e allenamento e il tuo deficit/sgarri (giorni difficili esclusi).</div>
   ${correlationsSummaryHtml()}
-  <button class="btn" style="margin-top:10px" onclick="askCorrelations()">🔎 Analisi AI dei pattern</button>
+  <button class="btn" style="margin-top:10px" onclick="askCorrelations()">Analisi AI dei pattern</button>
   <div class="aibox" id="corrAI" style="display:none"></div></div>`;
   // 💬 Chiedi all'AI: domande libere sui propri risultati/dati
   h+=`<div class="card"><h2>Chiedi all'AI</h2>
@@ -7679,7 +7772,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
     else{
       wk.days.forEach(d=>{if(d.note||d.workouts.length)h+=`<div style="margin-top:5px"><b>${d.day}:</b> ${esc(d.workouts.join(", "))}${d.note?" — 📝 "+esc(d.note):""}</div>`;});
       h+=`<div class="mtools" style="margin-top:8px">
-        <button class="btn ghost small" onclick="toggleEditWeek(${i})">✏️ Modifica</button>
+        <button class="btn ghost small" onclick="toggleEditWeek(${i})">Modifica</button>
         <button class="btn warn small" onclick="delWeek(${i})">Elimina</button></div>`;}
     h+=`</div></div>`;});
   h+=`</div>`;                 /* chiude «Settimane passate»: le card che seguono sono sorelle, non figlie */
@@ -7720,7 +7813,7 @@ function renderWeekEditForm(i,wk){
       <div style="margin-top:4px"><label>Note</label><input type="text" id="we_${i}_${di}_note" value="${esc(d.note||"")}" style="width:100%;box-sizing:border-box"></div>
       </div>`;});
   h+=`<div class="mtools" style="margin-top:10px">
-    <button class="btn small" onclick="saveWeekEdit(${i})">✅ Ricalcola e salva</button>
+    <button class="btn small" onclick="saveWeekEdit(${i})">Ricalcola e salva</button>
     <button class="btn ghost small" onclick="toggleEditWeek(${i})">Annulla</button></div>`;
   return h;}
 
@@ -7871,20 +7964,20 @@ function drawAnalysis(){
   const calEl=document.getElementById("chAnCal");
   if(calEl&&rows.length)ANCH.cal=new Chart(calEl,{type:"line",
     data:{labels:rows.map(r=>r.label),datasets:[
-      {label:"Kcal mangiate",data:rows.map(r=>r.eat),tension:.3,borderColor:"#2F7D3B",pointRadius:2},
+      {label:"Kcal mangiate",data:rows.map(r=>r.eat),tension:.3,borderColor:"#16A34A",pointRadius:2},
       {label:"Deficit",data:rows.map(r=>r.def),tension:.3,borderColor:"#B23B3B",pointRadius:2,borderDash:[5,4]}]},
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},scales:{x:{ticks:{font:{size:9}}}}}});
   const wEl=document.getElementById("chAnWeight");
   if(wEl)ANCH.weight=new Chart(wEl,{type:"line",
     data:{labels:wrows.map(r=>r.label),datasets:[
-      {label:"Peso (kg)",data:wrows.map(r=>r.w),tension:.3,borderColor:"#2F7D3B",pointRadius:2},
+      {label:"Peso (kg)",data:wrows.map(r=>r.w),tension:.3,borderColor:"#16A34A",pointRadius:2},
       ...(S.profile.goalW?[{label:"Obiettivo",data:wrows.map(()=>S.profile.goalW),borderColor:"#2F5FA6",borderDash:[6,5],pointRadius:0}]:[]),
       {label:"Grasso %",hidden:true,data:wrows.map(r=>r.fat),tension:.3,borderColor:"#C77A15",pointRadius:2,spanGaps:true,yAxisID:"y2"}]},
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},scales:{x:{ticks:{font:{size:9}}},y2:{position:"right",grid:{drawOnChartArea:false}}}}});
   const mEl=document.getElementById("chAnMacro");
   if(mEl&&rows.length)ANCH.macro=new Chart(mEl,{type:"line",
     data:{labels:rows.map(r=>r.label),datasets:[
-      {label:"Proteine (g)",data:rows.map(r=>r.prot),tension:.3,borderColor:"#2F7D3B",pointRadius:2},
+      {label:"Proteine (g)",data:rows.map(r=>r.prot),tension:.3,borderColor:"#16A34A",pointRadius:2},
       {label:"Carboidrati (g)",data:rows.map(r=>r.c),tension:.3,borderColor:"#C77A15",pointRadius:2},
       {label:"Grassi (g)",data:rows.map(r=>r.f),tension:.3,borderColor:"#2F5FA6",pointRadius:2},
       {label:"Fibre (g)",data:rows.map(r=>r.fib),tension:.3,borderColor:"#7A5AA6",pointRadius:2}]},
@@ -7926,7 +8019,7 @@ function drawGoalProjection(){
     data:{labels,datasets:[
       {label:"Proiezione ideale",data:projData,borderColor:"#2F5FA6",borderDash:[6,4],pointRadius:0,tension:0,spanGaps:true},
       {label:"Peso reale",data:realData,borderColor:"#9CC3A6",backgroundColor:"#9CC3A6",pointRadius:2,tension:.2,spanGaps:true},
-      {label:"Media 7 gg",data:mavgData,borderColor:"#2F7D3B",borderWidth:2,pointRadius:0,tension:.3,spanGaps:true},
+      {label:"Media 7 gg",data:mavgData,borderColor:"#16A34A",borderWidth:2,pointRadius:0,tension:.3,spanGaps:true},
       {label:"Obiettivo",data:goalData,borderColor:"#C77A15",borderDash:[3,3],pointRadius:0}
     ]},
     options:{plugins:{legend:{labels:{boxWidth:11,font:{size:10}}}},
@@ -8897,6 +8990,43 @@ function dayQuality(di){
 function qOf(obj,desc){
   if(!obj||obj.q==null)return null;
   return (obj.qFor===qKey(desc))?obj.q:null;}
+/* Sguardo in cache: il punteggio del piatto se già calcolato (dal
+   precalcolo del piano o da una spunta precedente). Zero chiamate AI. */
+function qPeek(desc){const k=qKey(desc);return (k&&S.qCache&&S.qCache[k]!=null)?S.qCache[k]:null;}
+/* ── Precalcolo qualità del PIANO ────────────────────────────────────
+   Alla conferma o modifica del piano l'AI valuta TUTTI i piatti in una
+   chiamata sola; i punteggi vanno in S.qCache. Risultato: pallino
+   visibile PRIMA di mangiare, e spunta istantanea (cache-hit, nessuna
+   chiamata AI a rallentare il gesto più frequente dell'app). */
+let QPLAN_T=null;
+function qPlanPrecompute(){
+  if(!aiOn()||typeof PLAN==="undefined"||!PLAN||!PLAN.length)return;
+  clearTimeout(QPLAN_T);
+  QPLAN_T=setTimeout(async()=>{
+    try{
+      S.qCache=S.qCache||{};
+      const miss=[],seen={};
+      PLAN.forEach((d,di)=>d.meals.forEach((m,mi)=>{
+        const perm=S.permMeals[di+"_"+mi];
+        [perm].concat(m.o||[]).forEach(o=>{
+          if(!o||!o.d)return;const k=qKey(o.d);
+          if(!k||S.qCache[k]!=null||seen[k])return;
+          seen[k]=1;miss.push({k,d:String(o.d).slice(0,200)});});}));
+      if(!miss.length)return;
+      const batch=miss.slice(0,40); // un piano intero ci sta; il resto al giro dopo
+      const t=await aiAsk('Valuta la QUALITÀ NUTRIZIONALE di ognuno di questi piatti con un punteggio 0-100 '+
+        '(0-20 ultraprocessato/fritto/molti zuccheri; 21-40 scarso; 41-60 nella media; 61-80 buono e bilanciato; '+
+        '81-100 ottimo: integrali, verdure, buone proteine, grassi buoni). Giudica la qualità degli alimenti, non le calorie. '+
+        'Piatti: '+JSON.stringify(batch.map((x,i)=>({i,piatto:x.d})))+
+        ' Rispondi SOLO JSON: [{"i":indice,"q":punteggio}, …] uno per piatto.');
+      const j=parseAIJSON(t);
+      if(Array.isArray(j)){let n=0;
+        j.forEach(r=>{const it=batch[+r.i];const q=Math.max(0,Math.min(100,Math.round(+r.q||0)));
+          if(it&&q){S.qCache[it.k]=q;n++;}});
+        if(n){save();render(cur);
+          if(miss.length>batch.length)qPlanPrecompute();}}
+    }catch(e){/* silenzioso: al peggio i pallini arrivano alla spunta, come prima */}
+  },1200);}
 let QPEND={},QFAIL={};      /* richieste in volo · descrizioni che l'AI non ha saputo valutare */
 function qAsk(obj,desc,tag){
   const k=qKey(desc);
@@ -9000,7 +9130,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <div class="row3"><div><label>Cucini o pronto?</label><select id="wzPronto"><option value="cucino"${sel("pronto","cucino","semplice")}>Mi piace cucinare</option><option value="semplice"${sel("pronto","semplice","semplice")}>Piatti semplici</option><option value="pronto"${sel("pronto","pronto","semplice")}>Pronto/veloce</option></select></div>
     <div><label>Pasti al giorno</label><select id="wzNPasti"><option${sel("nPasti",3,5)}>3</option><option${sel("nPasti",4,5)}>4</option><option${sel("nPasti",5,5)}>5</option></select></div>
     <div><label>Colazione</label><select id="wzColaz"><option value="dolce"${sel("colaz","dolce","entrambe")}>Dolce</option><option value="salata"${sel("colaz","salata","entrambe")}>Salata</option><option value="entrambe"${sel("colaz","entrambe","entrambe")}>Indifferente</option></select></div></div>
-    ${WIZ.mode==="diet"?'<button class="btn" onclick="wizNext(2)">💾 Salva</button> <button class="btn ghost" onclick="show(\'io\')">Annulla</button>':'<button class="btn ghost" onclick="wizNext(1)">← Indietro</button> <button class="btn" onclick="wizNext(3)">Avanti →</button>'}</div>`;}
+    ${WIZ.mode==="diet"?'<button class="btn" onclick="wizNext(2)">Salva</button> <button class="btn ghost" onclick="show(\'io\')">Annulla</button>':'<button class="btn ghost" onclick="wizNext(1)">← Indietro</button> <button class="btn" onclick="wizNext(3)">Avanti →</button>'}</div>`;}
   else if(WIZ.step===3){const t=wizTargets();
     h=`<div class="card"><h2>Passo 3 di 3 — Obiettivo</h2>
     <label>Cosa vuoi ottenere</label>
@@ -9011,7 +9141,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <label style="margin-top:10px"><input type="checkbox" id="wzWipe" style="width:auto"> Azzera anche storico e pesate precedenti (ricomincio davvero da zero)</label>
     <label style="margin-top:6px"><input type="checkbox" id="wzOk" style="width:auto"> Ho letto l'avvertenza: farò validare il piano da un nutrizionista/medico</label>
     <div class="mtools"><button class="btn ghost" onclick="wizNext(2)">← Indietro</button>
-    <button class="btn" onclick="wizGenerate()">✨ Genera il piano</button></div>
+    <button class="btn" onclick="wizGenerate()">Genera il piano</button></div>
     <div class="aibox" id="wzOut" style="display:none"></div></div>`;}
   else if(WIZ.step===4&&WIZ.plan){
     h=(WIZ.editOnly?"":disc)+`<div class="card"><h2>${WIZ.editOnly?"✏️ Modifica il piano":"✨ Il tuo piano — controlla e modifica"}</h2>
@@ -9025,9 +9155,9 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
         <label>Piatto</label><textarea onchange="wizSet(${di},${mi},'d',this.value)">${esc(o.d)}</textarea>
         <div class="wzval" id="wzv${di}_${mi}">${macroLine(o)}</div>
         <div class="wzbar">
-          <button class="btn ghost small" onclick="wizEstim(${di},${mi})">🤖 Stima</button>
+          <button class="btn ghost small" onclick="wizEstim(${di},${mi})">Stima</button>
           <button class="btn ghost small" onclick="wizAddOpt(${di},${mi})">＋ Alternativa</button>
-          <button class="btn warn small" onclick="wizDelMealAsk(${di},${mi})">🗑 Rimuovi</button>
+          <button class="btn warn small" onclick="wizDelMealAsk(${di},${mi})">Rimuovi</button>
         </div>`;
         // ── alternative dello stesso pasto (a casa / in mensa / fuori / veloce)
         if(m.o.length>1)m.o.slice(1).forEach((alt,ai)=>{const oi=ai+1;
@@ -9035,19 +9165,19 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
           <label>Alternativa ${oi}</label><textarea onchange="wizSetOpt(${di},${mi},${oi},'d',this.value)">${esc(alt.d)}</textarea>
           <div class="wzval" id="wzv${di}_${mi}_${oi}">${macroLine(alt)}</div>
           <div class="wzbar">
-            <button class="btn ghost small" onclick="wizEstim(${di},${mi},${oi})">🤖 Stima</button>
-            <button class="btn warn small" onclick="wizDelOptAsk(${di},${mi},${oi})">🗑 Rimuovi</button>
+            <button class="btn ghost small" onclick="wizEstim(${di},${mi},${oi})">Stima</button>
+            <button class="btn warn small" onclick="wizDelOptAsk(${di},${mi},${oi})">Rimuovi</button>
           </div></div>`;});
         h+=`        </div></div>`;});
       h+=`<div class="mtools"><button class="btn ghost small" onclick="wizAddMeal(${di})">+ pasto</button></div>
       <div class="daytotal">Giorno: <span id="wzTot${di}">${wizDayTot(di)}</span></div>
       <div class="hint" id="wzTgt${di}">${wizDayTarget(di)}</div>
       <div class="mtools" style="margin-bottom:14px">
-        <button class="btn small" onclick="wizBalance(${di})">⚖️ Bilancia la giornata con l'AI</button>
+        <button class="btn small" onclick="wizBalance(${di})">Bilancia la giornata con l'AI</button>
       </div>`;});
     h+=`<div class="card"><div class="mtools">
     ${WIZ.editOnly?"":'<button class="btn ghost" onclick="wizNext(3)">← Rigenera</button>'}
-    <button class="btn" onclick="wizConfirm()">✅ Conferma piano</button>
+    <button class="btn" onclick="wizConfirm()">Conferma piano</button>
     <button class="btn ghost" onclick="show('io')">Annulla</button></div>
     <div class="hint">⚠️ Ricorda: fai validare il piano da un nutrizionista prima di seguirlo.</div></div>`;}
   else{h=`<div class="card"><div class="hint">Percorso non avviato.</div><button class="btn small" onclick="wizStart(true)">Inizia</button></div>`;}
@@ -9056,68 +9186,68 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
 /* ═══ PAGINA GUIDA (statica) ═══ */
 function renderGuida(){document.getElementById("pg-guida").innerHTML=`
 <div class="card guida-sec"><details class="gdet" open><summary><h2>Tutto quello che Nutry sa fare</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-<div class="hint">Stai usando <b>Nutry ${APP_VER}</b>. Questa è la mappa completa delle funzioni: le voci con <span class="newtag">NEW</span> sono le novità delle versioni più recenti. Ogni funzione è poi spiegata in dettaglio nel resto della guida.</div>
+<div class="hint">Stai usando <b>Nutry ${APP_VER}</b>. Questa è la mappa completa delle funzioni: le voci con  sono le novità delle versioni più recenti. Ogni funzione è poi spiegata in dettaglio nel resto della guida.</div>
 <table class="gtable">
-<tr><td>🧭</td><td><b>Percorso di benvenuto</b> — otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La <b>chiave Gemini si aggancia subito al passo 3</b><span class="newtag">NEW</span>, così tutti i passi successivi possono già usare l'AI.</td></tr>
-<tr><td>🎯</td><td><b>Obiettivo su misura</b> — il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e <b>guida davvero il deficit</b>; gli <b>allenamenti previsti</b> (sport · minuti · volte) e l'<b>obiettivo acqua</b> entrano nel fabbisogno già dal percorso iniziale.<span class="newtag">NEW</span></td></tr>
-<tr><td>🧰</td><td><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro: 🧭 <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste), 🤝 <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua), 🎈 <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile), 🍩 <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli), 🐺 <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato), 🐿️ <b>Spiluccare</b> (i pasti diventano una grazing board), 🔮 <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte), 🍳 <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti), 🍲 <b>Cucino per tutti</b>, 🏋️ <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.<span class="newtag">NEW</span></td></tr>
-<tr><td>👥</td><td><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.<span class="newtag">NEW</span></td></tr>
-<tr><td>⚡</td><td><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.<span class="newtag">NEW</span></td></tr>
-<tr><td>🟢</td><td><b>Qualità del cibo</b> — quando spunti un pasto, al posto dell'orario compare un <b>pallino colorato</b> con un voto da 0 a 100 dato dall'AI: rosso sotto il 20%, poi arancione, giallo, verde chiaro, verde scuro sopra l'80%. Giudica <b>com'è fatto il cibo</b>, non quante calorie ha. Nel bilancio trovi la media della giornata, pesata sulle calorie, e in alto la serie di giorni di fila con cibo buono. Se cambi un pasto (foto, barcode, ✏️, ribilancio) il voto si ricalcola da solo.<span class="newtag">NEW</span></td></tr>
-<tr><td>📊</td><td><b>Bilancio della giornata</b> — nove riquadri: deficit (già comprensivo dello sport), kcal mangiate, proteine, carboidrati, grassi, fibre, zuccheri, serie 🔥 e qualità. Ognuno con la sua barra. Gli <b>zuccheri</b> sono un tetto, non un obiettivo: la barra diventa rossa se lo superi.<span class="newtag">NEW</span></td></tr>
-<tr><td>🤰</td><td><b>Gravidanza, infortunio e malattia</b> (Oggi → Come stai) — oltre a ciclo e allattamento. La gravidanza aggiunge calorie per trimestre e <b>sospende sempre il deficit</b>. Infortunio e malattia riducono il fabbisogno perché ti muovi meno: il taglio è solo sulla quota di <b>attività</b>, il metabolismo basale non si tocca mai. In malattia il deficit resta sospeso finché non guarisci. Il ciclo si spegne da solo dopo 7 giorni; gli altri restano attivi <b>finché non li togli tu</b>.<span class="newtag">NEW</span></td></tr>
-<tr><td>⚖️</td><td><b>Porzioni riscalate</b> — questi stati non riscrivono il piano: moltiplicano le porzioni partendo dalle <b>kcal del tuo piano</b>, non da una stima. Così una grammatura che hai forzato a mano non va persa, e quando spegni lo stato le porzioni tornano <b>esattamente</b> quelle di base. Perché il conto torni, il piano va tenuto in stato <b>neutro</b>, cioè scritto senza avere già conteggiato quelle calorie.<span class="newtag">NEW</span></td></tr>
-<tr><td>🔁</td><td><b>Fasi della dieta</b> (Regole) — stare sempre in deficit stanca il corpo e la testa. Puoi alternare giorni di deficit e giorni di <b>mantenimento</b>: nove schemi pronti (da «6 giorni + 1» a «3 mesi + 1 mese») oppure i tuoi numeri. Nella pausa il deficit va a zero, le porzioni risalgono e la spesa si adegua; un avviso te lo dice e ritara piano e spesa. La <b>proiezione in Storico</b> ne tiene conto: nei tratti piatti il peso resta fermo apposta.<span class="newtag">NEW</span></td></tr>
-<tr><td>🎯</td><td><b>Ricalibra</b> (Oggi, sotto Come stai) — <b>i pasti di oggi</b> ritara solo quelli non ancora spuntati, sulle calorie che ti restano. <b>La settimana</b> ritara i 7 giorni che partono da oggi e rigenera la spesa: vale solo per quella settimana, il piano di base resta quello che è.<span class="newtag">NEW</span></td></tr>
-<tr><td>🛒</td><td><b>La spesa parte da oggi</b> — la lista copre i 7 giorni che iniziano <b>dal giorno in cui la fai</b>, non da lunedì: puoi fare la spesa di mercoledì e coprire fino al martedì dopo. I pasti di oggi già spuntati non vengono ricomprati.<span class="newtag">NEW</span></td></tr>
-<tr><td>📈</td><td><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.<span class="newtag">NEW</span></td></tr>
-<tr><td>😋</td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.<span class="newtag">NEW</span></td></tr>
-<tr><td>💧</td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.<span class="newtag">NEW</span></td></tr>
-<tr><td>🕐</td><td><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.<span class="newtag">NEW</span></td></tr>
-<tr><td>📊</td><td><b>Dati d'uso anonimi</b> — «Mi mandi le statistiche di quanto usi Nutry? <b>Nessun dato personale o della tua dieta.</b>» Servono a rispondere a una domanda sola: dopo quanti giorni le persone smettono? Escono <b>otto numeri</b> (identificativo casuale, versione, giorni dall'installazione, giorni d'uso, ultimo utilizzo, spunte, richieste AI, se c'è un piano) e nient'altro: né peso, né cibo, né nome, né note. Si sceglie nel percorso di benvenuto e si cambia in <b>Io</b>, dove puoi anche <b>vedere il pacchetto esatto</b> generato con i tuoi dati.<span class="newtag">NEW</span></td></tr>
+<tr><td>🧭</td><td><b>Percorso di benvenuto</b> — otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La <b>chiave Gemini si aggancia subito al passo 3</b>, così tutti i passi successivi possono già usare l'AI.</td></tr>
+<tr><td>🎯</td><td><b>Obiettivo su misura</b> — il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e <b>guida davvero il deficit</b>; gli <b>allenamenti previsti</b> (sport · minuti · volte) e l'<b>obiettivo acqua</b> entrano nel fabbisogno già dal percorso iniziale.</td></tr>
+<tr><td>🧰</td><td><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro: 🧭 <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste), 🤝 <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua), 🎈 <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile), 🍩 <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli), 🐺 <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato), 🐿️ <b>Spiluccare</b> (i pasti diventano una grazing board), 🔮 <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte), 🍳 <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti), 🍲 <b>Cucino per tutti</b>, 🏋️ <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.</td></tr>
+<tr><td>👥</td><td><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.</td></tr>
+<tr><td>⚡</td><td><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.</td></tr>
+<tr><td>🟢</td><td><b>Qualità del cibo</b> — quando spunti un pasto, al posto dell'orario compare un <b>pallino colorato</b> con un voto da 0 a 100 dato dall'AI: rosso sotto il 20%, poi arancione, giallo, verde chiaro, verde scuro sopra l'80%. Giudica <b>com'è fatto il cibo</b>, non quante calorie ha. Nel bilancio trovi la media della giornata, pesata sulle calorie, e in alto la serie di giorni di fila con cibo buono. Se cambi un pasto (foto, barcode, ✏️, ribilancio) il voto si ricalcola da solo.</td></tr>
+<tr><td>📊</td><td><b>Bilancio della giornata</b> — nove riquadri: deficit (già comprensivo dello sport), kcal mangiate, proteine, carboidrati, grassi, fibre, zuccheri, serie 🔥 e qualità. Ognuno con la sua barra. Gli <b>zuccheri</b> sono un tetto, non un obiettivo: la barra diventa rossa se lo superi.</td></tr>
+<tr><td>🤰</td><td><b>Gravidanza, infortunio e malattia</b> (Oggi → Come stai) — oltre a ciclo e allattamento. La gravidanza aggiunge calorie per trimestre e <b>sospende sempre il deficit</b>. Infortunio e malattia riducono il fabbisogno perché ti muovi meno: il taglio è solo sulla quota di <b>attività</b>, il metabolismo basale non si tocca mai. In malattia il deficit resta sospeso finché non guarisci. Il ciclo si spegne da solo dopo 7 giorni; gli altri restano attivi <b>finché non li togli tu</b>.</td></tr>
+<tr><td>⚖️</td><td><b>Porzioni riscalate</b> — questi stati non riscrivono il piano: moltiplicano le porzioni partendo dalle <b>kcal del tuo piano</b>, non da una stima. Così una grammatura che hai forzato a mano non va persa, e quando spegni lo stato le porzioni tornano <b>esattamente</b> quelle di base. Perché il conto torni, il piano va tenuto in stato <b>neutro</b>, cioè scritto senza avere già conteggiato quelle calorie.</td></tr>
+<tr><td>🔁</td><td><b>Fasi della dieta</b> (Regole) — stare sempre in deficit stanca il corpo e la testa. Puoi alternare giorni di deficit e giorni di <b>mantenimento</b>: nove schemi pronti (da «6 giorni + 1» a «3 mesi + 1 mese») oppure i tuoi numeri. Nella pausa il deficit va a zero, le porzioni risalgono e la spesa si adegua; un avviso te lo dice e ritara piano e spesa. La <b>proiezione in Storico</b> ne tiene conto: nei tratti piatti il peso resta fermo apposta.</td></tr>
+<tr><td>🎯</td><td><b>Ricalibra</b> (Oggi, sotto Come stai) — <b>i pasti di oggi</b> ritara solo quelli non ancora spuntati, sulle calorie che ti restano. <b>La settimana</b> ritara i 7 giorni che partono da oggi e rigenera la spesa: vale solo per quella settimana, il piano di base resta quello che è.</td></tr>
+<tr><td>🛒</td><td><b>La spesa parte da oggi</b> — la lista copre i 7 giorni che iniziano <b>dal giorno in cui la fai</b>, non da lunedì: puoi fare la spesa di mercoledì e coprire fino al martedì dopo. I pasti di oggi già spuntati non vengono ricomprati.</td></tr>
+<tr><td>📈</td><td><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.</td></tr>
+<tr><td>😋</td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.</td></tr>
+<tr><td>💧</td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.</td></tr>
+<tr><td>🕐</td><td><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.</td></tr>
+<tr><td>📊</td><td><b>Dati d'uso anonimi</b> — «Mi mandi le statistiche di quanto usi Nutry? <b>Nessun dato personale o della tua dieta.</b>» Servono a rispondere a una domanda sola: dopo quanti giorni le persone smettono? Escono <b>otto numeri</b> (identificativo casuale, versione, giorni dall'installazione, giorni d'uso, ultimo utilizzo, spunte, richieste AI, se c'è un piano) e nient'altro: né peso, né cibo, né nome, né note. Si sceglie nel percorso di benvenuto e si cambia in <b>Io</b>, dove puoi anche <b>vedere il pacchetto esatto</b> generato con i tuoi dati.</td></tr>
 <tr><td>⚙️</td><td><b>Per lo sviluppatore: attivare la raccolta</b> — un browser non può spedire email da solo. Per ricevere i dati in automatico: apri <i>script.google.com</i> → Nuovo progetto → incolla uno script <code>doPost</code> che scrive su un foglio e usa <code>MailApp.sendEmail</code> verso la tua casella → Distribuisci come <i>app web</i>, accesso «chiunque» → copia l'indirizzo che ti dà e incollalo nella costante <code>TEL_URL</code> in cima al codice. Da quel momento l'invio è automatico e l'utente non deve fare nulla.</td></tr>
-<tr><td>🔗</td><td><b>I tuoi supermercati</b> — la lista dei negozi la costruisci tu, e non è una scorciatoia: gli indirizzi dei siti cambiano di continuo e l'app non può verificarli. Cerchi un alimento sul sito del <b>tuo</b> negozio, incolli l'indirizzo dei risultati e l'app ricava da sola il modello. Da lì ogni 🔗 della lista apre la ricerca di quel prodotto. Puoi tenere più negozi e scegliere quale usare.<span class="newtag">NEW</span></td></tr>
-<tr><td>🏷️</td><td><b>Prima le offerte</b> — con lo stesso metodo: attivi sul sito il filtro <b>offerte</b>, incolli il nuovo indirizzo e l'app impara anche quello. Poi con un interruttore i 🔗 puntano ai prodotti in promozione invece che alla ricerca normale. Se su quel sito il filtro non finisce nell'indirizzo, l'app te lo dice invece di far finta di funzionare.<span class="newtag">NEW</span></td></tr>
-<tr><td>🛒</td><td><b>Spesa che si fa da sola</b> — la lista si costruisce dagli ingredienti del piano con le quantità <b>esatte</b> e si <b>aggiorna da sola</b> a ogni modifica del piano, tenendo le spunte sui prodotti che restano: niente pulsanti da premere. Puoi scegliere se la spesa è <b>solo per te o per tutta la famiglia</b>, e i pasti fuori casa contano solo se li prepari tu.<span class="newtag">NEW</span></td></tr>
-<tr><td>🍱</td><td><b>Fuori casa: li porti o li mangi fuori?</b> — la differenza cambia tutto, quindi ora si sceglie: se <b>li prepari tu</b> il piano dà ricette vere con le grammature, pensate per essere trasportabili (buone anche fredde, contenitore unico, niente salse che si separano) e gli ingredienti <b>restano nella spesa</b>; se <b>li mangi fuori</b> il piano descrive come comporre il piatto senza inventare ricette e quegli ingredienti <b>non finiscono nella lista</b>. Si imposta come regola fissa in Regole o solo per la settimana in corso dal Piano.<span class="newtag">NEW</span></td></tr>
-<tr><td>🔁</td><td><b>Pasti fuori casa settimana per settimana</b> (in Piano) — per chi fa <b>turni</b>: imposti i giorni e i pasti fuori casa solo per la settimana in corso, senza toccare la regola fissa. Salvando, l'app propone di rivedere il piano e rigenerare la spesa settimanale di conseguenza. I pasti che porti da casa vengono pensati come <b>schiscetta</b>: buoni anche freddi, in un contenitore unico, senza salse che si separano.<span class="newtag">NEW</span></td></tr>
-<tr><td>📊</td><td><b>Bilancio più leggibile</b> — via il cerchio grande: <b>deficit</b>, <b>proteine</b> e <b>streak</b> stanno nei tre riquadri in alto, ognuno con la sua barra di progressione, e sotto restano mangiate · pianificato · sport.<span class="newtag">NEW</span></td></tr>
-<tr><td>👆</td><td><b>Trascina per eliminare</b> — sulle card degli extra: trascina verso sinistra e la card sparisce, con la barra <b>ANNULLA</b> in basso per quattro secondi. Niente più conferme per ogni piccola cosa.<span class="newtag">NEW</span></td></tr>
-<tr><td>🛑</td><td><b>Intercettore di fame emotiva</b> — quando registri un extra denso di zuccheri o grassi, o è tardi, l'app si mette in mezzo senza giudicare: ti chiede se è fame vera, propone il metodo dell'acqua (un bicchiere e quindici minuti) e, se aspetti, tre alternative dolci ma sazianti dentro i macro di oggi.<span class="newtag">NEW</span></td></tr>
-<tr><td>👨‍👩‍👧</td><td><b>Famiglia</b> (onboarding e Regole) — inserisci solo <b>sesso e data di nascita</b> di chi mangia a casa: la categoria e il fabbisogno relativo li calcola l'app secondo le fasce LARN (donna adulta = 1 · uomo = 1,25 · adolescente 10-14 = 1,10 · bambino 4-9 = 0,75 · infante 1-3 = 0,50). L'AI sa quante porzioni servono in pentola e per la spesa.<span class="newtag">NEW</span></td></tr>
-<tr><td>🩸</td><td><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 7 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b>🎯 Ricalibra</b> ritara grammature e spesa su questi numeri.<span class="newtag">NEW</span></td></tr>
-<tr><td>🩺</td><td><b>Condizioni di salute a spunte</b> — colon irritabile, reflusso, colesterolo, trigliceridi, pressione alta, diabete 2, PCOS, fegato grasso, acido urico, tiroide, anemia, calcoli, diverticoli, celiachia, più quelle che aggiungi a mano. Ogni spunta porta con sé <b>criteri dietetici concreti</b> che entrano in tutte le proposte dell'AI: con i trigliceridi taglia zuccheri e alcol, col colesterolo i grassi saturi, col reflusso fritti e piatti acidi. È contesto, non terapia: le indicazioni cliniche restano del medico e del nutrizionista.<span class="newtag">NEW</span></td></tr>
-<tr><td>🗺️</td><td><b>Piatti tipici di dove sei</b> (in Oggi) — in viaggio o in trasferta l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici <b>adatti al pasto di quel momento</b> (a colazione dolci da forno e latticini locali, non secondi di carne) e compatibili con le tue regole, spiegando <b>come ordinarli</b> per restare nel target: porzione, contorno, condimento a parte. Se la terna non convince, chiedi altre proposte. La posizione serve solo a dedurre regione e nazione — le coordinate vengono arrotondate a ~11 km e non vengono mai salvate — e in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale: per quello c'è il selezionatore di menù, che ora <b>compone il pasto</b> invece di scegliere un piatto solo: spunti le portate che vuoi fare — antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda — più le sezioni che scrivi tu (insalatone, poke, taglieri…) — e l'AI mette insieme la combinazione che sta nel <b>totale</b> del target, con il conto delle calorie, come ordinare ogni portata e un'alternativa per ciascuna. Puoi chiedere altre combinazioni finché le opzioni compatibili non finiscono. Le foto del menù <b>scadono dopo tre ore</b>, il tempo di un pasto: un'altra volta in un altro locale non ti ritrovi le proposte di quello di prima.<span class="newtag">NEW</span></td></tr>
-<tr><td>🧬</td><td><b>Tre livelli separati</b> — l'<b>impostazione di riferimento</b> è lo stile di fondo (mediterranea, onnivora, vegetariana, vegana, pescetariana, flexitariana); i <b>protocolli</b> sono gli schemi tecnici (basso FODMAP, digiuno intermittente, low carb, chetogenica, DASH, basso indice glicemico, ipocalorica bilanciata, antinfiammatoria, alta proteina, iposodica, più quelli che scrivi tu); le <b>intolleranze</b> sono le esclusioni. La <b>dieta di riferimento</b> si sceglie dal menù: selezionando <i>vegetariana</i> compaiono da sole le due precisazioni che contano (uova e pesce ammessi o no), perché le versioni cambiano da persona a persona. Prima erano mescolati in un unico menù e se ne poteva scegliere uno solo: ora possono convivere, e ogni protocollo porta con sé le sue regole operative che l'AI applica a ogni proposta.<span class="newtag">NEW</span></td></tr>
-<tr><td>🏃</td><td><b>Allenamenti e tempi dell'obiettivo</b> — le calorie bruciate con gli allenamenti pianificati <b>non alzano le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Servono a stimare <b>in quanto tempo</b> arrivi all'obiettivo, e le usa la 🔮 Stima risultati.<span class="newtag">NEW</span></td></tr>
-<tr><td>🍴</td><td><b>Pasti fuori casa</b> — non più solo "mensa": segni i giorni in cui mangi fuori (mensa, trattoria, bar, menù fisso) e per ognuno se è <b>pranzo, cena o entrambi</b> — utile a chi lavora in viaggio. Il totale settimanale si conta da sé, e per quei pasti il piano descrive come comporre il piatto invece di inventarne uno.<span class="newtag">NEW</span></td></tr>
-<tr><td>🎚️</td><td><b>Varietà a tre livelli</b> — scegli tu se il piano deve girare su pochi ingredienti che tornano (spesa corta, poco da cucinare), stare in mezzo, o proporre piatti sempre diversi. L'AI costruisce la settimana di conseguenza.<span class="newtag">NEW</span></td></tr>
-<tr><td>⚖️</td><td><b>Il piano segue il tuo peso</b> — quando cali (o sali) di oltre 3 kg rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.<span class="newtag">NEW</span></td></tr>
-<tr><td>🍱</td><td><b>Mensa davvero generica</b> — per i pasti in mensa il piano non inventa un piatto preciso, ma descrive come comporre il vassoio (fonte proteica, contorno, porzione di carboidrati). Quei pasti non finiscono mai nella lista della spesa.<span class="newtag">NEW</span></td></tr>
-<tr><td>🎯</td><td><b>Obiettivo di peso, un valore solo</b> — vive in un unico posto, visibile in <b>Io → Obiettivi</b> e usato ovunque (proteine, proiezione, grafici, stima). Lo cambi solo tu: se il campo resta vuoto l'app chiede conferma invece di cancellarlo, e quando l'AI propone una correzione puoi accettarla o riscriverla.<span class="newtag">NEW</span></td></tr>
-<tr><td>🥗</td><td><b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), <b>mensa giorno per giorno</b> con scelta pranzo/cena, <b>intolleranze</b> a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.<span class="newtag">NEW</span></td></tr>
-<tr><td>🧮</td><td><b>Proteine tarate su di te</b> — g/kg automatici: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · massa 1,6–2,2, sempre sul peso di riferimento e modificabili nelle Regole.<span class="newtag">NEW</span></td></tr>
-<tr><td>🩹</td><td><b>Controllo dell'obiettivo</b> — prima di costruire il piano l'app verifica che il peso desiderato sia sano per la tua altezza: se è troppo basso te lo dice, mostra l'intervallo corretto in kg (BMI 18,5–24,9) e ti lascia <b>riscrivere l'obiettivo sul momento</b>, con rianalisi immediata, senza uscire dalla schermata.<span class="newtag">NEW</span></td></tr>
-<tr><td>🤖</td><td><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (a ogni apertura, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.<span class="newtag">NEW</span></td></tr>
-<tr><td>⚖️</td><td><b>Pesate modificabili</b> — con ✏️ correggi una pesata o <b>aggiungi i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche giorni dopo; con 🗑 la elimini, sempre con conferma.<span class="newtag">NEW</span></td></tr>
-<tr><td>📝</td><td><b>Le tue note</b> (in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.<span class="newtag">NEW</span></td></tr>
-<tr><td>⚖️</td><td><b>Ritmo dichiarato = ritmo reale</b> — il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app <b>te lo dice</b> e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.<span class="newtag">NEW</span></td></tr>
-<tr><td>✨</td><td><b>Generatore di piano AI</b> — sette giorni costruiti <b>uno alla volta</b>: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.<span class="newtag">NEW</span></td></tr>
-<tr><td>📸</td><td><b>Importa il piano da foto</b> — fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e <b>alternative</b>, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.<span class="newtag">NEW</span></td></tr>
-<tr><td>🔮</td><td><b>Stima risultati</b> — media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la <b>ritaratura automatica delle grammature</b> (i piatti restano gli stessi) con spesa e stima rigenerate.<span class="newtag">NEW</span></td></tr>
-<tr><td>${seasonEmoji()}</td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata 🌸 Primaverile · ☀️ Estivo · 🍂 Autunnale · ❄️ Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.<span class="newtag">NEW</span></td></tr>
+<tr><td>🔗</td><td><b>I tuoi supermercati</b> — la lista dei negozi la costruisci tu, e non è una scorciatoia: gli indirizzi dei siti cambiano di continuo e l'app non può verificarli. Cerchi un alimento sul sito del <b>tuo</b> negozio, incolli l'indirizzo dei risultati e l'app ricava da sola il modello. Da lì ogni 🔗 della lista apre la ricerca di quel prodotto. Puoi tenere più negozi e scegliere quale usare.</td></tr>
+<tr><td>🏷️</td><td><b>Prima le offerte</b> — con lo stesso metodo: attivi sul sito il filtro <b>offerte</b>, incolli il nuovo indirizzo e l'app impara anche quello. Poi con un interruttore i 🔗 puntano ai prodotti in promozione invece che alla ricerca normale. Se su quel sito il filtro non finisce nell'indirizzo, l'app te lo dice invece di far finta di funzionare.</td></tr>
+<tr><td>🛒</td><td><b>Spesa che si fa da sola</b> — la lista si costruisce dagli ingredienti del piano con le quantità <b>esatte</b> e si <b>aggiorna da sola</b> a ogni modifica del piano, tenendo le spunte sui prodotti che restano: niente pulsanti da premere. Puoi scegliere se la spesa è <b>solo per te o per tutta la famiglia</b>, e i pasti fuori casa contano solo se li prepari tu.</td></tr>
+<tr><td>🍱</td><td><b>Fuori casa: li porti o li mangi fuori?</b> — la differenza cambia tutto, quindi ora si sceglie: se <b>li prepari tu</b> il piano dà ricette vere con le grammature, pensate per essere trasportabili (buone anche fredde, contenitore unico, niente salse che si separano) e gli ingredienti <b>restano nella spesa</b>; se <b>li mangi fuori</b> il piano descrive come comporre il piatto senza inventare ricette e quegli ingredienti <b>non finiscono nella lista</b>. Si imposta come regola fissa in Regole o solo per la settimana in corso dal Piano.</td></tr>
+<tr><td>🔁</td><td><b>Pasti fuori casa settimana per settimana</b> (in Piano) — per chi fa <b>turni</b>: imposti i giorni e i pasti fuori casa solo per la settimana in corso, senza toccare la regola fissa. Salvando, l'app propone di rivedere il piano e rigenerare la spesa settimanale di conseguenza. I pasti che porti da casa vengono pensati come <b>schiscetta</b>: buoni anche freddi, in un contenitore unico, senza salse che si separano.</td></tr>
+<tr><td>📊</td><td><b>Bilancio più leggibile</b> — via il cerchio grande: <b>deficit</b>, <b>proteine</b> e <b>streak</b> stanno nei tre riquadri in alto, ognuno con la sua barra di progressione, e sotto restano mangiate · pianificato · sport.</td></tr>
+<tr><td>👆</td><td><b>Trascina per eliminare</b> — sulle card degli extra: trascina verso sinistra e la card sparisce, con la barra <b>ANNULLA</b> in basso per quattro secondi. Niente più conferme per ogni piccola cosa.</td></tr>
+<tr><td>🛑</td><td><b>Intercettore di fame emotiva</b> — quando registri un extra denso di zuccheri o grassi, o è tardi, l'app si mette in mezzo senza giudicare: ti chiede se è fame vera, propone il metodo dell'acqua (un bicchiere e quindici minuti) e, se aspetti, tre alternative dolci ma sazianti dentro i macro di oggi.</td></tr>
+<tr><td>👨‍👩‍👧</td><td><b>Famiglia</b> (onboarding e Regole) — inserisci solo <b>sesso e data di nascita</b> di chi mangia a casa: la categoria e il fabbisogno relativo li calcola l'app secondo le fasce LARN (donna adulta = 1 · uomo = 1,25 · adolescente 10-14 = 1,10 · bambino 4-9 = 0,75 · infante 1-3 = 0,50). L'AI sa quante porzioni servono in pentola e per la spesa.</td></tr>
+<tr><td>🩸</td><td><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 7 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b>🎯 Ricalibra</b> ritara grammature e spesa su questi numeri.</td></tr>
+<tr><td>🩺</td><td><b>Condizioni di salute a spunte</b> — colon irritabile, reflusso, colesterolo, trigliceridi, pressione alta, diabete 2, PCOS, fegato grasso, acido urico, tiroide, anemia, calcoli, diverticoli, celiachia, più quelle che aggiungi a mano. Ogni spunta porta con sé <b>criteri dietetici concreti</b> che entrano in tutte le proposte dell'AI: con i trigliceridi taglia zuccheri e alcol, col colesterolo i grassi saturi, col reflusso fritti e piatti acidi. È contesto, non terapia: le indicazioni cliniche restano del medico e del nutrizionista.</td></tr>
+<tr><td>🗺️</td><td><b>Piatti tipici di dove sei</b> (in Oggi) — in viaggio o in trasferta l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici <b>adatti al pasto di quel momento</b> (a colazione dolci da forno e latticini locali, non secondi di carne) e compatibili con le tue regole, spiegando <b>come ordinarli</b> per restare nel target: porzione, contorno, condimento a parte. Se la terna non convince, chiedi altre proposte. La posizione serve solo a dedurre regione e nazione — le coordinate vengono arrotondate a ~11 km e non vengono mai salvate — e in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale: per quello c'è il selezionatore di menù, che ora <b>compone il pasto</b> invece di scegliere un piatto solo: spunti le portate che vuoi fare — antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda — più le sezioni che scrivi tu (insalatone, poke, taglieri…) — e l'AI mette insieme la combinazione che sta nel <b>totale</b> del target, con il conto delle calorie, come ordinare ogni portata e un'alternativa per ciascuna. Puoi chiedere altre combinazioni finché le opzioni compatibili non finiscono. Le foto del menù <b>scadono dopo tre ore</b>, il tempo di un pasto: un'altra volta in un altro locale non ti ritrovi le proposte di quello di prima.</td></tr>
+<tr><td>🧬</td><td><b>Tre livelli separati</b> — l'<b>impostazione di riferimento</b> è lo stile di fondo (mediterranea, onnivora, vegetariana, vegana, pescetariana, flexitariana); i <b>protocolli</b> sono gli schemi tecnici (basso FODMAP, digiuno intermittente, low carb, chetogenica, DASH, basso indice glicemico, ipocalorica bilanciata, antinfiammatoria, alta proteina, iposodica, più quelli che scrivi tu); le <b>intolleranze</b> sono le esclusioni. La <b>dieta di riferimento</b> si sceglie dal menù: selezionando <i>vegetariana</i> compaiono da sole le due precisazioni che contano (uova e pesce ammessi o no), perché le versioni cambiano da persona a persona. Prima erano mescolati in un unico menù e se ne poteva scegliere uno solo: ora possono convivere, e ogni protocollo porta con sé le sue regole operative che l'AI applica a ogni proposta.</td></tr>
+<tr><td>🏃</td><td><b>Allenamenti e tempi dell'obiettivo</b> — le calorie bruciate con gli allenamenti pianificati <b>non alzano le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Servono a stimare <b>in quanto tempo</b> arrivi all'obiettivo, e le usa la 🔮 Stima risultati.</td></tr>
+<tr><td>🍴</td><td><b>Pasti fuori casa</b> — non più solo "mensa": segni i giorni in cui mangi fuori (mensa, trattoria, bar, menù fisso) e per ognuno se è <b>pranzo, cena o entrambi</b> — utile a chi lavora in viaggio. Il totale settimanale si conta da sé, e per quei pasti il piano descrive come comporre il piatto invece di inventarne uno.</td></tr>
+<tr><td>🎚️</td><td><b>Varietà a tre livelli</b> — scegli tu se il piano deve girare su pochi ingredienti che tornano (spesa corta, poco da cucinare), stare in mezzo, o proporre piatti sempre diversi. L'AI costruisce la settimana di conseguenza.</td></tr>
+<tr><td>⚖️</td><td><b>Il piano segue il tuo peso</b> — quando cali (o sali) di oltre 3 kg rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.</td></tr>
+<tr><td>🍱</td><td><b>Mensa davvero generica</b> — per i pasti in mensa il piano non inventa un piatto preciso, ma descrive come comporre il vassoio (fonte proteica, contorno, porzione di carboidrati). Quei pasti non finiscono mai nella lista della spesa.</td></tr>
+<tr><td>🎯</td><td><b>Obiettivo di peso, un valore solo</b> — vive in un unico posto, visibile in <b>Io → Obiettivi</b> e usato ovunque (proteine, proiezione, grafici, stima). Lo cambi solo tu: se il campo resta vuoto l'app chiede conferma invece di cancellarlo, e quando l'AI propone una correzione puoi accettarla o riscriverla.</td></tr>
+<tr><td>🥗</td><td><b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), <b>mensa giorno per giorno</b> con scelta pranzo/cena, <b>intolleranze</b> a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.</td></tr>
+<tr><td>🧮</td><td><b>Proteine tarate su di te</b> — g/kg automatici: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · massa 1,6–2,2, sempre sul peso di riferimento e modificabili nelle Regole.</td></tr>
+<tr><td>🩹</td><td><b>Controllo dell'obiettivo</b> — prima di costruire il piano l'app verifica che il peso desiderato sia sano per la tua altezza: se è troppo basso te lo dice, mostra l'intervallo corretto in kg (BMI 18,5–24,9) e ti lascia <b>riscrivere l'obiettivo sul momento</b>, con rianalisi immediata, senza uscire dalla schermata.</td></tr>
+<tr><td>🤖</td><td><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (a ogni apertura, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.</td></tr>
+<tr><td>⚖️</td><td><b>Pesate modificabili</b> — con ✏️ correggi una pesata o <b>aggiungi i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche giorni dopo; con 🗑 la elimini, sempre con conferma.</td></tr>
+<tr><td>📝</td><td><b>Le tue note</b> (in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.</td></tr>
+<tr><td>⚖️</td><td><b>Ritmo dichiarato = ritmo reale</b> — il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app <b>te lo dice</b> e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.</td></tr>
+<tr><td>✨</td><td><b>Generatore di piano AI</b> — sette giorni costruiti <b>uno alla volta</b>: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.</td></tr>
+<tr><td>📸</td><td><b>Importa il piano da foto</b> — fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e <b>alternative</b>, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.</td></tr>
+<tr><td>🔮</td><td><b>Stima risultati</b> — media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la <b>ritaratura automatica delle grammature</b> (i piatti restano gli stessi) con spesa e stima rigenerate.</td></tr>
+<tr><td>${seasonEmoji()}</td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata 🌸 Primaverile · ☀️ Estivo · 🍂 Autunnale · ❄️ Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.</td></tr>
 <tr><td>☀️</td><td><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
-<tr><td>📷</td><td><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con ✏️ e la stima si rifà usando esattamente i tuoi numeri.<span class="newtag">NEW</span> Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
+<tr><td>📷</td><td><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con ✏️ e la stima si rifà usando esattamente i tuoi numeri. Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
 <tr><td>⚖️</td><td><b>Ribilancia le calorie residue</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
 <tr><td>♻️</td><td><b>Recupero sfori</b> — gli sbagli degli ultimi 5 giorni si spalmano nei giorni dopo con soglie e tetti di sicurezza: mai un giorno di digiuno.</td></tr>
-<tr><td>🍽️</td><td><b>Aiuti sul singolo pasto</b> — ✏️ modifica con ristima, 🎲 alternativa a parità di macro, 🔁 sostituzione ingrediente (anche dalla foto di ciò che hai in casa), 🍲 crea un piatto dal frigo, selezionatore di menù al ristorante, ⭐ piatti salvati riusabili senza AI. I piatti salvati finiscono in <b>⭐ Piatti</b>: da lì li riusi per qualsiasi pasto o come extra, senza consumare AI, e l'AI li considera già graditi quando propone o ribilancia.<span class="newtag">NEW</span></td></tr>
-<tr><td>🛒</td><td><b>Lista della spesa</b> — derivata dal <b>tuo</b> piano e <b>rigenerata da sola</b> quando il piano cambia<span class="newtag">NEW</span>, con AI o senza, categorie da supermercato, spunte persistenti, link al tuo negozio, invio WhatsApp.</td></tr>
-<tr><td>🏃</td><td><b>Sport</b> — 24 sport pronti (ciclismo, nuoto, padel, CrossFit…)<span class="newtag">NEW</span> e nuovi sport con stima MET via AI coerente con le regole dell'app; kcal calcolate sul tuo peso del momento.</td></tr>
+<tr><td>🍽️</td><td><b>Aiuti sul singolo pasto</b> — ✏️ modifica con ristima, 🎲 alternativa a parità di macro, 🔁 sostituzione ingrediente (anche dalla foto di ciò che hai in casa), 🍲 crea un piatto dal frigo, selezionatore di menù al ristorante, ⭐ piatti salvati riusabili senza AI. I piatti salvati finiscono in <b>⭐ Piatti</b>: da lì li riusi per qualsiasi pasto o come extra, senza consumare AI, e l'AI li considera già graditi quando propone o ribilancia.</td></tr>
+<tr><td>🛒</td><td><b>Lista della spesa</b> — derivata dal <b>tuo</b> piano e <b>rigenerata da sola</b> quando il piano cambia, con AI o senza, categorie da supermercato, spunte persistenti, link al tuo negozio, invio WhatsApp.</td></tr>
+<tr><td>🏃</td><td><b>Sport</b> — 24 sport pronti (ciclismo, nuoto, padel, CrossFit…) e nuovi sport con stima MET via AI coerente con le regole dell'app; kcal calcolate sul tuo peso del momento.</td></tr>
 <tr><td>📐</td><td><b>Regole trasparenti</b> — ogni numero che governa l'app è visibile e modificabile; la <b>verifica sui tuoi dati</b> ricava il fabbisogno reale dalle pesate; "Vedi cosa legge l'AI" mostra il contesto esatto di ogni richiesta.</td></tr>
 <tr><td>📚</td><td><b>Storico</b> — recap, mesi e settimane passate sempre modificabili, pesate e biometriche con grafici, proiezione verso l'obiettivo, report AI, esportazione a 38 colonne (CSV/JSON) e analisi dei pattern.</td></tr>
 <tr><td>🛟</td><td><b>Protezioni</b> — istantanee automatiche prima di ogni operazione importante con ripristino, pulizia selettiva per intervallo di date (pesate, settimane, spesa, eventi e anche i <b>piatti salvati</b>, utile quando se ne accumulano troppi), backup su Drive con copie datate e backup locale.</td></tr>
-<tr><td>🔄</td><td><b>Aggiornamento automatico</b> — a ogni avvio l'app controlla se c'è una versione nuova e si aggiorna da sola, senza gesti manuali; i dati non vengono toccati.<span class="newtag">NEW</span></td></tr>
-<tr><td>📱</td><td><b>Compatibilità iOS</b> — dialoghi interni all'app al posto di quelli di sistema: conferme, salvataggi e cancellazioni funzionano anche come web-app sulla schermata Home.<span class="newtag">NEW</span></td></tr>
+<tr><td>🔄</td><td><b>Aggiornamento automatico</b> — a ogni avvio l'app controlla se c'è una versione nuova e si aggiorna da sola, senza gesti manuali; i dati non vengono toccati.</td></tr>
+<tr><td>📱</td><td><b>Compatibilità iOS</b> — dialoghi interni all'app al posto di quelli di sistema: conferme, salvataggi e cancellazioni funzionano anche come web-app sulla schermata Home.</td></tr>
 <tr><td>🔒</td><td><b>Privacy</b> — tutto vive sul tuo dispositivo: niente account, niente server, chiave AI e Drive solo tuoi; lo sviluppatore non vede nulla.</td></tr>
 </table></div></details></div>
 
@@ -9173,7 +9303,7 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>🔑</td><td><b>Codice piano</b> (in Regole → Il piano, o nell'ultimo passo del benvenuto): carica un piano già pronto. <b>00000000</b> è la dieta standard con cui è nata Nutry — mediterranea, cinque pasti, mensa il martedì e il giovedì.</td></tr>
 <tr><td>📐</td><td><b>Regole</b> — la configurazione del sistema: fabbisogno, formula degli allenamenti, soglie di ribilanciamento e recupero, obiettivo proteine, caratteristiche alimentari e gestione del piano.</td></tr>
 <tr><td>👤</td><td><b>Io</b> — solo il tuo corpo e i tuoi obiettivi: <b>Anagrafica</b>, <b>Nuova pesata</b> (ogni salvataggio aggiunge una riga allo storico), <b>Obiettivi</b>, <b>Attività di base</b>, promemoria, vacanza e percorso guidato.</td></tr>
-<tr><td>⚙️</td><td><b>Sistema</b> — tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.<span class="newtag">NEW</span></td></tr>
+<tr><td>⚙️</td><td><b>Sistema</b> — tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.</td></tr>
 <tr><td>🧭</td><td><b>Percorso guidato</b> (in Piano) — lo stesso percorso di benvenuto, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. "Modifica il piano attuale" per ritocchi a mano. Sempre da validare con un nutrizionista.</td></tr></table></div></details></div>
 
 <div class="card guida-sec"><details class="gdet"><summary><h2>I simboli</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
@@ -9211,7 +9341,7 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 <tr><td>🏷️</td><td><b>Evento</b> del giorno (Natale, compleanno, festa, cena fuori, lavoro/trasferta, giornata no, malattia…): il giorno resta tracciato ma <b>escluso dalle medie</b> e non spezza la serie 🔥.</td></tr>
 <tr><td>📷</td><td>Barcode (dentro ogni pasto): scansiona PIÙ prodotti, correggi i grammi e conferma la somma — da Open Food Facts, senza consumare AI.</td></tr>
 <tr><td>🔥</td><td><b>La serie, in parole semplici</b>: conta i giorni "buoni" di fila. Ogni mattina l'app guarda com'è andata IERI e si fa 3 domande: hai spuntato i pasti? sei rimasto dentro le calorie? gli extra erano al massimo 300 kcal? <b>Tre sì = fiamma +1. Anche un solo no = si riparte da 0.</b> Fa tutto da sola, non devi premere nulla; in 🏖️ vacanza si mette in pausa.</td></tr>
-<tr><td>💧</td><td>Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.<span class="newtag">NEW</span></td></tr>
+<tr><td>💧</td><td>Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.</td></tr>
 <tr><td>⭐</td><td>Sonno · Relax · Come ti senti: scala 1 basso → 5 alto. Alimentano le correlazioni AI di fine settimana.</td></tr>
 <tr><td>🏖️</td><td>Vacanza (in Io): congela deficit e 🔥; l'app resta un diario senza giudizio.</td></tr>
 <tr><td>🌅</td><td>Promemoria del mattino: "Ieri hai segnato tutti i Pasti, l'Acqua e lo Sport?" — appare se qualcosa manca e resta in alto finché non premi <b>Fatto</b> (o apri ieri e sistemi).</td></tr>
@@ -9296,14 +9426,6 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
      1) anagrafica (cambia quasi mai) · 2) misurazioni (la pesata, il dato che
      cambia di continuo) · 3) obiettivi · 4) attività di base. */
   let h=`<div class="gsec">Chi sei</div>`;
-  h+=`<div class="card"><h2>Anagrafica</h2>
-  <div class="hint">Dati che non cambiano (o cambiano di rado). Servono a calcolare il metabolismo basale.</div>
-  <div class="row2"><div><label>Nome</label><input type="text" id="pName" value="${esc(p.name||"")}"></div>
-  <div><label>Genere</label><select id="pGen"><option value="m" ${p.gender==="m"?"selected":""}>Uomo</option><option value="f" ${p.gender==="f"?"selected":""}>Donna</option></select></div></div>
-  <div class="row2"><div><label>Data di nascita</label><input type="date" id="pDob" value="${p.dob||""}"></div>
-  <div><label>Altezza (cm)</label><input type="number" id="pH" value="${p.h||""}" placeholder="es. 175"></div></div>
-  <button class="btn" onclick="saveAnagrafica()">Salva anagrafica</button></div>`;
-
   h+=`<div class="card pesata"><h2>Nuova pesata</h2>
   <div class="hint">I valori che cambiano nel tempo. Ogni salvataggio <b>aggiunge una riga</b> allo storico, con la data di oggi: è così che nascono i grafici e le proiezioni.</div>
   <div class="row3"><div><label>Peso (kg)</label><input type="number" step="0.1" id="pW" value="${p.w||""}" placeholder="es. 80"></div>
@@ -9313,7 +9435,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div class="row2"><div><label>Pressione</label><input type="text" id="pPa" placeholder="120/80"></div>
   <div><label>SpO2 %</label><input type="number" id="pSpo2" placeholder="98"></div></div>
   <div class="hint">Percentuali, pressione e SpO2 sono facoltative: se le lasci vuote, la riga registra solo il peso.</div>
-  <button class="btn" onclick="saveWeighIn()">📌 Registra la pesata</button></div>`;
+  <button class="btn" onclick="saveWeighIn()">Registra la pesata</button></div>`;
 
   h+=`<div class="card"><h2>Obiettivi</h2>
   <div class="hint">Dove vuoi arrivare e con che ritmo. Da qui l'app calcola il deficit e la proiezione del peso.</div>
@@ -9337,6 +9459,13 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     return `<div class="hint" style="color:var(--bosco)">Al ritmo pianificato l'obiettivo arriva intorno al <b>${sim.etaDate?new Date(sim.etaDate).toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"}):"—"}</b> (deficit iniziale ~${sim.dailyDeficitStart} kcal al giorno).</div>`;})()}
   <button class="btn" onclick="saveObiettivi()">Salva obiettivi</button></div>`;
 
+  h+=`<div class="card"><h2>Il tuo motore</h2>
+  <div class="hint">I numeri che l'app usa per tutto il resto: si aggiornano da soli quando cambi peso, attività o obiettivo.</div><div class="stat3">
+  <div><div class="v">${age()||"—"}</div><div class="l">anni</div></div>
+  <div><div class="v">${bmr()}</div><div class="l">BMR</div></div>
+  <div><div class="v">${tdee()}</div><div class="l">TDEE base</div></div></div>
+  <div class="hint">${parseFloat(S.profile.fatp)>0?"BMR con Katch-McArdle sulla magra derivata dalla tua % di grasso: il metodo più preciso.":"BMR con formula Mifflin-St Jeor. Inserisci la % di massa grassa per un calcolo più preciso."} Gli allenamenti si sommano giorno per giorno.${goalProj()?"<br><br>🎯 "+goalProj():""}</div></div>`;
+  // Vacanza
   h+=`<div class="card"><h2>Attività di base</h2>
   <div class="hint">Quanto ti muovi <b>al di fuori</b> degli allenamenti: da qui e dal basale nasce il fabbisogno.</div>
   <label>Attività di base (lavoro e vita quotidiana)</label>
@@ -9352,13 +9481,14 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <button class="btn" onclick="saveAttivita()">Salva attività</button></div>`;
 
   // Gestione periodi (inizio/fine dieta o periodo libero)
-  h+=`<div class="card"><h2>Il tuo motore</h2>
-  <div class="hint">I numeri che l'app usa per tutto il resto: si aggiornano da soli quando cambi peso, attività o obiettivo.</div><div class="stat3">
-  <div><div class="v">${age()||"—"}</div><div class="l">anni</div></div>
-  <div><div class="v">${bmr()}</div><div class="l">BMR</div></div>
-  <div><div class="v">${tdee()}</div><div class="l">TDEE base</div></div></div>
-  <div class="hint">${parseFloat(S.profile.fatp)>0?"BMR con Katch-McArdle sulla magra derivata dalla tua % di grasso: il metodo più preciso.":"BMR con formula Mifflin-St Jeor. Inserisci la % di massa grassa per un calcolo più preciso."} Gli allenamenti si sommano giorno per giorno.${goalProj()?"<br><br>🎯 "+goalProj():""}</div></div>`;
-  // Vacanza
+  h+=`<div class="card"><h2>Anagrafica</h2>
+  <div class="hint">Dati che non cambiano (o cambiano di rado). Servono a calcolare il metabolismo basale.</div>
+  <div class="row2"><div><label>Nome</label><input type="text" id="pName" value="${esc(p.name||"")}"></div>
+  <div><label>Genere</label><select id="pGen"><option value="m" ${p.gender==="m"?"selected":""}>Uomo</option><option value="f" ${p.gender==="f"?"selected":""}>Donna</option></select></div></div>
+  <div class="row2"><div><label>Data di nascita</label><input type="date" id="pDob" value="${p.dob||""}"></div>
+  <div><label>Altezza (cm)</label><input type="number" id="pH" value="${p.h||""}" placeholder="es. 175"></div></div>
+  <button class="btn" onclick="saveAnagrafica()">Salva anagrafica</button></div>`;
+
   h+=`<div class="card"><h2>Promemoria</h2>
   ${hint2("Piccoli avvisi nei momenti in cui servono: la mattina il riassunto di ieri, il pomeriggio come sta andando, la sera la chiusura.",
    "Non arrivano mai di notte, e se ne ignori due di fila l'app smette di insistere. I complimenti si fanno solo quando c'è un motivo vero — una settimana intera in linea, o una giornata con qualità alta. Oggi compaiono dentro l'app; quando l'avrai installata diventeranno notifiche vere.")}
@@ -9417,7 +9547,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <select id="gModel">${(function(){const d=gemDiscovered()||[];
     const list=["auto"].concat(d,GEM_ALL.filter(m=>m!=="auto"&&d.indexOf(m)<0));
     return list.map(m=>`<option ${S.ai.model===m?"selected":""}>${m}</option>`).join("");})()}</select>
-  <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="aiDiagnosi()">🩺 Prova la connessione</button><button class="btn ghost small" onclick="gemRefreshModels()">🔄 Cerca modelli nuovi</button></div>
+  <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="aiDiagnosi()">Prova la connessione</button><button class="btn ghost small" onclick="gemRefreshModels()">Cerca modelli nuovi</button></div>
   <div class="aibox" id="aiDiag" style="display:none"></div>
   <div class="hint">Con <b>auto</b> non serve aggiornare l'app quando Google pubblica un modello nuovo: l'elenco si aggiorna da solo a ogni apertura (o subito con il pulsante) e l'app usa il più recente disponibile, scendendo agli altri se non risponde.${gemDiscovered()?" Ultimo controllo: "+new Date(S.ai.models.at).toLocaleDateString("it-IT")+" · "+S.ai.models.list.length+" modelli.":""}</div>
   <div class="hint">Con la chiave gratuita usi i modelli <b>Flash</b> (auto = prova 3.5-flash → 3.1-flash-lite → 2.5). I <b>Pro</b> in fondo alla lista funzionano solo con fatturazione attiva: se li scegli senza, l'app ripiega da sola sui Flash.</div>
@@ -9433,12 +9563,21 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <label>CLIENT_ID (Google Cloud)</label><input type="text" id="dCid" value="${S.drive.cid||""}" placeholder="xxxx.apps.googleusercontent.com">
   ${hint2("Salva al massimo ogni 15 minuti, e sempre quando chiudi l'app.",
  "Oltre al backup principale tiene una <b>copia al giorno</b> (le ultime sette), così puoi tornare indietro. Se il backup online risulta molto più ricco di quello sul telefono, l'app <b>si ferma e chiede</b> invece di sovrascrivere.")}
-  <div class="mtools"><button class="btn small" onclick="driveConnect()">Connetti e sincronizza</button>
-  <button class="btn ghost small" onclick="driveDisconnect()">Disconnetti e desincronizza</button>
-  <button class="btn ghost small" onclick="driveImport()">⬇️ Ripristina l'ultimo</button>
-  <button class="btn ghost small" onclick="driveVersions()">🕓 Versioni precedenti</button>
-  <button class="btn ghost small" onclick="driveFlush();driveUpload()">☁️ Salva ora</button>
-  <button class="btn warn small" onclick="driveDelete()">Elimina backup</button></div>
+  <label style="margin-top:10px">Connessione</label>
+  <div class="mtools">
+    <button class="btn small" onclick="driveConnect()">Connetti e sincronizza</button>
+    <button class="btn ghost small" onclick="driveDisconnect()">Disconnetti</button>
+  </div>
+  <label style="margin-top:10px">Salvataggi</label>
+  <div class="mtools">
+    <button class="btn ghost small" onclick="driveFlush();driveUpload()">Salva ora</button>
+    <button class="btn ghost small" onclick="driveImport()">Ripristina l'ultimo</button>
+    <button class="btn ghost small" onclick="driveVersions()">Versioni precedenti</button>
+  </div>
+  <label style="margin-top:10px">Zona pericolosa</label>
+  <div class="mtools">
+    <button class="btn warn small" onclick="driveDelete()">Elimina backup da Drive</button>
+  </div>
   <div class="hint" id="driveStatus">${S.drive.on?"Configurato: a ogni avvio l'app si riconnette da sola, confronta i timestamp e carica la versione più recente (telefono e PC condividono così gli stessi dati). Auto-save attivo.":"Non connesso."}
   <br><b>Disconnetti e desincronizza</b> = stacca solo QUESTO dispositivo, il backup su Drive e gli altri dispositivi restano intatti. <b>Elimina backup</b> = cancella il file su Drive: sparisce da TUTTI i dispositivi (con conferma).
   <br>Configurazione (Client ID + progetto Google Cloud): spiegata passo passo nella <b>❓ Guida</b>. Salva su una cartella privata di Drive dedicata solo a quest'app (nessuna cartella tua è coinvolta). Al primo accesso su ogni dispositivo Google chiede il consenso una volta; poi la sincronizzazione è silenziosa.</div></div>`;
@@ -9460,8 +9599,8 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
        <span style="display:flex;gap:6px">
          <button class="btn ghost small" style="margin:0" onclick="restoreSnap(${i})">Ripristina</button>
          <button class="ibtn" title="Elimina questa copia" onclick="delSnap(${i})">🗑</button></span></div>`;});
-   h+=`<div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="snapSave('manuale');render('io');toast('Copia creata ✓')">📸 Crea una copia adesso</button>
-   ${sn.length?`<button class="btn ghost small" onclick="delAllSnaps()">🗑 Elimina tutte le copie</button>`:""}</div></div>`;}
+   h+=`<div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="snapSave('manuale');render('io');toast('Copia creata ✓')">Crea una copia adesso</button>
+   ${sn.length?`<button class="btn ghost small" onclick="delAllSnaps()">Elimina tutte le copie</button>`:""}</div></div>`;}
   {const st=S.streak||{},ws=(S.profile.weights||[]).length,pr=(S.periods||[]).length;
    h+=`<div class="card"><h2>Pulizia selettiva</h2>
    <div class="hint">Azzera <b>solo</b> quello che scegli, tenendo intatto tutto il resto: profilo, piano, regole e caratteristiche non vengono toccati. Prima di procedere viene creata un'istantanea, quindi si può tornare indietro dal <b>🛟 Ripristino di emergenza</b>.</div>
@@ -9487,7 +9626,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
      <div><label>Al</label><input type="date" id="clTo" onchange="document.getElementById('clRangeLbl').textContent=(document.getElementById('clFrom').value?'dal '+document.getElementById('clFrom').value.split('-').reverse().join('/')+' ':'fino ')+('al '+this.value.split('-').reverse().join('/'))"></div>
    </div>
    <div class="hint">Serie 🔥, settimana in corso e lista della spesa si azzerano <b>sempre per intero</b>: non dipendono da una data.</div>
-   <button class="btn warn" onclick="cleanupRun()">🧹 Esegui la pulizia</button></div>`;}
+   <button class="btn warn" onclick="cleanupRun()">Esegui la pulizia</button></div>`;}
   h+=`<div class="card"><h2>Dati d'uso anonimi</h2>
   ${hint2("Mi mandi le statistiche di quanto usi Nutry? <b>Nessun dato personale o della tua dieta.</b>",
    "Serve a rispondere a una domanda sola: dopo quanti giorni le persone smettono? È l'unico modo per capire cosa non va e migliorarlo. Non escono peso, cibo, nome, note o dati di salute — solo i numeri che vedi qui sotto. Puoi spegnerlo quando vuoi e l'app funziona identica.")}
@@ -9504,7 +9643,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <label>Cosa esce, esattamente</label>
   <div class="aibox" style="display:block;font-family:ui-monospace,monospace;font-size:11px;white-space:pre-wrap">${esc(JSON.stringify(telPayload(),null,2))}</div>
   <div class="hint">Questo è il pacchetto reale, generato adesso con i tuoi dati. Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo.</div>
-  <div class="mtools"><button class="btn ghost small" onclick="telMail()">✉️ Mandalo a mano ora</button></div>
+  <div class="mtools"><button class="btn ghost small" onclick="telMail()">Mandalo a mano ora</button></div>
   ${hint2(((S.tel.url||TEL_URL)?"Con «Sì, invia» parte da solo una volta al giorno: non devi fare nulla.":"L'invio automatico non è ancora attivo: per ora puoi mandarlo a mano con il pulsante qui sopra."),
    "Il pulsante ✉️ apre la tua app di posta con il pacchetto già scritto: parte solo se premi invia. Serve se vuoi segnalare qualcosa e allegare i numeri d'uso.")}
   </div>`;
@@ -9523,7 +9662,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <label style="display:flex;gap:9px;align-items:center;margin-top:8px">
     <input type="checkbox" id="bugCtx" checked style="width:20px;height:20px"> Allega i dati tecnici (versione, dispositivo, dimensioni schermo)</label>
   <div class="hint">Non vengono allegati i tuoi dati alimentari né il profilo: solo la versione dell'app e il tipo di dispositivo, per capire dove si è rotto.</div>
-  <button class="btn" onclick="sendBug()">✉️ Invia allo sviluppatore</button></div>`;
+  <button class="btn" onclick="sendBug()">Invia allo sviluppatore</button></div>`;
   // AI
   el.innerHTML=h;}
 
@@ -9961,6 +10100,40 @@ function needMorningBanner(){return false;}
 try{if(window.Chart){Chart.defaults.animation=false;Chart.defaults.animations={};
   Chart.defaults.transitions.active.animation.duration=0;
   Chart.defaults.responsiveAnimationDuration=0;}}catch(e){}
+/* ── Tema grafici ──────────────────────────────────────────────────
+   Un solo posto per lo stile di TUTTI i grafici: font dell'app,
+   griglie leggerissime sul colore delle linee di interfaccia, assi
+   senza bordo, tooltip scuro arrotondato, barre morbide. I colori
+   dei dataset restano quelli semantici scelti grafico per grafico. */
+try{if(window.Chart){
+  const cssv=v=>{try{return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}catch(e){return "";}};
+  const grig=cssv("--grigio")||"#6B7B71", linea=cssv("--linea")||"#E4EAE5", bosco=cssv("--bosco")||"#0B3D2C";
+  Chart.defaults.font.family="'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
+  Chart.defaults.font.size=10.5;
+  Chart.defaults.color=grig;                       /* etichette e legende */
+  Chart.defaults.borderColor=linea;                /* griglia di default  */
+  Chart.defaults.scale.grid.color=linea;
+  Chart.defaults.scale.grid.drawTicks=false;       /* niente trattini: solo la griglia */
+  Chart.defaults.scale.border.display=false;       /* assi senza riga di bordo */
+  Chart.defaults.scale.ticks.padding=6;
+  Chart.defaults.elements.line.borderWidth=2.4;
+  Chart.defaults.elements.line.tension=0.35;
+  Chart.defaults.elements.point.hoverRadius=5;
+  Chart.defaults.elements.point.hitRadius=10;      /* facile da toccare col dito */
+  Chart.defaults.elements.bar.borderRadius=7;
+  Chart.defaults.elements.bar.borderSkipped=false;
+  Chart.defaults.plugins.legend.labels.usePointStyle=true;
+  Chart.defaults.plugins.legend.labels.pointStyle="line";
+  Chart.defaults.plugins.legend.labels.boxWidth=18;
+  Chart.defaults.plugins.legend.labels.padding=12;
+  Chart.defaults.plugins.tooltip.backgroundColor=bosco;
+  Chart.defaults.plugins.tooltip.cornerRadius=10;
+  Chart.defaults.plugins.tooltip.padding=10;
+  Chart.defaults.plugins.tooltip.titleFont={weight:"700",size:11.5};
+  Chart.defaults.plugins.tooltip.bodyFont={size:11};
+  Chart.defaults.plugins.tooltip.displayColors=true;
+  Chart.defaults.plugins.tooltip.boxPadding=4;
+}}catch(e){}
 /* ── Rete di sicurezza dell'interfaccia ────────────────────────────
    Se una pagina va in errore mentre si disegna, prima restava il
    contenitore vuoto: schermo bianco e app inutilizzabile. Ora l'errore
@@ -9971,10 +10144,10 @@ function errorCardHTML(where,e){
   <div class="hint">Non sono riuscito a disegnare la sezione <b>${esc(where)}</b>. I tuoi dati non sono stati toccati: sono ancora tutti sul dispositivo.</div>
   <div class="hint" style="font-family:monospace;font-size:11.5px;word-break:break-word;background:var(--crema);padding:8px;border-radius:8px">${esc((e&&e.message)||String(e))}</div>
   <div class="mtools" style="margin-top:10px">
-    <button class="btn small" onclick="location.reload()">🔄 Ricarica</button>
-    <button class="btn ghost small" onclick="show('oggi')">🏠 Vai a Oggi</button>
-    <button class="btn ghost small" onclick="show('sistema')">🛟 Ripristino e backup</button>
-    <button class="btn ghost small" onclick="reportCrash('${esc(where)}',${JSON.stringify((e&&e.message)||String(e))})">✉️ Segnala</button>
+    <button class="btn small" onclick="location.reload()">Ricarica</button>
+    <button class="btn ghost small" onclick="show('oggi')">Vai a Oggi</button>
+    <button class="btn ghost small" onclick="show('sistema')">Ripristino e backup</button>
+    <button class="btn ghost small" onclick="reportCrash('${esc(where)}',${JSON.stringify((e&&e.message)||String(e))})">Segnala</button>
   </div></div>`;}
 window.reportCrash=(where,msg)=>{
   const body="Errore nella sezione: "+where+"\n\n"+msg+"\n\n---\nNutry v"+APP_VER+
@@ -10004,6 +10177,9 @@ function render(p){
    da sole; qui evitiamo anche di nascondere gli elementi).
    ═══════════════════════════════════════════════════════════════ */
 const REDUCED=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* Al primo avvio dopo l'aggiornamento la cache qualità può essere vuota:
+   la riempiamo in sottofondo, senza toccare l'esperienza. */
+setTimeout(()=>{try{qPlanPrecompute();}catch(e){}},4000);
 let _rvObs=null;
 /* v5.1: header fisso (niente listener di scroll che ridisegna l'intestazione) */
 /* ── ZOOM GRAFICI: tap su un grafico → overlay con pinch/rotella/drag ── */

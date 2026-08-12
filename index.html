@@ -1020,7 +1020,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.54.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.55.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2061,6 +2061,10 @@ function hint2(breve,esteso,cls,lbl){
    dove sono CONTENUTO (il cibo, gli stati d'animo); spariscono da
    navigazione, titoli e pulsanti, dove facevano sembrare l'app una chat. */
 const ICONS={
+ primavera:'<circle cx="12" cy="12" r="3"/><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3M6.5 6.5 4.5 4.5M19.5 19.5l-2-2M6.5 17.5l-2 2M19.5 4.5l-2 2"/>',
+ estate:'<circle cx="12" cy="12" r="4.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+ autunno:'<path d="M6 15C6 9 10 4 19 4c0 9-5 13-11 13"/><path d="M5 20c3-3 6-6 10-9"/>',
+ inverno:'<path d="M12 2v20M4 6l16 12M20 6 4 18M12 6l-2.5-2.5M12 6l2.5-2.5M12 18l-2.5 2.5M12 18l2.5 2.5"/>',
  nuvia:'<path d="M6 19V7l12 12V6"/><path d="M18 6c0-2.6 1.9-4.2 4.4-4.2C22.4 4.4 20.6 6 18 6z"/>',
   punto:'<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2.6"/>',
   oggi:'<circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/>',
@@ -9397,8 +9401,8 @@ const NUVIA_FUNZIONI=`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td></td><td><b>Generatore di piano AI</b> — sette giorni costruiti <b>uno alla volta</b>: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.</td></tr>
 <tr><td></td><td><b>Importa il piano da foto</b> — fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e <b>alternative</b>, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.</td></tr>
 <tr><td></td><td><b>Stima risultati</b> — media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la <b>ritaratura automatica delle grammature</b> (i piatti restano gli stessi) con spesa e stima rigenerate.</td></tr>
-<tr><td>${seasonEmoji()}</td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata 🌸 Primaverile · ☀️ Estivo · 🍂 Autunnale · ❄️ Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.</td></tr>
-<tr><td>☀️</td><td><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
+<tr><td></td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata ${ic("primavera",14)} Primaverile · ${ic("estate",14)} Estivo · ${ic("autunno",14)} Autunnale · ${ic("inverno",14)} Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.</td></tr>
+<tr><td></td><td><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
 <tr><td></td><td><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con  e la stima si rifà usando esattamente i tuoi numeri. Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
 <tr><td></td><td><b>Ribilancia le calorie residue</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
 <tr><td></td><td><b>Recupero sfori</b> — gli sbagli degli ultimi 5 giorni si spalmano nei giorni dopo con soglie e tetti di sicurezza: mai un giorno di digiuno.</td></tr>
@@ -9441,9 +9445,7 @@ document.getElementById("pg-nuvia").innerHTML=`
 `+``+NUVIA_FUNZIONI+`
 <div class="hint" style="text-align:center;margin:14px 0">Versione ${APP_VER}</div>`;}
 function renderGuida(){document.getElementById("pg-guida").innerHTML=`
-<div class="card"><h2>Tutte le funzioni sono nella sezione Nuvia</h2>
-<p class="hint2p">La mappa completa di quello che Nuvia sa fare — con la storia, i valori e la promessa dell'app — ora vive in una sezione tutta sua.</p>
-<button class="btn small" onclick="show('nuvia')">Apri la sezione Nuvia ›</button></div>
+
 
 <div class="card guida-sec"><details class="gdet" open><summary><h2>Come funziona il sistema</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="hint">Se leggi una cosa sola, leggi questa: spiega il modello su cui è costruita tutta l'app.</div>
@@ -9489,7 +9491,7 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 </div></details></div>
 
 <div class="card guida-sec"><details class="gdet"><summary><h2>Le pagine</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
-<tr><td>☀️</td><td><b>Oggi</b> — bilancio del giorno (anello con il <b>deficit</b> in grande e <b>Pianificato</b> = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.</td></tr>
+<tr><td></td><td><b>Oggi</b> — bilancio del giorno (anello con il <b>deficit</b> in grande e <b>Pianificato</b> = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.</td></tr>
 <tr><td></td><td><b>Piano</b> — tutta la settimana con i sei comandi:  gestisci · alternativa stagionale ·  ripeti questionario ·  genera nuovo piano ·  importa da foto ·  stima risultati; più opzioni, orari e alternative per ogni pasto.</td></tr>
 <tr><td></td><td><b>Spesa</b> — checklist che si costruisce e si aggiorna da sola dal piano, ricerca sul sito del tuo supermercato, alternative AI, invio WhatsApp.</td></tr>
 <tr><td></td><td><b>Sport</b> — registra allenamenti (le kcal si calcolano sul tuo peso); nuovi sport con stima MET.</td></tr>

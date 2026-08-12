@@ -1020,7 +1020,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.55.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.55.1";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2281,31 +2281,31 @@ const ASSIST_MAP=[
  {p:"tools",a:"calibraGiornata",k:["stanc","dormito male","stress","giornata storta","non ho energie","spossat"],t:"Calibra la giornata"},
  {p:"tools",a:"fuelPre",k:["allen","palestra","corsa","corro","partita","prima di allenar"],t:"Mi alleno tra poco"},
  {p:"tools",a:"predictive",k:["venerd","sabato","compleanno","cena aziendale","matrimonio","pizzeria","evento","festa"],t:"Bilanciamento predittivo"},
- {p:"tools",a:"fridgeStart",k:["frigo","dispensa","congelator","cosa cucino","che c'è in casa","avanzi"],t:"Crea un piatto dal frigo"},
+ {p:"tools",a:"fridge",k:["frigo","dispensa","congelator","cosa cucino","che c'è in casa","avanzi"],t:"Crea un piatto dal frigo"},
  {p:"tools",a:"mealPrep",k:["batch","cucinare in anticipo","preparare i pasti","domenica cucino"],t:"Cucina intelligente"},
  {p:"tools",a:"splitCook",k:["cucino per tutti","famiglia","pentola","figli","moglie","marito"],t:"Cucino per tutti"},
  {p:"tools",a:"coupleFork",k:["ospiti","vengono a cena","invitati","compromesso"],t:"Compromesso a tavola"},
  {p:"tools",a:"menuStart",k:["ristorante","menù","menu","trattoria","fuori a cena","pizzeria stasera"],t:"Selezionatore di menù"},
- {p:"tools",a:"geoStart",k:["viaggio","trasferta","vacanza","sono a ","tipici","albergo"],t:"Piatti tipici del posto"},
+ {p:"tools",a:"geoStart",k:["viaggio","trasferta","vacanza","sono a ","tipici","albergo"],t:"Piatti tipici del posto",a:"geoDishes"},
  {p:"spesa",k:["spesa","supermercat","lista","comprare","carrello"],t:"Spesa"},
- {p:"piano",k:["piano","settimana","menu settimanale","cambiare i pasti","genera"],t:"Piano"},
+ {p:"piano",k:["piano","settimana","menu settimanale","cambiare i pasti","genera"],t:"Piano",top:1},
  {p:"sport",k:["sport","camminata","registrare l'allenamento","quanto ho bruciato","allenamento","registrare un allenamento","palestra","ho corso","andato a correre","andato in palestra","vado in palestra","corsa","camminata","in bici","nuotato","workout"],t:"Allenamenti"},
- {p:"storico",k:["peso","pesata","progress","grafico","quanto ho perso","andamento","proiezione","settimane passate","mesi passati","recap","le note che ho scritto","note del diario","scarica csv"],t:"Progressi"},
- {p:"regole",k:["regole","formula","calcolo","proteine per kg","deficit","minimo calorico","soglia"],t:"Regole del calcolo"},
- {p:"io",k:["profilo","altezza","obiettivo","peso obiettivo","vacanza","pesata"],t:"Il tuo profilo"},
- {p:"sistema",k:["backup","chiave ai","chiave gemini","drive","impostazioni","sistema","telemetria","ripristino","esport"],t:"Sistema"},
- {p:"guida",k:["guida","come funziona","non capisco","aiuto","spiegami l'app"],t:"Guida"},
- {p:"nuvia",k:["nuvia","funzioni dell'app","cosa sa fare","valori","missione","chi siete"],t:"Scopri Nuvia"},
+ {p:"storico",k:["peso","pesata","progress","grafico","quanto ho perso","andamento","proiezione","settimane passate","mesi passati","recap","le note che ho scritto","note del diario","scarica csv"],t:"Progressi",top:1},
+ {p:"regole",k:["regole","formula","calcolo","proteine per kg","deficit","minimo calorico","soglia"],t:"Regole del calcolo",top:1},
+ {p:"io",k:["profilo","altezza","obiettivo","peso obiettivo","vacanza","pesata"],t:"Il tuo profilo",top:1},
+ {p:"sistema",k:["backup","chiave ai","chiave gemini","drive","impostazioni","sistema","telemetria","ripristino","esport"],t:"Sistema",top:1},
+ {p:"guida",k:["guida","come funziona","non capisco","aiuto","spiegami l'app"],t:"Guida",top:1},
+ {p:"nuvia",k:["nuvia","funzioni dell'app","cosa sa fare","valori","missione","chi siete"],t:"Scopri Nuvia",top:1},
  /* Rotte aggiunte perché l'elenco copra i gesti veri dell'app, non solo
     gli strumenti: pesarsi, periodi, scontrino, backup, diario di oggi. */
  {p:"io",k:["pesarmi","pesata","registra il mio peso","registrare il peso","segna il mio peso","segnare il peso","mi sono pesato","quanto peso","bilancia"],t:"Nuova pesata",a:"saveWeighIn"},
  {p:"punto",k:["periodo","apri un periodo","inizio la dieta","fase","chiudi il periodo"],t:"Periodi",a:"periodo"},
  {p:"punto",k:["evento","il mio compleanno","oggi compleanno","giornata particolare","oggi festa","oggi è speciale"],t:"Evento del giorno",a:"eventoScegli"},
  {p:"punto",k:["nota","scrivere una nota","diario di oggi","annotare"],t:"Nota del giorno",a:"notaScrivi"},
- {p:"piano",k:["scontrino","piano dalla spesa","dispensa","ho fatto la spesa","fotografa lo scontrino"],t:"Piano dalla spesa",a:"vaiScontrino"},
+ {p:"piano",k:["scontrino","piano dalla spesa","dispensa","ho fatto la spesa","fotografa lo scontrino"],t:"Piano dalla spesa",a:"scontrinoScan"},
  {p:"io",k:["vacanza","parto per le ferie","ferie","viaggio lungo"],t:"Modalità vacanza",a:"toggleVacanza"},
- {p:"sistema",k:["backup","drive","salvare i dati","sincronizza","esportare"],t:"Backup e Drive"},
- {p:"sistema",k:["chiave","gemini","api key","attivare l'ai"],t:"Chiave AI"},
+ {p:"sistema",k:["backup","drive","salvare i dati","sincronizza","esportare"],t:"Backup e Drive",a:"driveRestoreMenu"},
+ {p:"sistema",k:["chiave","gemini","api key","attivare l'ai"],t:"Chiave AI (Gemini)",a:"saveAI"},
  {p:"oggi",k:["acqua","bicchieri","quanto ho bevuto"],t:"Acqua di oggi"}
 ];
 /* Normalizza per il confronto: minuscole e niente accenti, così
@@ -2339,7 +2339,25 @@ function assistToolByLabel(lbl){
 window.assistGo=(i)=>{
   const r=ASSIST_MAP[i];if(!r)return;
   assistClose();show(r.p);
-  if(r.a)setTimeout(()=>{try{const el=document.querySelector('[onclick^="'+r.a+'"]');if(el)el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}},420);};
+  /* L'atterraggio deve essere sul PUNTO giusto, non in cima alla pagina:
+     prima si prova l'ancora esplicita, altrimenti si cerca la card il cui
+     titolo corrisponde allo strumento, la si porta in vista e la si
+     illumina un attimo, così l'occhio sa dove guardare. */
+  if(r.top)return;   /* rotta di pagina intera: la cima È l'atterraggio */
+  setTimeout(()=>{try{
+    let el=r.a?document.querySelector('[onclick^="'+r.a+'"]'):null;
+    if(!el){
+      const t=assistNorm(r.t);
+      const h=[...document.querySelectorAll('#pg-'+r.p+' h2, #pg-'+r.p+' h3')]
+        .find(x=>{const n=assistNorm(x.textContent);return n.includes(t)||t.includes(n);});
+      if(h)el=h.closest(".card")||h;
+    }
+    if(!el)return;
+    el.scrollIntoView({block:"start",behavior:"smooth"});
+    el.style.transition="box-shadow .4s";
+    el.style.boxShadow="0 0 0 3px var(--menta),0 10px 26px -18px rgba(10,78,73,.3)";
+    setTimeout(()=>{el.style.boxShadow="";},1800);
+  }catch(e){}},420);};
 /* Quello che l'AI deve sapere per rispondere su COME È CONFIGURATA l'app */
 function assistContext(){
   const p=S.profile||{};

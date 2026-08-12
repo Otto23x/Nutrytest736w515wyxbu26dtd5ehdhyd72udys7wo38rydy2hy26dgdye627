@@ -1031,7 +1031,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.62.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.66.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -1635,6 +1635,14 @@ function aiLungoOn(){AILUNGO++;AILAST=Date.now();
   const e=document.getElementById("aiSpin");if(e)e.classList.add("on");}
 function aiLungoOff(){AILUNGO=Math.max(0,AILUNGO-1);
   if(!AILUNGO&&!AIBUSY){const e=document.getElementById("aiSpin");if(e)e.classList.remove("on");}}
+/* Migrazione: la dieta dei gruppi sanguigni è stata rimossa (nessun
+   sostegno scientifico — revisione AJCN 2013): si ripulisce lo stato
+   di chi l'aveva spuntata, senza toccare gli altri protocolli. */
+try{
+  if(S.diet&&S.diet.protocolli&&/gruppo sanguigno/i.test(S.diet.protocolli))
+    S.diet.protocolli=S.diet.protocolli.split(",").map(x=>x.trim()).filter(x=>x&&!/gruppo sanguigno/i.test(x)).join(", ");
+  if(S.profile&&S.profile.gruppo!=null)delete S.profile.gruppo;
+}catch(e){}
 let AIQUIET=0;
 async function aiQuiet(fn){AIQUIET++;try{return await fn();}finally{AIQUIET=Math.max(0,AIQUIET-1);}}
 function aiBusy(){AIBUSY++;AILAST=Date.now();
@@ -1917,10 +1925,10 @@ function nutriRulesShort(){
     "con colon irritabile 1-2 volte, 60-80 g cotti, lenticchie decorticate. Salumi 1-2 volte al massimo. "+
     "Varia: mai lo stesso piatto più di due volte a settimana.";}
 function rulesForPlan(){const r=rulesSnapshot();
-  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRulesShort()+digiunoForAI()+gruppoForAI()+" "+physForAI()+
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRulesShort()+digiunoForAI()+" "+physForAI()+
     (r.custom?(" Regole della persona: "+r.custom):"");}
 function rulesForAI(){const r=rulesSnapshot();
-  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+gruppoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
+  return " QUALITÀ NUTRIZIONALE (vincolante): "+nutriRules()+digiunoForAI()+" "+physForAI()+famForAI()+hungerForAI()+chronoForAI()+crashForAI()+
     (Object.keys(parseMensa(outThisWeek())).length?" PASTI FUORI CASA questa settimana: "+outThisWeek()+
       (outTypeIsPorto()
         ? ". Questi pasti li prepara e li porta da casa: sono pasti NORMALI come tutti gli altri, con la stessa struttura e le stesse grammature, con l'unico vincolo di essere trasportabili in un contenitore e buoni anche freddi o riscaldati. I loro ingredienti vanno nella lista della spesa."
@@ -1967,9 +1975,10 @@ function selTarget(id,di){const e=document.getElementById(id);return targetMealO
 /* ── Una seconda possibilità MIRATA quando la risposta non è JSON ────
    Capita quando il modello aggiunge testo attorno. UN solo retry, con
    il richiamo esplicito; se fallisce anche quello, l'errore emerge. */
-async function aiAskJSON(prompt){
+async function aiAskJSON(prompt,tag){
   let t=await aiAsk(prompt),j=null;
   try{j=parseAIJSON(t);}catch(e){}
+  aiHealth(tag||"json",j!=null);
   if(j==null){
     t=await aiAsk(prompt+" ATTENZIONE: la risposta precedente non era JSON valido. Reinvia SOLO il JSON richiesto, senza alcun testo prima o dopo.");
     j=parseAIJSON(t);}
@@ -2808,10 +2817,13 @@ window.editExtra=async(d,i)=>{const e=S.week.days[d].extras[i];
   let k=e.k,p=e.p||0,j=null;
   if(aiOn()&&nd!==e.d){try{
     if(!await bingeCheck(nd,0))return;
-    const t=await aiAsk(estimaPrompt(nd,{}));
+    const t=await estimaCached(nd,{});
     j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);
   }catch(_){k=parseInt(await dlgPrompt("Calorie?",e.k))||e.k;p=parseInt(await dlgPrompt("Proteine (g)?",e.p||0))||0;}}
-  else if(nd!==e.d){k=parseInt(await dlgPrompt("Calorie?",e.k))||e.k;p=parseInt(await dlgPrompt("Proteine (g)?",e.p||0))||0;}
+  else if(nd!==e.d){const le=localEstimate(nd);
+    if(le){k=le.kcal;p=le.prot;j={carb:le.carb,gras:le.gras,fibre:le.fibre,zuccheri:le.zuccheri};
+      toast("Stima dalla tabella locale (senza AI)"+(le.persi.length?" — non riconosciuti: "+le.persi.join(", "):""));}
+    else{k=parseInt(await dlgPrompt("Calorie?",e.k))||e.k;p=parseInt(await dlgPrompt("Proteine (g)?",e.p||0))||0;}}
   Object.assign(e,{d:nd.trim(),k,p,c:j?Math.round(j.carb)||null:e.c,f:j?Math.round(j.gras)||null:e.f,fib:j?Math.round(j.fibre)||estFiberOf(nd):e.fib,z:j?Math.round(j.zuccheri)||estSugarOf(nd):estSugarOf(nd)});
   save();render(cur);};
 window.extraPhotoFix=async(d,i,gal)=>{ // / Analisi sull'extra: ricalcola da foto
@@ -2889,13 +2901,21 @@ window.editMealGo=async(d,m)=>{
   let k=o.k,p=o.p,j=null;
   if(aiOn()){
     try{
-      const t=await aiAsk(estimaPrompt(txt,{fuori:fuori,campo:"piatto"}));
+      const t=await estimaCached(txt,{fuori:fuori,campo:"piatto"});
       j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);
       if(fuori&&j.piatto&&String(j.piatto).trim())txt=String(j.piatto).trim();
-      dlgAlert("Stima AI: ~"+k+" kcal · ~"+p+" g prot");
+      if(!await dlgConfirm("Stima AI: ~"+k+" kcal · ~"+p+" g prot",{ok:"Va bene",ko:"Correggo io"})){
+        const k0=k;
+        k=parseInt(await dlgPrompt("Calorie?",k))||k;
+        p=parseInt(await dlgPrompt("Proteine (g)?",p))||p;
+        recCorrection(txt,k0,k);   /* l'AI impara la TUA taratura */
+      }
     }catch(e){aiFail(e);
       k=parseInt(await dlgPrompt("Calorie?",o.k))||o.k;p=parseInt(await dlgPrompt("Proteine (g)?",o.p))||o.p;}
-  }else{k=parseInt(await dlgPrompt("Calorie?",o.k))||o.k;p=parseInt(await dlgPrompt("Proteine (g)?",o.p))||o.p;}
+  }else{const le=localEstimate(txt);
+    if(le){k=le.kcal;p=le.prot;j={carb:le.carb,gras:le.gras,fibre:le.fibre,zuccheri:le.zuccheri};
+      toast("Stima dalla tabella locale (senza AI)"+(le.persi.length?" — non riconosciuti: "+le.persi.join(", "):""));}
+    else{k=parseInt(await dlgPrompt("Calorie?",o.k))||o.k;p=parseInt(await dlgPrompt("Proteine (g)?",o.p))||o.p;}}
   S.week.days[d].meals[m].custom={d:txt,k,p,
     c:(j&&Math.round(j.carb))||null,f:(j&&Math.round(j.gras))||null,
     fib:(j&&Math.round(j.fibre))||estFiberOf(txt),
@@ -2906,7 +2926,11 @@ window.altMeal=async(d,m)=>{const o=mealOpt(d,m);
   if(!aiOn())return aiFail(new Error("nokey"));
   try{
     const slot=(PLAN[d]&&PLAN[d].meals[m]&&PLAN[d].meals[m].n)||"pasto";
+    /* memoria breve per pasto: senza, «Alternativa» ripropone sempre
+       le stesse 2-3 idee. La chiave è giorno_pasto, si tengono le ultime 6. */
+    S.altSeen=S.altSeen||{};const akey=d+"_"+m;const visti=S.altSeen[akey]||[];
     const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+
+      (visti.length?'Alternative GIÀ PROPOSTE in passato per questo pasto — NON riproporle né in variante simile: '+visti.join("; ")+'. ':'')+
       'IMPORTANTE: il pasto è «'+slot+'», quindi il piatto deve essere adatto a QUEL momento della giornata. '+
       'A colazione e a metà mattina si mangiano latticini, cereali, pane, frutta secca, frutta, uova, dolci da colazione — MAI carne, pesce o piatti da pranzo. '+
       'A metà pomeriggio spuntini piccoli. A pranzo e cena piatti completi. '+
@@ -3052,15 +3076,141 @@ window.addExtra=(d)=>{ // v5.1: crea un extra VUOTO da compilare come preferisci
    separate da virgole" e i campi fibre/zuccheri. opts: fuori (mensa/
    ristorante) · riscrivi (descrizione riscritta con le grammature) ·
    campo (nome del campo descrizione nel JSON: "piatto", "desc", assente). */
+function recCorrection(txt,da,a){
+  /* si impara solo dalle correzioni vere: almeno 30 kcal di scarto */
+  if(!(da>0&&a>0)||Math.abs(da-a)<30)return;
+  S.corrections=(S.corrections||[]).filter(c=>c.t!==String(txt).slice(0,60));
+  S.corrections.push({t:String(txt).slice(0,60),da:Math.round(da),a:Math.round(a)});
+  if(S.corrections.length>15)S.corrections=S.corrections.slice(-15);}
+/* ── 6.5 · Salute del motore: quando un prompt inizia a degradare
+   (Google cambia modello, risposte sporche) lo dice il contatore,
+   non i reclami. ok = risposte parsate; ko = risposte malformate. */
+function aiHealth(tag,ok){
+  S.aiHealth=S.aiHealth||{};
+  const h=S.aiHealth[tag]=S.aiHealth[tag]||{ok:0,ko:0};
+  ok?h.ok++:h.ko++;}
+/* ═══ 6.3 · TABELLA LOCALE ~100 ALIMENTI ════════════════════════════
+   Il piano B senza chiave AI: stime di base dai cibi italiani più
+   comuni. Valori per 100 g (secco per pasta/riso/legumi secchi, crudo
+   per carne e pesce, come si pesa in casa). k kcal · p prot · c carb ·
+   f grassi · fib fibre · z zuccheri · u = peso di UN pezzo (contabili). */
+const FOOD_DB=[
+ ["pasta|spaghetti|penne|fusilli|rigatoni",353,12,71,1.5,3,3.5],
+ ["riso basmati|riso integrale|riso",345,7,77,1,2,0.5],
+ ["pane integrale",235,9,44,3,7,4],["pane|panino|rosetta|ciabatta",270,9,52,3.5,3,3],
+ ["avena|fiocchi d'avena",370,13,59,7,10,1],["farro",340,15,67,2.5,7,3],
+ ["orzo",320,10,70,1.5,9,1],["quinoa",368,14,64,6,7,6],["cous cous|couscous",360,13,72,1,5,2],
+ ["patate dolci",86,1.6,20,0,3,4],["patate|patata",77,2,17,0.1,2.2,0.8],
+ ["gnocchi",160,4,32,0.5,2,1],["polenta",360,8,79,2,7,1],
+ ["crackers",430,10,70,10,4,3],["fette biscottate",410,11,75,6,4,6],
+ ["biscotti secchi|biscotti",430,7,75,12,3,22],["cornetto|brioche",410,8,45,22,2,20,55],
+ ["pizza margherita|pizza",270,11,33,10,2.5,3.5],
+ ["pollo|petto di pollo",110,23,0,1.5,0,0],["tacchino",110,24,0,1,0,0],
+ ["manzo magro|manzo|vitello",130,21,0,5,0,0],["maiale|lonza",140,21,0,6,0,0],
+ ["prosciutto crudo",230,26,0,13,0,0],["prosciutto cotto",130,20,1,5,0,1],
+ ["bresaola",150,32,0,2,0,0],["salame",400,26,1,33,0,0],
+ ["tonno al naturale",110,25,0,1,0,0],["tonno sott'olio|tonno",190,25,0,10,0,0],
+ ["salmone",180,20,0,11,0,0],["merluzzo|nasello",80,17,0,1,0,0],
+ ["orata|branzino|spigola",120,19,0,5,0,0],["gamberi|gamberetti",85,18,0,1,0,0],
+ ["sgombro",180,19,0,12,0,0],["alici|acciughe",100,17,0,3,0,0],
+ ["uova|uovo",130,12.5,0.5,9,0,0.5,60],
+ ["latte parzialmente scremato",46,3.3,5,1.5,0,5],["latte intero|latte",64,3.3,4.8,3.6,0,4.8],
+ ["yogurt greco 0|yogurt greco",60,10,3.5,0.4,0,3.5],["yogurt bianco|yogurt",63,3.8,4.7,3.5,0,4.7],
+ ["ricotta",140,10,3.5,10,0,3.5],["mozzarella",250,18,1,20,0,1],
+ ["parmigiano|grana",390,33,0,29,0,0],["stracchino|crescenza",300,18,2,25,0,2],
+ ["feta",265,14,4,21,0,4],["fiocchi di latte",100,12,3,4,0,3],
+ ["ceci",345,20,54,6,14,3],["lenticchie",325,24,52,1.5,14,2],
+ ["fagioli cannellini|fagioli borlotti|fagioli",310,22,50,1.5,17,3],
+ ["piselli",80,5,12,0.5,5,4],["fave",90,7,12,0.5,5,2],
+ ["tofu",120,12,2,7,1,1],["hummus",240,7,15,17,5,1],
+ ["olio extravergine|olio evo|olio",900,0,0,100,0,0],["burro",760,0.8,1,83,0,1],
+ ["mandorle",600,22,5,55,12,4],["noci",660,15,7,65,6,3],
+ ["nocciole",650,14,6,64,8,4],["pistacchi",580,21,18,48,10,7],
+ ["arachidi",590,26,9,50,8,4],["semi di chia",480,17,8,31,34,0],
+ ["avocado",160,2,2,15,7,0.5],["olive",145,1,1,15,3,0],
+ ["insalata|lattuga",17,1.2,2,0.2,1.5,1],["pomodori|pomodoro",20,1,3,0.2,1.2,2.6,120],
+ ["zucchine|zucchina",17,1.3,2,0.2,1.2,1.7],["melanzane|melanzana",22,1,3,0.2,3,2.5],
+ ["peperoni|peperone",26,1,5,0.2,1.6,4],["carote|carota",35,0.8,7,0.2,3,5,80],
+ ["broccoli",30,3,3,0.4,3,1.5],["cavolfiore",25,2,3,0.3,2.4,2],
+ ["spinaci",25,3,2,0.4,2.2,0.5],["finocchi|finocchio",15,1.2,1.5,0.1,2.2,1.5],
+ ["zucca",20,1,3.5,0.1,1.5,2.5],["funghi|champignon",22,3,1,0.3,2,1],
+ ["cetrioli|cetriolo",14,0.7,2,0.1,0.7,1.7],["sedano",18,1,2,0.2,1.6,1.5],
+ ["cipolla|cipolle",28,1,6,0.1,1.4,4.5],["verdure grigliate|verdure miste|verdura",25,1.5,3.5,0.3,2.5,2],
+ ["mela",55,0.3,13,0.2,2.4,10,180],["banana",90,1.1,22,0.3,2.6,17,120],
+ ["arancia",45,0.9,10,0.2,2.4,9,180],["pera",58,0.4,14,0.2,3,10,180],
+ ["kiwi",60,1.1,13,0.5,3,9,80],["pesca",38,0.8,9,0.1,1.9,8,150],
+ ["albicocche|albicocca",42,1,9,0.2,2,8,50],["fragole",32,0.8,7,0.3,2,5],
+ ["frutti di bosco|mirtilli",50,0.8,11,0.3,3,8],["uva",65,0.6,16,0.2,1.5,15],
+ ["anguria|cocomero",30,0.6,7,0.2,0.4,6],["melone",33,0.8,7.5,0.2,0.9,7],
+ ["cioccolato fondente",550,7,45,34,8,38],["cioccolato al latte|cioccolato",545,7,57,32,3,52],
+ ["miele",305,0.3,80,0,0,80],["marmellata|confettura",240,0.4,59,0.1,1,55],
+ ["zucchero",392,0,100,0,0,100],["gelato",210,3.5,26,10,0.5,22],
+ ["vino rosso|vino bianco|vino",75,0,2.5,0,0,0.5],["birra",43,0.5,3.5,0,0,0.1],
+ ["caffè",2,0.1,0,0,0,0],["succo di frutta|spremuta",45,0.3,10.5,0,0.2,10],
+ ["piadina",320,8,54,8,2.5,2],["tortillas|piada",310,8,50,8,3,2],
+ ["salsa di pomodoro|passata",30,1.5,4.5,0.5,1.5,4],["pesto",450,5,6,44,2,1],
+ ["mais",100,3.5,19,1.5,3,3],["seitan",120,24,3,1.5,1,0],
+ ["speck",300,29,0,20,0,0],["philadelphia|formaggio spalmabile",250,6,4,23,0,4],
+ ["grissini",430,11,68,12,3,2],["taralli",440,10,60,18,3,2],
+ ["riso venere|riso nero",350,8,74,2,4,1],["albume|albumi",50,11,0.7,0.2,0,0.7]
+];
+function localEstimate(txt){
+  const norm=x=>String(x||"").toLowerCase()
+    .replace(/[àá]/g,"a").replace(/[èé]/g,"e").replace(/[ìí]/g,"i").replace(/[òó]/g,"o").replace(/[ùú]/g,"u");
+  const comps=norm(txt).split(/,| e |\+|;/).map(c=>c.trim()).filter(Boolean);
+  if(!comps.length)return null;
+  const tot={k:0,p:0,c:0,f:0,fib:0,z:0};const trovati=[];const persi=[];
+  for(const comp of comps){
+    let food=null,best=0;
+    for(const row of FOOD_DB){
+      for(const stem of row[0].split("|")){
+        if(comp.indexOf(stem)>-1&&stem.length>best){best=stem.length;food=row;}}}
+    if(!food){persi.push(comp);continue;}
+    const g=/(\d+(?:[.,]\d+)?)\s*(?:g|gr|grammi)\b/.exec(comp);
+    let peso=g?parseFloat(g[1].replace(",",".")):0;
+    if(!peso){
+      const nMatch=/(?:^|\s)(\d+)\s+\S/.exec(comp);
+      const nPezzi=nMatch?parseInt(nMatch[1]):1;
+      peso=food[7]?food[7]*nPezzi:100;   /* contabili col loro peso, altrimenti porzione da 100 g */
+    }
+    const q=peso/100;
+    tot.k+=food[1]*q;tot.p+=food[2]*q;tot.c+=food[3]*q;tot.f+=food[4]*q;tot.fib+=food[5]*q;tot.z+=food[6]*q;
+    trovati.push(comp);}
+  if(!trovati.length||trovati.length/comps.length<0.6)return null;
+  return {kcal:Math.round(tot.k),prot:Math.round(tot.p),carb:Math.round(tot.c),gras:Math.round(tot.f),
+          fibre:Math.round(tot.fib),zuccheri:Math.round(tot.z),trovati,persi};}
+/* ── 6.2 · Cache delle stime: stesso piatto, stessa taratura (le
+   correzioni fanno parte della chiave) → stessa risposta, senza
+   richiamare l'AI. Massimo 40 voci. Bonus: un piatto già stimato
+   funziona anche offline. */
+function estKey(txt,o){
+  const pr=estimaPrompt(txt,o);
+  let h=5381;for(let i=0;i<pr.length;i++)h=((h<<5)+h+pr.charCodeAt(i))|0;
+  return "e"+(h>>>0).toString(36);}
+async function estimaCached(txt,o){
+  S.estCache=S.estCache||{};
+  const k=estKey(txt,o);
+  const hit=S.estCache[k];
+  if(hit&&hit.t)return hit.t;
+  const t=await aiAsk(estimaPrompt(txt,o));
+  let ok=true;try{ok=parseAIJSON(t)!=null;}catch(e){ok=false;}
+  aiHealth("stima",ok);
+  if(ok){
+    const keys=Object.keys(S.estCache);
+    if(keys.length>=40)delete S.estCache[keys[0]];
+    S.estCache[k]={t:String(t).slice(0,800),at:Date.now()};}
+  return t;}
 function estimaPrompt(txt,o){
   o=o||{};
   const t=String(txt==null?"":txt).replace(/"/g,"'");
+  const corr=(S.corrections||[]).slice(-5);
+  const memo=corr.length?' L\'utente in passato ha corretto stime simili — adegua la taratura: '+corr.map(c=>'«'+c.t+'» da '+c.da+' a '+c.a+' kcal').join("; ")+'.':'';
   const corpo=o.fuori
     ?'Il pasto è fuori casa (mensa/ristorante): riscrivi la descrizione in forma INDICATIVA e sintetica, massimo 12 parole, componenti separate da virgole, SENZA grammature precise. '
     :('Se nel testo sono indicate grammature, usale ESATTAMENTE come scritte (sono state corrette a mano dall\'utente); per gli elementi senza peso assumi porzioni tipiche italiane'+(o.riscrivi?' e RISCRIVI la descrizione includendole, sintetica, componenti separate da virgole':'')+'. ');
   const campo=o.campo?'"'+o.campo+'":"descrizione",':'';
-  return 'Stima calorie e macro REALI di questo pasto: "'+t+'". '+corpo+
-    'Rispondi SOLO JSON: {'+campo+'"kcal":numero,"prot":numero,"carb":numero,"gras":numero,"fibre":numero,"zuccheri":numero}';}
+  return 'Stima calorie e macro REALI di questo pasto: "'+t+'". '+corpo+memo+
+    ' Rispondi SOLO JSON: {'+campo+'"kcal":numero,"prot":numero,"carb":numero,"gras":numero,"fibre":numero,"zuccheri":numero}';}
 /* ── Le REGOLE DEL RIBILANCIO vivono QUI e solo qui ─────────────────
    Erano copiate in tre prompt e una copia aveva già divergato (la
    priorità sostituzione/grammature era invertita in rebalanceNextDay).
@@ -3411,10 +3561,17 @@ window.setHunger=(pdi,mi,n)=>{const st=S.week.days[pdi].meals[mi];
   const vals=d.meals.filter(m=>m.hunger>0).map(m=>+m.hunger);
   d.hungerAvg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:0;
   save();render(cur);};
-function hungerForAI(){
+/* I dati di fame e cali vivevano solo nei prompt: le *Stats li espongono
+   anche a te, in Numeri. Stessi numeri, due lettori. */
+function hungerStats(){
   const rows=flattenDiet().filter(d=>d.hungerAvg>0).slice(-14);
-  if(rows.length<3)return "";
+  if(rows.length<3)return null;
   const avg=Math.round(rows.reduce((a,d)=>a+d.hungerAvg,0)/rows.length*10)/10;
+  return {avg,n:rows.length};}
+function hungerForAI(){
+  const st=hungerStats();
+  if(!st)return "";
+  const avg=st.avg;
   if(avg<3.2)return "";
   return " FAME: negli ultimi giorni la persona ha segnato una fame media di "+avg+"/5, quindi alta. "+
     "A parità di calorie, aumenta il potere saziante dei pasti: più fibre (verdura, legumi, cereali integrali), "+
@@ -3686,15 +3843,20 @@ window.crashTog=(di,k)=>{
   }else{d.crash.splice(i,1);
     S.crashes=(S.crashes||[]).filter(x=>!(x.slot===k&&String(x.at).slice(0,10)===iso(new Date())));}
   save();render(cur);};
-function crashForAI(){
+function crashStats(){
   const c=(S.crashes||[]).slice(-20);
-  if(c.length<3)return "";
+  if(c.length<3)return null;
   const perPasto={};
   c.forEach(x=>{if(!x.pasto)return;perPasto[x.pasto]=(perPasto[x.pasto]||0)+1;});
   const top=Object.keys(perPasto).sort((a,b)=>perPasto[b]-perPasto[a])[0];
-  if(!top)return "";
+  if(!top)return null;
   const carbMedi=Math.round(c.filter(x=>x.pasto===top).reduce((a,x)=>a+(x.c||0),0)/Math.max(1,perPasto[top]));
-  return " CALI DI ENERGIA: la persona ha segnalato "+c.length+" cali recenti, per lo più dopo «"+top+"» (in media "+carbMedi+
+  return {n:c.length,top,carbMedi};}
+function crashForAI(){
+  const st=crashStats();
+  if(!st)return "";
+  const c={length:st.n},top=st.top,carbMedi=st.carbMedi;
+  return " CALI DI ENERGIA: la persona ha segnalato "+st.n+" cali recenti, per lo più dopo «"+top+"» (in media "+carbMedi+
     " g di carboidrati). Riduci i carboidrati raffinati di quel pasto, spostali dove servono e aumenta proteine, fibre e grassi buoni per appiattire la curva glicemica.";}
 
 /* ═══  PRONTO SOCCORSO GONFIORE ═════════════════════════════════ */
@@ -4303,14 +4465,17 @@ window.editMealPermGo=async(d,m)=>{
   const fuori=(PLAN[d]&&PLAN[d].meals[m]&&(PLAN[d].meals[m].type==="free"||PLAN[d].meals[m].type==="mensa"));
   let txt=nd.trim();
   if(aiOn()){
-    try{const t=await aiAsk(estimaPrompt(txt,{fuori:fuori,campo:"piatto"}));
+    try{const t=await estimaCached(txt,{fuori:fuori,campo:"piatto"});
       const j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);c=Math.round(j.carb)||null;f=Math.round(j.gras)||null;
       if(fuori&&j.piatto&&String(j.piatto).trim())txt=String(j.piatto).trim();}catch(e){aiFail(e);return;}}
   S.permMeals[d+"_"+m]={d:txt,k,p,c,f};pianoCambiato();save();render("piano");};
 window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));const o=templateOpt(d,m);
-  try{const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+dietStr()+' Ingredienti comuni in Italia con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
+  S.altSeen=S.altSeen||{};const akey="t"+d+"_"+m;const visti=S.altSeen[akey]||[];
+  try{const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+
+    (visti.length?'Alternative GIÀ PROPOSTE in passato per questo pasto — NON riproporle né in variante simile: '+visti.join("; ")+'. ':'')+dietStr()+' Ingredienti comuni in Italia con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
     const j=parseAIJSON(t);
     if(!await dlgConfirm("Alternativa permanente:\n"+j.piatto+"\n~"+Math.round(j.kcal)+" kcal · ~"+Math.round(j.prot)+" g proteine\n\nOK = usala sempre nel piano"))return;
+    S.altSeen[akey]=(visti.concat(String(j.piatto).slice(0,60))).slice(-6);
     S.permMeals[d+"_"+m]={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot),c:Math.round(j.carb)||null,f:Math.round(j.gras)||null};pianoCambiato();save();render("piano");}catch(e){aiFail(e);}};
 function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(new Date());
   let h=`<div class="card"><h2>La tua settimana</h2>
@@ -4467,6 +4632,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     const evOK=!!(S.ui.evOk||{})[_vd];
     const ap=activePeriod();
     h+=guideCardHTML();
+    h+=tdeeSuggCardHTML();
     h+=`<div class="card"><h2>La giornata</h2>
     <div class="glist">
       ${(ap
@@ -6530,6 +6696,13 @@ function rulesCardHTML(){
   <div class="mtools"><button class="btn small" onclick="saveCustomRules()">Salva le mie regole</button></div>
   </div>
 
+  <div class="card"><details class="gdet"><summary><h2>Cosa sa di te l'AI</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
+  <div class="hint" style="margin-top:2px">Questo è il testo esatto che accompagna ogni richiesta all'AI, composto adesso dai tuoi dati: regole, intolleranze, divieti, stati del corpo, preferenze. Cambi qualcosa nell'app e cambia anche qui. Niente parte verso l'AI oltre a questo e alla domanda del momento.</div>
+  <div style="white-space:pre-wrap;font-size:12px;line-height:1.55;color:var(--grigio);border:1px solid var(--linea);border-radius:10px;padding:10px;margin-top:8px;max-height:340px;overflow:auto">${esc(rulesForAI())}</div>
+  ${(function(){const h=S.aiHealth||{};const ks=Object.keys(h);if(!ks.length)return "";
+    const rotti=ks.filter(k=>h[k].ko>0);
+    return `<div class="hint" style="margin-top:8px"><b>Salute del motore:</b> `+ks.map(k=>k+" "+h[k].ok+"/"+(h[k].ok+h[k].ko)).join(" · ")+(rotti.length?` — risposte malformate su: ${rotti.join(", ")} (di solito è passeggero)`:" — tutte le risposte in formato corretto")+`</div>`;})()}
+  </div></details></div>
   <div class="card"><h2>Linee guida OMS</h2>
   ${hint2("La base nutrizionale del piano: le raccomandazioni dell'Organizzazione Mondiale della Sanità, con i numeri.",
    "Sono il riferimento, non un dogma: le tue condizioni di salute e le intolleranze hanno sempre la precedenza. Si modificano nel riquadro «Come deve ragionare l'AI» qui sopra.")}
@@ -6963,29 +7136,13 @@ function readTagChecks(pre,key,list){const out=[];
   return out.join(", ");}
 /* I PROTOCOLLI sono schemi alimentari, non condizioni di salute: stanno in una
    sezione loro. Ognuno porta con sé le indicazioni operative per l'AI. */
-/* ── Dieta del gruppo sanguigno ────────────────────────────────────
-   Quella del dott. Mozzi È la dieta dei gruppi sanguigni: Mozzi è la
-   versione italiana della teoria di D'Adamo, non un protocollo diverso.
-   Va detto chiaramente: NON ha alcun sostegno scientifico. La revisione
-   sistematica del 2013 sull'American Journal of Clinical Nutrition ha
-   esaminato 1.415 studi e non ne ha trovato uno che la confermi, e
-   l'AIRC la considera inattendibile. Si può seguire — è una scelta di
-   chi usa l'app — ma il minimo proteico e le regole di sicurezza
-   restano vincolanti sopra di essa. */
-const GRUPPI={
-  "0":"gruppo 0: carne magra, pesce, verdura; ridurre cereali con glutine e latticini",
-  "A":"gruppo A: impostazione prevalentemente vegetale, pesce, legumi, cereali; poca carne rossa",
-  "B":"gruppo B: carne (non pollo secondo la teoria), latticini, verdura; ridurre mais, grano saraceno, lenticchie",
-  "AB":"gruppo AB: pesce, latticini, verdura, tofu; poca carne rossa"};
 const PROT_LIST=[
  /* Progetto DIANA — «DIeta e ANdrogeni» — dell'Istituto Nazionale dei
-    Tumori di Milano. A differenza della dieta dei gruppi sanguigni,
-    questa poggia su studi pubblicati: DIANA-5, concluso nel 2016, ha
+    Tumori di Milano: poggia su studi pubblicati: DIANA-5, concluso nel 2016, ha
     misurato l'effetto di alimentazione e attività fisica sulle recidive
     del tumore al seno. Qui viene proposta come STILE ALIMENTARE —
     integrale, vegetale, povero di zuccheri — non come terapia. */
  {k:"diana",l:" Integrale e vegetale (DIANA)",ai:"stile alimentare del progetto DIANA: cereali NON raffinati (riso integrale, orzo, farro, miglio, grano saraceno, pane integrale a lievitazione naturale), legumi tutti i giorni, verdura in abbondanza e di stagione, frutta intera. Riduci molto zucchero, farine bianche, riso bianco, patate e bevande zuccherate. Poca carne, soprattutto rossa e conservata; latte e latticini in quantità contenute; niente alcol o pochissimo. Semi oleosi e olio extravergine a crudo. Dolci solo senza zucchero raffinato. Mantieni comunque il minimo proteico indicato, coprendolo con legumi, pesce, uova e cereali integrali combinati"},
- {k:"gruppo sanguigno",l:"Dieta dei gruppi sanguigni",ai:"la persona segue la dieta dei gruppi sanguigni. IMPORTANTE: rispetta le sue preferenze MA non scendere mai sotto il minimo proteico indicato e non escludere interi gruppi di nutrienti; se una regola del gruppo sanguigno confligge con la sicurezza nutrizionale, vince la sicurezza"},
  {k:"basso fodmap",l:"Basso FODMAP",ai:"schema a basso contenuto di FODMAP: niente aglio e cipolla, legumi solo in piccole quantità e ben cotti, frutta e verdura scelte fra quelle a basso FODMAP, nessun dolcificante poliolo"},
  {k:"digiuno intermittente",l:"⏱ Digiuno intermittente",ai:"finestra alimentare ristretta (tipo 16/8): concentra i pasti in 8 ore, niente calorie fuori dalla finestra, i pasti restano pochi e sostanziosi"},
  {k:"low carb",l:"Low carb",ai:"carboidrati contenuti (circa 100-130 g al giorno), più grassi buoni e proteine, cereali solo in porzioni piccole e integrali"},
@@ -7000,19 +7157,8 @@ const PROT_LIST=[
 function protChecksHTML(pre,D){
   const cur=String(D.protocolli||"").toLowerCase();
   let h=`<div class="ckgrid">`+PROT_LIST.map((x,i)=>
-    `<label class="ck"><input type="checkbox" id="${pre}Pr${i}" ${cur.indexOf(x.k)>-1?"checked":""} ${x.k==="gruppo sanguigno"?`onchange="grpUI('${pre}',this.checked)"`:""}> ${x.l}</label>`).join("")+`</div>`;
-  /* Il gruppo si chiede SOLO se hai spuntato quel protocollo: a tutti
-     gli altri non serve, e un campo in più che non serve è rumore. */
-  h+=`<div id="${pre}Grp" style="display:${cur.indexOf("gruppo sanguigno")>-1?"block":"none"}">
-    <label>Il tuo gruppo sanguigno</label>
-    <select id="${pre}Gruppo" onchange="gruppoSet(this.value)">
-      <option value="">— non lo so —</option>
-      ${Object.keys(GRUPPI).map(g=>`<option value="${g}" ${gruppoSangue()===g?"selected":""}>${g}</option>`).join("")}
-    </select>
-    <div class="hint" style="background:var(--zaffbg);padding:11px 13px;border-radius:12px;margin-top:9px">
-      <b>Nessuno studio conferma questa dieta.</b> Una revisione del 2013 ha esaminato 1.415 lavori senza trovarne uno a sostegno, e l'AIRC la considera inattendibile. Puoi seguirla lo stesso — è una tua scelta — ma il minimo proteico e le regole di sicurezza restano validi sopra di essa.
-    </div></div>`;
-  if(cur.indexOf("diana")>-1)h+=`<div class="hint" style="background:var(--menta);padding:11px 13px;border-radius:12px;margin-top:9px">
+    `<label class="ck"><input type="checkbox" id="${pre}Pr${i}" ${cur.indexOf(x.k)>-1?"checked":""}> ${x.l}</label>`).join("")+`</div>`;
+    if(cur.indexOf("diana")>-1)h+=`<div class="hint" style="background:var(--menta);padding:11px 13px;border-radius:12px;margin-top:9px">
     <b>DIANA</b> sta per «DIeta e ANdrogeni»: è lo stile alimentare studiato dall'Istituto Nazionale dei Tumori di Milano — cereali integrali, legumi, verdura, pochissimo zucchero e poca carne. Qui è proposto come modo di mangiare, non come terapia: per qualunque uso clinico parlane con il tuo medico.
   </div>`;
   const extra=parseSlots(D.protocolli).filter(x=>!PROT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1)).join(", ");
@@ -7039,19 +7185,42 @@ function patChecksHTML(pre,D){const cur=String(D.patologie||"").toLowerCase();
   h+=`<label>Altre condizioni</label>
   <input type="text" id="${pre}Ptxt" value="${esc(extra)}" placeholder="es. emicrania, sindrome metabolica, intolleranza all'istamina">`;
   return h;}
-function readPatChecks(pre){const out=[];
+function readPatChecks(pre){setTimeout(()=>{try{patPromote();}catch(e){}},80);const out=[];
   PAT_LIST.forEach((x,i)=>{const e=document.getElementById(pre+"P"+i);if(e&&e.checked)out.push(x.k);});
   const t=document.getElementById(pre+"Ptxt");
   if(t&&t.value.trim())t.value.split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>out.push(x));
   return out.join(", ");}
 /* Le condizioni diventano istruzioni concrete per ogni richiesta all'AI */
+function patExtras(){
+  return parseSlots((S.diet||{}).patologie||"").filter(x=>!PAT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));}
+/* ── 2.2 · Le condizioni scritte a mano non sono più di serie B ──────
+   Le spunte portano criteri operativi pronti; il testo libero prima
+   passava nudo («adatta il piano di conseguenza», e l'AI improvvisava a
+   OGNI chiamata). Ora, al salvataggio, UNA chiamata silenziosa lo
+   trasforma in criteri operativi che vengono cacheati e riusati: stesso
+   rango delle spunte, zero costi ricorrenti. */
+window.patPromote=async()=>{
+  try{
+    const extra=patExtras();
+    const key=extra.join("|").toLowerCase();
+    S.diet.patCache=S.diet.patCache||{};
+    if(!extra.length){S.diet.patCache={};return;}
+    if(S.diet.patCache.src===key&&S.diet.patCache.rules)return;
+    if(!aiOn())return;
+    const j=await aiQuiet(()=>aiAskJSON('Trasforma queste condizioni di salute dichiarate da una persona in CRITERI DIETETICI OPERATIVI sintetici (massimo 25 parole per condizione), nello stile di questo esempio: "trigliceridi alti → limitare zuccheri semplici e alcol, preferire pesce azzurro e omega-3". Condizioni: '+extra.join(", ")+'. Solo criteri alimentari, nessun consiglio medico o farmacologico. Rispondi SOLO JSON: {"rules":"criteri separati da punto e virgola"}'));
+    if(j&&j.rules)S.diet.patCache={src:key,rules:String(j.rules).slice(0,600)};
+    save();
+  }catch(e){}};
 function patForAI(){const cur=String((S.diet||{}).patologie||"").toLowerCase();
   if(!cur.trim())return "";
   const hit=PAT_LIST.filter(p=>cur.indexOf(p.k)>-1);
-  const extra=parseSlots(S.diet.patologie).filter(x=>!PAT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1));
+  const extra=patExtras();
   let s=" CONDIZIONI DI SALUTE dichiarate, da rispettare nella scelta degli alimenti: ";
   s+=hit.map(p=>p.l+" → "+p.ai).join("; ");
-  if(extra.length)s+=(hit.length?"; ":"")+"inoltre: "+extra.join(", ")+" (adatta il piano di conseguenza)";
+  if(extra.length){
+    const pc=S.diet.patCache||{};
+    const key=extra.join("|").toLowerCase();
+    s+=(hit.length?"; ":"")+"inoltre: "+((pc.src===key&&pc.rules)?pc.rules:extra.join(", ")+" (adatta il piano di conseguenza)");}
   s+=". Non presentare mai il piano come una terapia: le indicazioni cliniche restano del medico e del nutrizionista.";
   return s;}
 function intolChecksHTML(pre,D){const cur=String(D.intol||"").toLowerCase();
@@ -7306,6 +7475,7 @@ async function askDayAI(q){
       const obj=Array.isArray(o)?o[0]:o;
       if(obj&&Array.isArray(obj.meals)&&obj.meals.length)d=obj;
     }catch(e){lastE=e;}}
+  aiHealth("giorno",!!d);
   return {day:d,err:lastE};}
 function normDayAI(dayName,d){
   return {day:dayName,ctx:d.ctx||"",meals:(d.meals||[]).map(m=>({
@@ -7978,9 +8148,23 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   <div class="hint" id="projText" style="margin-top:0"></div>
   <canvas id="chGoalProj" height="170"></canvas>
   <div class="hint">Curva ideale non lineare verso l'obiettivo (dieta + passi/allenamenti obiettivo) confrontata col peso reale registrato: il delta dice se sei avanti o indietro rispetto al piano.</div></div>`;
+  //  Insight dai sensori già attivi nei prompt: ora li vedi anche tu
+  h+=(function(){
+    let g="";
+    const hs=hungerStats();
+    if(hs&&hs.avg>=3.2)g+=`<div class="card"><h2>La fame è alta</h2>
+      <div class="hint" style="margin-top:2px">Negli ultimi 14 giorni la fame media segnata è <b>${hs.avg}/5</b>. L'AI lo sa già: a parità di calorie sta aumentando sazietà e volume (fibre, proteine, zuppe e verdure) in ogni proposta.</div></div>`;
+    const cs=crashStats();
+    if(cs&&cs.n>=3)g+=`<div class="card"><h2>Cali di energia ricorrenti</h2>
+      <div class="hint" style="margin-top:2px"><b>${cs.n} cali</b> segnalati di recente, per lo più dopo «${esc(cs.top)}» (in media ${cs.carbMedi} g di carboidrati). L'AI sta già spostando i carboidrati raffinati di quel pasto e alzando proteine e fibre per appiattire la curva.</div></div>`;
+    return g;})();
   //  Correlazioni: cosa influenza i risultati
   h+=`<div class="card"><h2>Cosa influenza i tuoi risultati</h2>
   <div class="hint" style="margin-top:0">Confronto tra sonno, umore e allenamento e il tuo deficit/sgarri (giorni difficili esclusi).</div>
+  ${(function(){const hs=hungerStats(),cs=crashStats();let x="";
+    if(hs&&hs.avg>=3.2)x+=`<div class="card"><h2>Fame alta</h2><div class="hint">Media <b>${hs.avg}/5</b> negli ultimi ${hs.n} giorni con pallini segnati. L'AI lo sa già: a parità di calorie sta aumentando fibre, proteine e volume nei piatti che ti propone.</div></div>`;
+    if(cs)x+=`<div class="card"><h2>Cali di energia</h2><div class="hint"><b>${cs.n} segnalazioni</b> recenti, per lo più dopo «${cs.top}» (~${cs.carbMedi} g di carboidrati in media). Nei ribilanci l'AI riduce i raffinati proprio lì.</div></div>`;
+    return x;})()}
   ${correlationsSummaryHtml()}
   <button class="btn" style="margin-top:10px" onclick="askCorrelations()">Analisi AI dei pattern</button>
   <div class="aibox" id="corrAI" style="display:none"></div></div>`;
@@ -8472,6 +8656,34 @@ window.askDiaryQuestion=async()=>{
 /* Nucleo riusabile: silent=true per l'archiviazione AUTOMATICA di fine
    settimana (niente confirm, niente alert, niente AI che blocca). */
 const WEEK_COACH="Sei un personal trainer rigoroso ma motivante. Dati settimana (dieta; sonno, relax e umore in scala 1=basso 5=alto; sgarri kcal): ";
+/* Rilevatore puro del sospetto TDEE sovrastimato: 3 settimane archiviate
+   con deficit teorico ≥250 kcal/g e peso fermo (calo < 0,3 kg). */
+function tdeeDriftInfo(){
+  if(!S.history||S.history.length<3)return null;
+  const last3=S.history.slice(-3);
+  if(!last3.every(x=>x.avgDef>=250))return null;
+  const w0=last3[0].weight,w2=last3[2].weight;
+  if(!(w0>0&&w2>0))return null;
+  if(w0-w2>=0.3)return null;
+  return {avgDef:Math.round(last3.reduce((a,x)=>a+x.avgDef,0)/3),w0,w2};}
+window.tdeeSuggApply=()=>{
+  S.profile.act=Math.max(1.15,Math.round((S.profile.act-0.05)*100)/100);
+  S.tdeeSugg=null;save();render(cur);
+  toast("Fattore attività abbassato: fabbisogno più prudente");};
+window.tdeeSuggRecomp=()=>{
+  S.tdeeSugg=null;save();render(cur);
+  dlgAlert("Peso fermo ma grasso in calo è RICOMPOSIZIONE: nessuna correzione, continua così. Consiglio: registra la % di massa grassa nelle pesate.");};
+window.tdeeSuggNo=()=>{S.tdeeSugg=null;save();render(cur);};
+function tdeeSuggCardHTML(){
+  if(!S.tdeeSugg)return "";
+  const g=S.tdeeSugg;
+  return `<div class="card"><h2>Peso fermo da 3 settimane</h2>
+  <div class="hint">Deficit teorico medio ~${g.avgDef} kcal/giorno, ma il peso non scende (${g.w0}→${g.w2} kg): probabilmente il fabbisogno reale è più basso, o i passi quotidiani sono calati. Se però la <b>massa grassa</b> sta scendendo, è ricomposizione e va tutto bene.</div>
+  <div class="mtools" style="margin-top:8px">
+    <button class="btn small" onclick="tdeeSuggApply()">Abbassa il fattore (−0.05)</button>
+    <button class="btn ghost small" onclick="tdeeSuggRecomp()">È ricomposizione</button>
+    <button class="btn ghost small" onclick="tdeeSuggNo()">Ignora</button>
+  </div></div>`;}
 async function closeWeekCore(silent){
   const wk=weekSummary();
   /* L'analisi della settimana costa una richiesta e qualche minuto. Nella
@@ -8484,12 +8696,14 @@ async function closeWeekCore(silent){
     const j=parseAIJSON(t);wk.ai={report:j.report,corr:j.corr};
   }catch(e){/* senza AI si salva comunque */}}
   S.history.push(wk);
-  // Check TDEE: 3 settimane di deficit teorico ma peso fermo (solo in manuale)
-  if(!silent&&S.history.length>=3){
-    const last3=S.history.slice(-3);
-    const defOk=last3.every(x=>x.avgDef>=250);
-    const wDrop=last3[0].weight-last3[2].weight;
-    if(defOk&&wDrop<0.3){
+  // Check TDEE: 3 settimane di deficit teorico ma peso fermo.
+  // In chiusura MANUALE parte il dialogo; in chiusura AUTOMATICA (domenica,
+  // silent) i dialoghi non possono apparire: si lascia un suggerimento
+  // persistente che Punto mostra come card finché non decidi tu.
+  const drift=tdeeDriftInfo();
+  if(silent&&drift&&!S.tdeeSugg)S.tdeeSugg={avgDef:drift.avgDef,w0:drift.w0,w2:drift.w2,at:Date.now()};
+  if(!silent&&drift){
+    {const last3=S.history.slice(-3);
       /* ── Prima di correggere il TDEE: verifica RICOMPOSIZIONE corporea ──
          Peso fermo + massa grassa in calo = stai perdendo grasso e mettendo
          muscolo: nessuna correzione, anzi ottimo segnale. */
@@ -8700,7 +8914,7 @@ window.wizEstim=async(di,mi,oi)=>{
      producevano testi enormi che sfondavano la card. */
   const fuori=(WIZ.plan[di].meals[mi].type==="free"||WIZ.plan[di].meals[mi].type==="mensa");
   try{
-    const t=await aiAsk(estimaPrompt(o.d,{fuori:fuori,riscrivi:true,campo:"desc"}));
+    const t=await estimaCached(o.d,{fuori:fuori,riscrivi:true,campo:"desc"});
     const j=parseAIJSON(t);
     Object.assign(o,{d:j.desc||o.d,k:Math.round(j.kcal)||0,p:Math.round(j.prot)||0,
       c:Math.round(j.carb)||0,f:Math.round(j.gras)||0,
@@ -8824,18 +9038,6 @@ const DIGIUNI={
     ai:"DIGIUNO RELIGIOSO in corso: rispetta gli orari e le restrizioni indicate dalla persona nelle sue regole, ridistribuendo i pasti senza ridurre il totale."}
 };
 function digiunoOn(){return !!(S.phys&&S.phys.digiuno);}
-/* Il gruppo sanguigno serve solo se si è scelto quel protocollo */
-function gruppoOn(){return String((S.diet&&S.diet.prot)||"").toLowerCase().indexOf("gruppo sanguigno")>-1;}
-function gruppoSangue(){const g=S.profile&&S.profile.gruppo;return GRUPPI[g]?g:"";}
-window.grpUI=(pre,on)=>{
-  const b=document.getElementById(pre+"Grp");
-  if(b)b.style.display=on?"block":"none";};
-window.gruppoSet=(v)=>{S.profile.gruppo=v;save();render(cur);
-  toast(v?("Gruppo "+v+" salvato"):"Gruppo non indicato");};
-function gruppoForAI(){
-  if(!gruppoOn())return "";
-  const g=gruppoSangue();
-  return g?(" Gruppo sanguigno "+g+" — "+GRUPPI[g]+"."):" La persona segue la dieta dei gruppi sanguigni ma non ha indicato il gruppo: chiediglielo prima di applicare restrizioni.";}
 function digiunoTipo(){const t=S.phys&&S.phys.digTipo;return DIGIUNI[t]?t:"ramadan";}
 window.digiunoSet=async(on)=>{
   if(on&&!digiunoOn()){

@@ -6,7 +6,7 @@
 <!-- ══════════ SICUREZZA: Content-Security-Policy ══════════
      Limita da dove possono arrivare script e verso dove l'app può connettersi.
      Anche in caso di iniezione, i dati non possono uscire verso domini estranei. -->
-<meta name="theme-color" content="#0A4E49">
+<meta name="theme-color" content="#0C7C74">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Nuvia">
@@ -54,7 +54,7 @@ window._noChart=(typeof Chart==="undefined")?1:0;</script>
   --ink:#0D2422; --grigio:#68807C; --linea:#E3EAE8;
   --zaff:#E4632F; --zaffbg:#FFF0E9; --mensa:#5B7FE0; --mensabg:#EEF2FD;
   --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
-  --grad:#0A4E49;
+  --grad:#0C7C74;
   --gradz:#FF7F50;
     --glass:rgba(255,255,255,.72);
   --shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.22);
@@ -782,12 +782,21 @@ button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible
 .shrow small{display:block;color:var(--grigio);font-size:12.5px;line-height:1.45}
 /* ── Faro: UN solo elemento alla volta, l'azione più utile adesso ── */
 .faro{box-shadow:0 0 0 3px rgba(0,175,163,.45)!important;border-radius:12px}
+/* ── Regole a schede: tre gruppi, si naviga senza perdersi ── */
+.rtabs{display:flex;gap:8px;margin:2px 0 14px}
+.rtabs button{flex:1;padding:10px 6px;border-radius:12px;border:1.5px solid var(--linea);background:#fff;
+  font:600 12.8px Inter,system-ui,sans-serif;color:var(--grigio);cursor:pointer;transition:.15s}
+.rtabs button.on{background:var(--menta);border-color:var(--teal);color:var(--bosco)}
+#pg-regole .regsec{display:none}
+#pg-regole[data-rt="scelte"] .regsec[data-rt="scelte"],
+#pg-regole[data-rt="ai"] .regsec[data-rt="ai"],
+#pg-regole[data-rt="formule"] .regsec[data-rt="formule"]{display:block}
 .gstep{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;font:inherit;color:inherit;cursor:pointer;padding:0}
 /* ── Suggerimento una-tantum: bolla ancorata, si chiude con un tocco ── */
-#tipOv{position:absolute;z-index:1200;max-width:min(78vw,320px);background:var(--bosco);color:#fff;
+#tipOv{position:absolute;z-index:1200;max-width:min(78vw,320px);background:var(--teal2,#0C7C74);color:#fff;
   border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.5;box-shadow:0 14px 34px -14px rgba(10,78,73,.55)}
-#tipOv:after{content:"";position:absolute;top:-7px;left:26px;border:7px solid transparent;border-top:0;border-bottom-color:var(--bosco)}
-#tipOv.up:after{top:auto;bottom:-7px;border:7px solid transparent;border-bottom:0;border-top-color:var(--bosco)}
+#tipOv:after{content:"";position:absolute;top:-7px;left:var(--ax,26px);border:7px solid transparent;border-top:0;border-bottom-color:var(--teal2,#0C7C74)}
+#tipOv.up:after{top:auto;bottom:-7px;border:7px solid transparent;border-bottom:0;border-top-color:var(--teal2,#0C7C74)}
 #tipOv small{display:block;margin-top:5px;opacity:.75;font-size:11.5px}
 /* ── Micro-animazioni ─────────────────────────────────────────────
    Piccole, veloci, mai bloccanti. Il blocco vive dentro una media
@@ -1031,7 +1040,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.66.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.68.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2303,7 +2312,7 @@ const TABS=[["punto","Punto"],
    per ciascuna, così la lista si legge in un colpo d'occhio. */
 const ALTRE=[["piano","Piano","piano"],["storico","Numeri","progressi"],
              ["tools","Strumenti","tools"],["regole","Regole","regole"],
-             ["io","Profilo","io"],["sistema","Sistema","gear"],["nuvia","Nuvia","nuvia"],["guida","Guida","guida"]];
+             ["io","Profilo","io"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
 /* ═══ L'ASSISTENTE ══════════════════════════════════════════════════
    Diciassette strumenti non si cercano: si chiedono. Qui la domanda viene
    riconosciuta e porta dove serve. Quando la domanda non è una richiesta
@@ -2375,6 +2384,7 @@ function assistToolByLabel(lbl){
 window.assistGo=(i)=>{
   const r=ASSIST_MAP[i];if(!r)return;
   assistClose();show(r.p);
+  window.scrollTo(0,0);   /* partenza pulita: mai "viaggiare" dal fondo */
   /* L'atterraggio deve essere sul PUNTO giusto, non in cima alla pagina:
      prima si prova l'ancora esplicita, altrimenti si cerca la card il cui
      titolo corrisponde allo strumento, la si porta in vista e la si
@@ -2389,7 +2399,7 @@ window.assistGo=(i)=>{
       if(h)el=h.closest(".card")||h;
     }
     if(!el)return;
-    el.scrollIntoView({block:"start",behavior:"smooth"});
+    el.scrollIntoView({block:"start",behavior:"auto"});   /* preciso e immediato: guida l'occhio l'evidenziazione, non il viaggio */
     el.style.transition="box-shadow .4s";
     el.style.boxShadow="0 0 0 3px var(--menta),0 10px 26px -18px rgba(10,78,73,.3)";
     setTimeout(()=>{el.style.boxShadow="";},1800);
@@ -2755,7 +2765,7 @@ function mealCard(pdi,mi){
           ? (function(){const q=qOf(st,o.d)??qPeek(o.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})()
           : (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="Qualità stimata del piatto in piano">${qDot(q)}${q}%</span>`:"";})()}</div>
       <div class="mdesc tap" onclick="editMeal(${pdi},${mi})" title="Tocca per modificare">${esc(cap(o.d))}</div>
-      <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
+      <div class="mkcal">~${o.k} kcal · ${o.p}g proteine${o.c!=null?` · ${o.c}g carboidrati`:""}${o.f!=null?` · ${o.f}g grassi`:""}${o.fib!=null?` · ${o.fib}g fibre`:""}${o.z!=null?` · ${o.z}g zuccheri`:""} ${st.custom?'<span class="badge ai">modificato</span>':(S.permMeals[pdi+"_"+mi]&&st.opt===0?'<span class="badge ai">alternativa fissa</span>':"")}</div>`;
   h+=hungryHTML(pdi,mi);
   if(PLAN[pdi].meals[mi].o.length>1&&!st.custom){h+=`<div class="mopts">`+m.o.map((x,oi)=>
     `<button class="${oi===st.opt?"sel":""}" onclick="setOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`).join("")+`</div>`;}
@@ -2904,7 +2914,7 @@ window.editMealGo=async(d,m)=>{
       const t=await estimaCached(txt,{fuori:fuori,campo:"piatto"});
       j=parseAIJSON(t);k=Math.round(j.kcal);p=Math.round(j.prot);
       if(fuori&&j.piatto&&String(j.piatto).trim())txt=String(j.piatto).trim();
-      if(!await dlgConfirm("Stima AI: ~"+k+" kcal · ~"+p+" g prot",{ok:"Va bene",ko:"Correggo io"})){
+      if(!await dlgConfirm("Stima AI: ~"+k+" kcal · ~"+p+"g prot",{ok:"Va bene",ko:"Correggo io"})){
         const k0=k;
         k=parseInt(await dlgPrompt("Calorie?",k))||k;
         p=parseInt(await dlgPrompt("Proteine (g)?",p))||p;
@@ -4436,7 +4446,7 @@ function mealCardStatic(pdi,mi){const m=PLAN[pdi].meals[mi];const o=templateOpt(
     <div class="mtop"><span class="mname tap" onclick="editMealPerm(${pdi},${mi})" title="Tocca per modificare">${esc(cap(m.n))}</span>${
       (function(){const q=qPeek(o.d);return q!=null?`<span class="qwrap" title="Qualità stimata">${qDot(q)}${q}%</span>`:"";})()}</div>
     <div class="mdesc tap" onclick="editMealPerm(${pdi},${mi})" title="Tocca per modificare">${esc(cap(o.d))}</div>
-    <div class="mkcal">~${o.k} kcal · ${o.p} g proteine${o.c!=null?` · ${o.c} g carboidrati`:""}${o.f!=null?` · ${o.f} g grassi`:""}${o.fib!=null?` · ${o.fib} g fibre`:""}${o.z!=null?` · ${o.z} g zuccheri`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
+    <div class="mkcal">~${o.k} kcal · ${o.p}g proteine${o.c!=null?` · ${o.c}g carboidrati`:""}${o.f!=null?` · ${o.f}g grassi`:""}${o.fib!=null?` · ${o.fib}g fibre`:""}${o.z!=null?` · ${o.z}g zuccheri`:""} ${isCustom?'<span class="badge ai">modificato</span>':""}</div>`;
   if(m.o.length>1){h+=`<div class="mopts">`+m.o.map((x,oi)=>{
       const sel=isCustom?(permObj.d===x.d):(oi===0);
       return `<button class="${sel?"sel":""}" onclick="setPermOpt(${pdi},${mi},${oi})">${optLabel(x,oi)}</button>`;}).join("")+`</div>`;}
@@ -4474,7 +4484,7 @@ window.altMealPerm=async(d,m)=>{if(!aiOn())return aiFail(new Error("nokey"));con
   try{const t=await aiAsk('Genera UN piatto completamente diverso da "'+o.d+'" ma con circa '+o.k+' kcal e '+o.p+' g di proteine. '+
     (visti.length?'Alternative GIÀ PROPOSTE in passato per questo pasto — NON riproporle né in variante simile: '+visti.join("; ")+'. ':'')+dietStr()+' Ingredienti comuni in Italia con grammature. Rispondi SOLO JSON: {"piatto":"descrizione con grammature","kcal":numero,"prot":numero,"carb":numero,"gras":numero}');
     const j=parseAIJSON(t);
-    if(!await dlgConfirm("Alternativa permanente:\n"+j.piatto+"\n~"+Math.round(j.kcal)+" kcal · ~"+Math.round(j.prot)+" g proteine\n\nOK = usala sempre nel piano"))return;
+    if(!await dlgConfirm("Alternativa permanente:\n"+j.piatto+"\n~"+Math.round(j.kcal)+" kcal · ~"+Math.round(j.prot)+"g proteine\n\nOK = usala sempre nel piano"))return;
     S.altSeen[akey]=(visti.concat(String(j.piatto).slice(0,60))).slice(-6);
     S.permMeals[d+"_"+m]={d:j.piatto,k:Math.round(j.kcal),p:Math.round(j.prot),c:Math.round(j.carb)||null,f:Math.round(j.gras)||null};pianoCambiato();save();render("piano");}catch(e){aiFail(e);}};
 function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(new Date());
@@ -4535,7 +4545,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     h+=`<div class="dayname">${d.day}${di===ti?'<span class="todaytag">OGGI</span>':""}</div><div class="dayctx">${d.ctx}</div>`;
     d.meals.forEach((m,mi)=>h+=mealCardStatic(di,mi));
     const pl=plannedTemplateOfDay(di);
-    h+=`<div class="daytotal">Piano: <span>~${pl.k} kcal · ${pl.p} g proteine · ${pl.c} g carboidrati · ${pl.f} g grassi · ${pl.fib} g fibre · ${pl.z||0} g zuccheri</span></div>`;
+    h+=`<div class="daytotal">Piano: <span>~${pl.k} kcal · ${pl.p}g proteine · ${pl.c}g carboidrati · ${pl.f}g grassi · ${pl.fib}g fibre · ${pl.z||0}g zuccheri</span></div>`;
   });
   el.innerHTML=h;}
 
@@ -4747,7 +4757,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         ${prox?`<div class="tnext">
           <div class="k">${prox.tardi?"Da segnare":"Il prossimo pasto"}</div>
           <div class="t">${esc(prox.d||prox.slot||"")}</div>
-          <div class="m">${Math.round(prox.k||0)} kcal · ${Math.round(prox.p||0)} g proteine ${(function(){const q=qPeek(prox.d);return q!=null?`<span class="qwrap" title="Qualità stimata del piatto">${qDot(q)}${q}%</span>`:"";})()}</div>
+          <div class="m">${Math.round(prox.k||0)} kcal · ${Math.round(prox.p||0)}g proteine ${(function(){const q=qPeek(prox.d);return q!=null?`<span class="qwrap" title="Qualità stimata del piatto">${qDot(q)}${q}%</span>`:"";})()}</div>
           ${(prox.pdi!=null&&prox.mi!=null)?hungryHTML(prox.pdi,prox.mi):""}
           <div class="tcta">
             <button class="btn small" onclick="tgl(${prox.pdi},${prox.mi})">L'ho mangiato</button>
@@ -4904,7 +4914,7 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     h+=`<div class="swipe" data-del="delExtraAsk(${di},${ei})"><div class="swipebg">Elimina</div><div class="meal ${done?"done":"skip"}"><div class="chk ${done?"c":"s"}" role="button" onclick="tglExtra(${di},${ei})">${done?"✓":"✗"}</div>
     <div class="mbody"><div class="mtop"><span class="mname">Extra${done?"":" (non mangiato)"}</span>${
       done?(function(){const q=qOf(e,e.d);return `<span class="qwrap">${qDot(q)}${q!=null?q+"%":(aiOn()?"…":"")}</span>`;})():""}</div>
-    <div class="mdesc tap" onclick="editExtra(${di},${ei})" title="Tocca per modificare">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0} g proteine${e.c!=null?` · ${e.c} g carboidrati`:""}${e.f!=null?` · ${e.f} g grassi`:""}${e.fib!=null?` · ${e.fib} g fibre`:""}${e.z!=null?` · ${e.z} g zuccheri`:""}</div>
+    <div class="mdesc tap" onclick="editExtra(${di},${ei})" title="Tocca per modificare">${esc(cap(e.d))}</div><div class="mkcal">~${e.k} kcal · ${e.p||0}g proteine${e.c!=null?` · ${e.c}g carboidrati`:""}${e.f!=null?` · ${e.f}g grassi`:""}${e.fib!=null?` · ${e.fib}g fibre`:""}${e.z!=null?` · ${e.z}g zuccheri`:""}</div>
     <div class="mtools" style="margin-top:6px">
       <button class="ibtn" title="Scatta la foto adesso" onclick="extraPhotoFix(${di},${ei})">${ic("camera",17)}</button>
         <button class="ibtn" title="Scegli una foto dalla galleria" onclick="extraPhotoFix(${di},${ei},true)">${ic("gallery",17)}</button>
@@ -5038,7 +5048,7 @@ function renderScanQ(){
   SCANQ.items.forEach((it,i)=>{inner+=`<div class="wline"><span style="flex:1">${esc(it.name)}<br><small style="color:var(--grigio)">${it.k100} kcal · ${it.p100} g proteine /100g</small></span>
     <input type="number" value="${it.g}" style="width:74px" onchange="scanG(${i},this.value)"> <small>g</small>
     <span class="del" onclick="scanDel(${i})">✕</span></div>`;});
-  if(t)inner+=`<div class="daytotal" style="padding-top:8px">Totale: <span>~${t.k} kcal · ${t.p} g proteine · ${t.c} g carboidrati · ${t.f} g grassi · ${t.fib} g fibre · ${t.z} g zuccheri</span></div>`;
+  if(t)inner+=`<div class="daytotal" style="padding-top:8px">Totale: <span>~${t.k} kcal · ${t.p}g proteine · ${t.c}g carboidrati · ${t.f}g grassi · ${t.fib}g fibre · ${t.z}g zuccheri</span></div>`;
   inner+=`<div class="mtools" style="margin-top:10px">
     <button class="btn ghost small" onclick="scanMore()">Scansiona ${SCANQ.items.length?"un altro":""}</button>
     <button class="btn ghost small" onclick="scanManual()">＋ A mano</button></div>
@@ -6206,7 +6216,7 @@ function periodsCardHTML(forIo){
        Sensazione finale: ${starsTxt(p.endStars)}${p.endNote?` · <i>"${esc(p.endNote)}"</i>`:""}<br>
       ${p.aiStars?` Valutazione AI: ${starsTxt(p.aiStars)}`:` Valutazione AI: non ancora richiesta`}</div>
       ${p.aiText?`<div class="hint" style="background:var(--cardbg,#F5F5F5);border-radius:8px;padding:8px;margin-top:4px">${esc(p.aiText)}</div>`:""}
-      <div class="hint" style="margin-top:4px"> ${st.nDone} giorni tracciati · ${st.avgEat} kcal medie · ${st.avgProt} g prot · ${st.avgFib} g fibre · deficit medio ${st.avgDef} · ${st.workouts} allenamenti${st.dW!=null?` · peso ${st.dW>0?"+":""}${st.dW} kg`:""}</div>
+      <div class="hint" style="margin-top:4px"> ${st.nDone} giorni tracciati · ${st.avgEat} kcal medie · ${st.avgProt}g prot · ${st.avgFib}g fibre · deficit medio ${st.avgDef} · ${st.workouts} allenamenti${st.dW!=null?` · peso ${st.dW>0?"+":""}${st.dW} kg`:""}</div>
       <div class="mtools" style="margin-top:6px">
       <button class="btn ghost small" onclick="aiRatePeriod(${p.id})">${p.aiStars?"Rivaluta":"Valutazione AI"}</button>
       <button class="btn ghost small" onclick="analyzePeriod(${p.id})">Analizza</button>
@@ -6576,7 +6586,8 @@ function renderBenvenuto(){
         <input type="radio" name="obDens" ${dens()===v?"checked":""} onchange="densSet('${v}')" style="margin-top:2px">
         <span><b>${t}</b><br><small style="color:var(--grigio);font-size:11.5px">${d}</small></span></label>`).join("")}
     </div>
-    <div class="obbox"><b>Nessuna funzione viene tolta</b>: cambia solo cosa è in vista. Si passa da un livello all'altro quando vuoi, da Profilo, e ogni tanto te lo chiedo io.</div>
+    <label class="ck" style="margin-top:10px"><input type="checkbox" ${S.ui.guidaOff?"":"checked"} onchange="S.ui.guidaOff=!this.checked;save()"> Mostrami i suggerimenti di guida (primi passi, faro e consigli)</label>
+    <div class="obbox"><b>Nessuna funzione viene tolta</b>: cambia solo cosa è in vista. Livello e suggerimenti si cambiano quando vuoi da Sistema.</div>
     <p class="obp">Se è la prima volta che usi un'app di dieta, lascia <b>Essenziale</b>.</p>`;
   if(st===7)c=`<h2>Vuoi un backup?</h2>
     <p class="obp">Il backup copia i tuoi dati su <b>Google Drive tuo</b>, così cambiando telefono non perdi lo storico.</p>
@@ -6670,9 +6681,20 @@ window.obGoalUI=()=>{
   if(hint)hint.innerHTML=txt;
 };
 
+window.regTab=(v)=>{S.ui.regTab=v;save();render("regole");};
 function renderRegole(){const el=document.getElementById("pg-regole");
-  let h=rulesCardHTML();
-  h+=dietCardHTML();
+  /* Tre schede per non perdersi: le scelte dell'utente (modificabili qui
+     con effetto ovunque), le regole dell'AI con la loro verifica, e le
+     formule. Nessuna sezione è stata toccata: cambia solo cosa è in vista. */
+  const tb=S.ui.regTab||"scelte";
+  el.dataset.rt=tb;
+  let h=`<div class="rtabs" role="tablist">
+    <button class="${tb==="scelte"?"on":""}" onclick="regTab('scelte')">Le tue scelte</button>
+    <button class="${tb==="ai"?"on":""}" onclick="regTab('ai')">Regole AI</button>
+    <button class="${tb==="formule"?"on":""}" onclick="regTab('formule')">Formule e calcoli</button>
+  </div>`;
+  h+=rulesCardHTML();
+  h+=`<div class="regsec" data-rt="scelte">`+dietCardHTML()+`</div>`;
   el.innerHTML=h;}
 function rulesCardHTML(){
   const p=S.profile,r=rulesSnapshot();
@@ -6681,6 +6703,7 @@ function rulesCardHTML(){
   const row=(k,desc,ctrl)=>`<tr><td>${k}</td><td class="rd">${desc}</td><td class="rc">${ctrl}</td></tr>`;
   const out=(v)=>`<span class="rout">${v}</span>`;
   return `
+  <div class="regsec" data-rt="ai">
   <div class="card"><h2>Come deve ragionare l'AI</h2>
   ${hint2("Le istruzioni che l'AI riceve a ogni richiesta. Se il piano non ti convince, la causa è quasi sempre qui.",
    "Cambia queste righe e il piano cambia: non serve toccare altro. Con «Ripristina» torni a quelle di partenza. Il pulsante «Vedi» mostra il testo esatto che parte, con il conteggio dei caratteri.")}
@@ -6718,6 +6741,7 @@ function rulesCardHTML(){
   <div class="hint">Applicate al tuo caso: ${dayTargetK()} kcal al giorno significano max <b>${Math.round(dayTargetK()*0.10/4)} g</b> di zuccheri liberi, max <b>${Math.round(dayTargetK()*0.30/9)} g</b> di grassi e almeno <b>${dayTargetFib()} g</b> di fibra.</div>
   </div>
 
+  </div><div class="regsec" data-rt="scelte">
   <div class="card"><h2>Te</h2>
   ${hint2("Come l'app calcola il tuo fabbisogno, a partire dal corpo che hai.",
    "Questi numeri si aggiornano da soli quando cambi peso, attività o stato fisiologico. In verde i risultati calcolati: quelli non si scrivono, si leggono.")}
@@ -6770,6 +6794,7 @@ function rulesCardHTML(){
   </table></div></details>
   </div>
 
+  </div><div class="regsec" data-rt="formule">
   <div class="card"><h2>Nutrizione</h2>
   ${hint2("Proteine e regole dei pasti: quanto ti serve e come si ribilancia.",
    "Le proteine si calcolano sul peso di riferimento, non su quello della bilancia. Il minimo per pasto impedisce che un ribilanciamento renda un pasto ridicolo.")}
@@ -6788,7 +6813,7 @@ function rulesCardHTML(){
      sel("rReal",p.realOnly!==false?"si":"no",[["si","Sì, controlla e scarta"],["no","No, accetta comunque"]]))}
   </table></div>
 
-  ${densMin("expert")?`
+  
   <div class="card"><h2>Formule</h2>
   ${hint2("La meccanica fine. <b>Non serve toccarla</b>: l'app funziona bene così.",
    "Mettici mano solo se sai cosa stai facendo o se te lo indica un professionista.")}
@@ -6818,8 +6843,8 @@ function rulesCardHTML(){
   ${row("Tetto · percentuale","Massimo taglio in una giornata, in quota del pianificato.",num("rRgpCap",r.recupero_max_pct_giorno,5,5,50,"%"))}
   ${row("Tetto · massimo","Vale il più basso fra percentuale e massimo. Il resto slitta ai giorni successivi.",num("rRgpCapMax",r.recupero_max_kcal_giorno,50,50,null,"kcal"))}
   ${row("Giorni recuperabili","Quanti giorni indietro possono comparire nel menu Recupero.",num("rRgpDays",(+p.rgpDays||5),1,1,7,"giorni"))}
-  </table></div>`
-  :`<div class="card">${hint2("Le formule di calcolo (basale, allenamenti, soglie di recupero) sono nascoste a questo livello.","Per vederle passa a <b>Esperto</b> in Il tuo profilo → Quanto vuoi vedere.")}</div>`}
+  </table></div>
+  </div>
   `;}
 
 window.nutriSave=()=>{
@@ -8136,8 +8161,8 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   ${dietStartLabel()?`<div class="hint">I periodi partono dall'inizio del tuo primo periodo di dieta: <b>${dietStartLabel()}</b>. In «Periodo manuale» puoi comunque scegliere qualsiasi intervallo.</div>`:""}
   <div class="hint" id="anHint"></div>
   </div>`;
-  h+=`<div class="card chart"><div class="cht">Calorie e deficit</div><canvas id="chAnCal" height="160"></canvas></div>`;
   h+=`<div class="card chart"><div class="cht">Peso e massa grassa</div><canvas id="chAnWeight" height="160"></canvas></div>`;
+  h+=`<div class="card chart"><div class="cht">Calorie e deficit</div><canvas id="chAnCal" height="160"></canvas></div>`;
   h+=`<div class="card chart"><div class="cht">Macronutrienti</div><canvas id="chAnMacro" height="160"></canvas></div>`;
   h+=`<div class="card">
   <button class="btn" style="width:100%" onclick="askProgress()">Chiedi un'analisi dei progressi</button>
@@ -8156,14 +8181,14 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       <div class="hint" style="margin-top:2px">Negli ultimi 14 giorni la fame media segnata è <b>${hs.avg}/5</b>. L'AI lo sa già: a parità di calorie sta aumentando sazietà e volume (fibre, proteine, zuppe e verdure) in ogni proposta.</div></div>`;
     const cs=crashStats();
     if(cs&&cs.n>=3)g+=`<div class="card"><h2>Cali di energia ricorrenti</h2>
-      <div class="hint" style="margin-top:2px"><b>${cs.n} cali</b> segnalati di recente, per lo più dopo «${esc(cs.top)}» (in media ${cs.carbMedi} g di carboidrati). L'AI sta già spostando i carboidrati raffinati di quel pasto e alzando proteine e fibre per appiattire la curva.</div></div>`;
+      <div class="hint" style="margin-top:2px"><b>${cs.n} cali</b> segnalati di recente, per lo più dopo «${esc(cs.top)}» (in media ${cs.carbMedi}g di carboidrati). L'AI sta già spostando i carboidrati raffinati di quel pasto e alzando proteine e fibre per appiattire la curva.</div></div>`;
     return g;})();
   //  Correlazioni: cosa influenza i risultati
   h+=`<div class="card"><h2>Cosa influenza i tuoi risultati</h2>
   <div class="hint" style="margin-top:0">Confronto tra sonno, umore e allenamento e il tuo deficit/sgarri (giorni difficili esclusi).</div>
   ${(function(){const hs=hungerStats(),cs=crashStats();let x="";
     if(hs&&hs.avg>=3.2)x+=`<div class="card"><h2>Fame alta</h2><div class="hint">Media <b>${hs.avg}/5</b> negli ultimi ${hs.n} giorni con pallini segnati. L'AI lo sa già: a parità di calorie sta aumentando fibre, proteine e volume nei piatti che ti propone.</div></div>`;
-    if(cs)x+=`<div class="card"><h2>Cali di energia</h2><div class="hint"><b>${cs.n} segnalazioni</b> recenti, per lo più dopo «${cs.top}» (~${cs.carbMedi} g di carboidrati in media). Nei ribilanci l'AI riduce i raffinati proprio lì.</div></div>`;
+    if(cs)x+=`<div class="card"><h2>Cali di energia</h2><div class="hint"><b>${cs.n} segnalazioni</b> recenti, per lo più dopo «${cs.top}» (~${cs.carbMedi}g di carboidrati in media). Nei ribilanci l'AI riduce i raffinati proprio lì.</div></div>`;
     return x;})()}
   ${correlationsSummaryHtml()}
   <button class="btn" style="margin-top:10px" onclick="askCorrelations()">Analisi AI dei pattern</button>
@@ -9543,7 +9568,7 @@ function qStreak(){
     if(q==null||q<61)break;
     n++;}
   return n;}
-function wizDayTot(di){let k=0,p=0;WIZ.plan[di].meals.forEach(m=>{k+=m.o[0].k;p+=m.o[0].p;});return "~"+k+" kcal · ~"+p+" g prot";}
+function wizDayTot(di){let k=0,p=0;WIZ.plan[di].meals.forEach(m=>{k+=m.o[0].k;p+=m.o[0].p;});return "~"+k+" kcal · ~"+p+"g prot";}
 function wizDayTarget(di){
   /* Raggiungimento del giorno rispetto al target: si capisce a colpo
      d'occhio se il giorno "ci sta", senza fare i conti a mente. */
@@ -9664,67 +9689,67 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
 const NUVIA_FUNZIONI=`<div class="card guida-sec"><details class="gdet"><summary><h2>Tutto quello che Nuvia sa fare</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="hint">La mappa completa, funzione per funzione. Ogni voce è poi spiegata in dettaglio nella Guida.</div>
 <table class="gtable">
-<tr><td></td><td><b>Percorso di benvenuto</b> — otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La <b>chiave Gemini si aggancia subito al passo 3</b>, così tutti i passi successivi possono già usare l'AI.</td></tr>
-<tr><td></td><td><b>Obiettivo su misura</b> — il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e <b>guida davvero il deficit</b>; gli <b>allenamenti previsti</b> (sport · minuti · volte) e l'<b>obiettivo acqua</b> entrano nel fabbisogno già dal percorso iniziale.</td></tr>
-<tr><td></td><td><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro:  <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste),  <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua),  <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile),  <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli),  <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato),  <b>Spiluccare</b> (i pasti diventano una grazing board),  <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte),  <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti),  <b>Cucino per tutti</b>,  <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.</td></tr>
-<tr><td></td><td><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.</td></tr>
-<tr><td></td><td><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.</td></tr>
-<tr><td></td><td><b>Qualità del cibo</b> — quando spunti un pasto, al posto dell'orario compare un <b>pallino colorato</b> con un voto da 0 a 100 dato dall'AI: rosso sotto il 20%, poi arancione, giallo, verde chiaro, verde scuro sopra l'80%. Giudica <b>com'è fatto il cibo</b>, non quante calorie ha. Nel bilancio trovi la media della giornata, pesata sulle calorie, e in alto la serie di giorni di fila con cibo buono. Se cambi un pasto (foto, barcode, , ribilancio) il voto si ricalcola da solo.</td></tr>
-<tr><td></td><td><b>Bilancio della giornata</b> — nove riquadri: deficit (già comprensivo dello sport), kcal mangiate, proteine, carboidrati, grassi, fibre, zuccheri, serie e qualità. Ognuno con la sua barra. Gli <b>zuccheri</b> sono un tetto, non un obiettivo: la barra diventa rossa se lo superi.</td></tr>
-<tr><td></td><td><b>Gravidanza, infortunio e malattia</b> (Oggi → Come stai) — oltre a ciclo e allattamento. La gravidanza aggiunge calorie per trimestre e <b>sospende sempre il deficit</b>. Infortunio e malattia riducono il fabbisogno perché ti muovi meno: il taglio è solo sulla quota di <b>attività</b>, il metabolismo basale non si tocca mai. In malattia il deficit resta sospeso finché non guarisci. Il ciclo si spegne da solo dopo 7 giorni; gli altri restano attivi <b>finché non li togli tu</b>.</td></tr>
-<tr><td></td><td><b>Porzioni riscalate</b> — questi stati non riscrivono il piano: moltiplicano le porzioni partendo dalle <b>kcal del tuo piano</b>, non da una stima. Così una grammatura che hai forzato a mano non va persa, e quando spegni lo stato le porzioni tornano <b>esattamente</b> quelle di base. Perché il conto torni, il piano va tenuto in stato <b>neutro</b>, cioè scritto senza avere già conteggiato quelle calorie.</td></tr>
-<tr><td></td><td><b>Fasi della dieta</b> (Regole) — stare sempre in deficit stanca il corpo e la testa. Puoi alternare giorni di deficit e giorni di <b>mantenimento</b>: nove schemi pronti (da «6 giorni + 1» a «3 mesi + 1 mese») oppure i tuoi numeri. Nella pausa il deficit va a zero, le porzioni risalgono e la spesa si adegua; un avviso te lo dice e ritara piano e spesa. La <b>proiezione in Storico</b> ne tiene conto: nei tratti piatti il peso resta fermo apposta.</td></tr>
-<tr><td></td><td><b>Ricalibra</b> (Oggi, sotto Come stai) — <b>i pasti di oggi</b> ritara solo quelli non ancora spuntati, sulle calorie che ti restano. <b>La settimana</b> ritara i 7 giorni che partono da oggi e rigenera la spesa: vale solo per quella settimana, il piano di base resta quello che è.</td></tr>
-<tr><td></td><td><b>La spesa parte da oggi</b> — la lista copre i 7 giorni che iniziano <b>dal giorno in cui la fai</b>, non da lunedì: puoi fare la spesa di mercoledì e coprire fino al martedì dopo. I pasti di oggi già spuntati non vengono ricomprati.</td></tr>
-<tr><td></td><td><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.</td></tr>
-<tr><td></td><td><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.</td></tr>
-<tr><td></td><td><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.</td></tr>
-<tr><td></td><td><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.</td></tr>
-<tr><td></td><td><b>Dati d'uso anonimi</b> — «Mi mandi le statistiche di quanto usi Nuvia? <b>Nessun dato personale o della tua dieta.</b>» Servono a rispondere a una domanda sola: dopo quanti giorni le persone smettono? Escono <b>otto numeri</b> (identificativo casuale, versione, giorni dall'installazione, giorni d'uso, ultimo utilizzo, spunte, richieste AI, se c'è un piano) e nient'altro: né peso, né cibo, né nome, né note. Si sceglie nel percorso di benvenuto e si cambia in <b>Io</b>, dove puoi anche <b>vedere il pacchetto esatto</b> generato con i tuoi dati.</td></tr>
-<tr><td></td><td><b>Per lo sviluppatore: attivare la raccolta</b> — un browser non può spedire email da solo. Per ricevere i dati in automatico: apri <i>script.google.com</i> → Nuovo progetto → incolla uno script <code>doPost</code> che scrive su un foglio e usa <code>MailApp.sendEmail</code> verso la tua casella → Distribuisci come <i>app web</i>, accesso «chiunque» → copia l'indirizzo che ti dà e incollalo nella costante <code>TEL_URL</code> in cima al codice. Da quel momento l'invio è automatico e l'utente non deve fare nulla.</td></tr>
-<tr><td></td><td><b>I tuoi supermercati</b> — la lista dei negozi la costruisci tu, e non è una scorciatoia: gli indirizzi dei siti cambiano di continuo e l'app non può verificarli. Cerchi un alimento sul sito del <b>tuo</b> negozio, incolli l'indirizzo dei risultati e l'app ricava da sola il modello. Da lì ogni della lista apre la ricerca di quel prodotto. Puoi tenere più negozi e scegliere quale usare.</td></tr>
-<tr><td></td><td><b>Prima le offerte</b> — con lo stesso metodo: attivi sul sito il filtro <b>offerte</b>, incolli il nuovo indirizzo e l'app impara anche quello. Poi con un interruttore i link ↗ puntano ai prodotti in promozione invece che alla ricerca normale. Se su quel sito il filtro non finisce nell'indirizzo, l'app te lo dice invece di far finta di funzionare.</td></tr>
-<tr><td></td><td><b>Spesa che si fa da sola</b> — la lista si costruisce dagli ingredienti del piano con le quantità <b>esatte</b> e si <b>aggiorna da sola</b> a ogni modifica del piano, tenendo le spunte sui prodotti che restano: niente pulsanti da premere. Puoi scegliere se la spesa è <b>solo per te o per tutta la famiglia</b>, e i pasti fuori casa contano solo se li prepari tu.</td></tr>
-<tr><td></td><td><b>Fuori casa: li porti o li mangi fuori?</b> — la differenza cambia tutto, quindi ora si sceglie: se <b>li prepari tu</b> il piano dà ricette vere con le grammature, pensate per essere trasportabili (buone anche fredde, contenitore unico, niente salse che si separano) e gli ingredienti <b>restano nella spesa</b>; se <b>li mangi fuori</b> il piano descrive come comporre il piatto senza inventare ricette e quegli ingredienti <b>non finiscono nella lista</b>. Si imposta come regola fissa in Regole o solo per la settimana in corso dal Piano.</td></tr>
-<tr><td></td><td><b>Pasti fuori casa settimana per settimana</b> (in Piano) — per chi fa <b>turni</b>: imposti i giorni e i pasti fuori casa solo per la settimana in corso, senza toccare la regola fissa. Salvando, l'app propone di rivedere il piano e rigenerare la spesa settimanale di conseguenza. I pasti che porti da casa vengono pensati come <b>schiscetta</b>: buoni anche freddi, in un contenitore unico, senza salse che si separano.</td></tr>
-<tr><td></td><td><b>Bilancio più leggibile</b> — via il cerchio grande: <b>deficit</b>, <b>proteine</b> e <b>streak</b> stanno nei tre riquadri in alto, ognuno con la sua barra di progressione, e sotto restano mangiate · pianificato · sport.</td></tr>
-<tr><td></td><td><b>Trascina per eliminare</b> — sulle card degli extra: trascina verso sinistra e la card sparisce, con la barra <b>ANNULLA</b> in basso per quattro secondi. Niente più conferme per ogni piccola cosa.</td></tr>
-<tr><td></td><td><b>Intercettore di fame emotiva</b> — quando registri un extra denso di zuccheri o grassi, o è tardi, l'app si mette in mezzo senza giudicare: ti chiede se è fame vera, propone il metodo dell'acqua (un bicchiere e quindici minuti) e, se aspetti, tre alternative dolci ma sazianti dentro i macro di oggi.</td></tr>
+<tr><td colspan="2"><b>Percorso di benvenuto</b> — otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La <b>chiave Gemini si aggancia subito al passo 3</b>, così tutti i passi successivi possono già usare l'AI.</td></tr>
+<tr><td colspan="2"><b>Obiettivo su misura</b> — il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e <b>guida davvero il deficit</b>; gli <b>allenamenti previsti</b> (sport · minuti · volte) e l'<b>obiettivo acqua</b> entrano nel fabbisogno già dal percorso iniziale.</td></tr>
+<tr><td colspan="2"><b>Tools</b> — la sezione degli strumenti del momento, così "Oggi" resta leggibile. Dentro:  <b>Ho una voglia</b> (scegli la sensazione — croccante, dolce, caldo, cremoso, salato, freddo — e l'AI inventa un hack che ci sta nelle calorie rimaste),  <b>Compromesso a tavola</b> (ricetta a biforcazione: stessa base per tutti, poi ognuno completa la sua),  <b>Ridurre gonfiore</b> (individua i responsabili delle ultime 48 h, rassicura che è gas e acqua, riscrive i pasti in versione digeribile),  <b>Tentazione improvvisa</b> (metà porzione, subito dopo un pasto, e compensa sul pasto che scegli),  <b>Fame incontrollabile</b> (stesse calorie, volume moltiplicato),  <b>Spiluccare</b> (i pasti diventano una grazing board),  <b>Bilanciamento predittivo</b> (scegli giorno e pasto dell'occasione e cosa mangerai: l'AI stima le calorie, fa il delta con il piano e lo distribuisce in piccoli tagli sui pasti che mancano, proteine intatte),  <b>Cucina intelligente</b> (batch cooking a giornate intere, fino a 3 giorni, sui pasti non ancora fatti),  <b>Cucino per tutti</b>,  <b>Mi alleno tra poco</b>, più frigo, menù e piatti tipici.</td></tr>
+<tr><td colspan="2"><b>Sono ospite</b> — sulle card dei pasti: due domande con icone (quanto hai mangiato · cos'era nel piatto) e il pasto viene registrato con una stima statistica, senza chiedere cibi che non conosci. Il recupero degli sfori assorbe lo scarto.</td></tr>
+<tr><td colspan="2"><b>Calo di energia</b> — il pulsante sotto le stelline registra l'abbiocco con l'orario e lo lega al pasto precedente. Dopo tre segnalazioni l'AI riceve lo schema e riduce i carboidrati raffinati del pasto incriminato.</td></tr>
+<tr><td colspan="2"><b>Qualità del cibo</b> — quando spunti un pasto, al posto dell'orario compare un <b>pallino colorato</b> con un voto da 0 a 100 dato dall'AI: rosso sotto il 20%, poi arancione, giallo, verde chiaro, verde scuro sopra l'80%. Giudica <b>com'è fatto il cibo</b>, non quante calorie ha. Nel bilancio trovi la media della giornata, pesata sulle calorie, e in alto la serie di giorni di fila con cibo buono. Se cambi un pasto (foto, barcode, , ribilancio) il voto si ricalcola da solo.</td></tr>
+<tr><td colspan="2"><b>Bilancio della giornata</b> — nove riquadri: deficit (già comprensivo dello sport), kcal mangiate, proteine, carboidrati, grassi, fibre, zuccheri, serie e qualità. Ognuno con la sua barra. Gli <b>zuccheri</b> sono un tetto, non un obiettivo: la barra diventa rossa se lo superi.</td></tr>
+<tr><td colspan="2"><b>Gravidanza, infortunio e malattia</b> (Oggi → Come stai) — oltre a ciclo e allattamento. La gravidanza aggiunge calorie per trimestre e <b>sospende sempre il deficit</b>. Infortunio e malattia riducono il fabbisogno perché ti muovi meno: il taglio è solo sulla quota di <b>attività</b>, il metabolismo basale non si tocca mai. In malattia il deficit resta sospeso finché non guarisci. Il ciclo si spegne da solo dopo 7 giorni; gli altri restano attivi <b>finché non li togli tu</b>.</td></tr>
+<tr><td colspan="2"><b>Porzioni riscalate</b> — questi stati non riscrivono il piano: moltiplicano le porzioni partendo dalle <b>kcal del tuo piano</b>, non da una stima. Così una grammatura che hai forzato a mano non va persa, e quando spegni lo stato le porzioni tornano <b>esattamente</b> quelle di base. Perché il conto torni, il piano va tenuto in stato <b>neutro</b>, cioè scritto senza avere già conteggiato quelle calorie.</td></tr>
+<tr><td colspan="2"><b>Fasi della dieta</b> (Regole) — stare sempre in deficit stanca il corpo e la testa. Puoi alternare giorni di deficit e giorni di <b>mantenimento</b>: nove schemi pronti (da «6 giorni + 1» a «3 mesi + 1 mese») oppure i tuoi numeri. Nella pausa il deficit va a zero, le porzioni risalgono e la spesa si adegua; un avviso te lo dice e ritara piano e spesa. La <b>proiezione in Storico</b> ne tiene conto: nei tratti piatti il peso resta fermo apposta.</td></tr>
+<tr><td colspan="2"><b>Ricalibra</b> (Oggi, sotto Come stai) — <b>i pasti di oggi</b> ritara solo quelli non ancora spuntati, sulle calorie che ti restano. <b>La settimana</b> ritara i 7 giorni che partono da oggi e rigenera la spesa: vale solo per quella settimana, il piano di base resta quello che è.</td></tr>
+<tr><td colspan="2"><b>La spesa parte da oggi</b> — la lista copre i 7 giorni che iniziano <b>dal giorno in cui la fai</b>, non da lunedì: puoi fare la spesa di mercoledì e coprire fino al martedì dopo. I pasti di oggi già spuntati non vengono ricomprati.</td></tr>
+<tr><td colspan="2"><b>Uscita morbida e fondo weekend</b> (in Tools) — il <b>reverse diet</b> risale di 60 kcal a settimana finché il peso resta stabile, per smettere la dieta senza riprendere tutto; il <b>fondo fiduciario</b> mette da parte l'8% dal lunedì al venerdì e lo restituisce il sabato per la cena fuori, a parità di bilancio settimanale.</td></tr>
+<tr><td colspan="2"><b>Motore di sazietà</b> — sotto ogni pasto spuntato cinque pallini: <i>che fame avevi?</i> L'app calcola la media della giornata, la esporta e, se la fame resta alta, chiede all'AI di aumentare fibre, proteine e volume a parità di calorie.</td></tr>
+<tr><td colspan="2"><b>Perché oggi la bilancia sale</b> — sotto il bilancio, quando serve: spiega il picco di peso con i carboidrati e lo sport di ieri, la poca acqua bevuta e la fase luteale, e ricorda che è acqua, non grasso.</td></tr>
+<tr><td colspan="2"><b>Calibra giornata</b> — dopo una notte storta o una giornata stressante, riorganizza i pasti che restano <b>a parità di calorie</b>: carboidrati spostati a pranzo, cena più leggera e proteica, più volume se hai avuto fame.</td></tr>
+<tr><td colspan="2"><b>Dati d'uso anonimi</b> — «Mi mandi le statistiche di quanto usi Nuvia? <b>Nessun dato personale o della tua dieta.</b>» Servono a rispondere a una domanda sola: dopo quanti giorni le persone smettono? Escono <b>otto numeri</b> (identificativo casuale, versione, giorni dall'installazione, giorni d'uso, ultimo utilizzo, spunte, richieste AI, se c'è un piano) e nient'altro: né peso, né cibo, né nome, né note. Si sceglie nel percorso di benvenuto e si cambia in <b>Io</b>, dove puoi anche <b>vedere il pacchetto esatto</b> generato con i tuoi dati.</td></tr>
+<tr><td colspan="2"><b>Per lo sviluppatore: attivare la raccolta</b> — un browser non può spedire email da solo. Per ricevere i dati in automatico: apri <i>script.google.com</i> → Nuovo progetto → incolla uno script <code>doPost</code> che scrive su un foglio e usa <code>MailApp.sendEmail</code> verso la tua casella → Distribuisci come <i>app web</i>, accesso «chiunque» → copia l'indirizzo che ti dà e incollalo nella costante <code>TEL_URL</code> in cima al codice. Da quel momento l'invio è automatico e l'utente non deve fare nulla.</td></tr>
+<tr><td colspan="2"><b>I tuoi supermercati</b> — la lista dei negozi la costruisci tu, e non è una scorciatoia: gli indirizzi dei siti cambiano di continuo e l'app non può verificarli. Cerchi un alimento sul sito del <b>tuo</b> negozio, incolli l'indirizzo dei risultati e l'app ricava da sola il modello. Da lì ogni della lista apre la ricerca di quel prodotto. Puoi tenere più negozi e scegliere quale usare.</td></tr>
+<tr><td colspan="2"><b>Prima le offerte</b> — con lo stesso metodo: attivi sul sito il filtro <b>offerte</b>, incolli il nuovo indirizzo e l'app impara anche quello. Poi con un interruttore i link ↗ puntano ai prodotti in promozione invece che alla ricerca normale. Se su quel sito il filtro non finisce nell'indirizzo, l'app te lo dice invece di far finta di funzionare.</td></tr>
+<tr><td colspan="2"><b>Spesa che si fa da sola</b> — la lista si costruisce dagli ingredienti del piano con le quantità <b>esatte</b> e si <b>aggiorna da sola</b> a ogni modifica del piano, tenendo le spunte sui prodotti che restano: niente pulsanti da premere. Puoi scegliere se la spesa è <b>solo per te o per tutta la famiglia</b>, e i pasti fuori casa contano solo se li prepari tu.</td></tr>
+<tr><td colspan="2"><b>Fuori casa: li porti o li mangi fuori?</b> — la differenza cambia tutto, quindi ora si sceglie: se <b>li prepari tu</b> il piano dà ricette vere con le grammature, pensate per essere trasportabili (buone anche fredde, contenitore unico, niente salse che si separano) e gli ingredienti <b>restano nella spesa</b>; se <b>li mangi fuori</b> il piano descrive come comporre il piatto senza inventare ricette e quegli ingredienti <b>non finiscono nella lista</b>. Si imposta come regola fissa in Regole o solo per la settimana in corso dal Piano.</td></tr>
+<tr><td colspan="2"><b>Pasti fuori casa settimana per settimana</b> (in Piano) — per chi fa <b>turni</b>: imposti i giorni e i pasti fuori casa solo per la settimana in corso, senza toccare la regola fissa. Salvando, l'app propone di rivedere il piano e rigenerare la spesa settimanale di conseguenza. I pasti che porti da casa vengono pensati come <b>schiscetta</b>: buoni anche freddi, in un contenitore unico, senza salse che si separano.</td></tr>
+<tr><td colspan="2"><b>Bilancio più leggibile</b> — via il cerchio grande: <b>deficit</b>, <b>proteine</b> e <b>streak</b> stanno nei tre riquadri in alto, ognuno con la sua barra di progressione, e sotto restano mangiate · pianificato · sport.</td></tr>
+<tr><td colspan="2"><b>Trascina per eliminare</b> — sulle card degli extra: trascina verso sinistra e la card sparisce, con la barra <b>ANNULLA</b> in basso per quattro secondi. Niente più conferme per ogni piccola cosa.</td></tr>
+<tr><td colspan="2"><b>Intercettore di fame emotiva</b> — quando registri un extra denso di zuccheri o grassi, o è tardi, l'app si mette in mezzo senza giudicare: ti chiede se è fame vera, propone il metodo dell'acqua (un bicchiere e quindici minuti) e, se aspetti, tre alternative dolci ma sazianti dentro i macro di oggi.</td></tr>
 <tr><td>‍‍</td><td><b>Famiglia</b> (onboarding e Regole) — inserisci solo <b>sesso e data di nascita</b> di chi mangia a casa: la categoria e il fabbisogno relativo li calcola l'app secondo le fasce LARN (donna adulta = 1 · uomo = 1,25 · adolescente 10-14 = 1,10 · bambino 4-9 = 0,75 · infante 1-3 = 0,50). L'AI sa quante porzioni servono in pentola e per la spesa.</td></tr>
-<tr><td></td><td><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 7 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b> Ricalibra</b> ritara grammature e spesa su questi numeri.</td></tr>
-<tr><td></td><td><b>Condizioni di salute a spunte</b> — colon irritabile, reflusso, colesterolo, trigliceridi, pressione alta, diabete 2, PCOS, fegato grasso, acido urico, tiroide, anemia, calcoli, diverticoli, celiachia, più quelle che aggiungi a mano. Ogni spunta porta con sé <b>criteri dietetici concreti</b> che entrano in tutte le proposte dell'AI: con i trigliceridi taglia zuccheri e alcol, col colesterolo i grassi saturi, col reflusso fritti e piatti acidi. È contesto, non terapia: le indicazioni cliniche restano del medico e del nutrizionista.</td></tr>
-<tr><td></td><td><b>Piatti tipici di dove sei</b> (in Oggi) — in viaggio o in trasferta l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici <b>adatti al pasto di quel momento</b> (a colazione dolci da forno e latticini locali, non secondi di carne) e compatibili con le tue regole, spiegando <b>come ordinarli</b> per restare nel target: porzione, contorno, condimento a parte. Se la terna non convince, chiedi altre proposte. La posizione serve solo a dedurre regione e nazione — le coordinate vengono arrotondate a ~11 km e non vengono mai salvate — e in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale: per quello c'è il selezionatore di menù, che ora <b>compone il pasto</b> invece di scegliere un piatto solo: spunti le portate che vuoi fare — antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda — più le sezioni che scrivi tu (insalatone, poke, taglieri…) — e l'AI mette insieme la combinazione che sta nel <b>totale</b> del target, con il conto delle calorie, come ordinare ogni portata e un'alternativa per ciascuna. Puoi chiedere altre combinazioni finché le opzioni compatibili non finiscono. Le foto del menù <b>scadono dopo tre ore</b>, il tempo di un pasto: un'altra volta in un altro locale non ti ritrovi le proposte di quello di prima.</td></tr>
-<tr><td></td><td><b>Tre livelli separati</b> — l'<b>impostazione di riferimento</b> è lo stile di fondo (mediterranea, onnivora, vegetariana, vegana, pescetariana, flexitariana); i <b>protocolli</b> sono gli schemi tecnici (basso FODMAP, digiuno intermittente, low carb, chetogenica, DASH, basso indice glicemico, ipocalorica bilanciata, antinfiammatoria, alta proteina, iposodica, più quelli che scrivi tu); le <b>intolleranze</b> sono le esclusioni. La <b>dieta di riferimento</b> si sceglie dal menù: selezionando <i>vegetariana</i> compaiono da sole le due precisazioni che contano (uova e pesce ammessi o no), perché le versioni cambiano da persona a persona. Prima erano mescolati in un unico menù e se ne poteva scegliere uno solo: ora possono convivere, e ogni protocollo porta con sé le sue regole operative che l'AI applica a ogni proposta.</td></tr>
-<tr><td></td><td><b>Allenamenti e tempi dell'obiettivo</b> — le calorie bruciate con gli allenamenti pianificati <b>non alzano le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Servono a stimare <b>in quanto tempo</b> arrivi all'obiettivo, e le usa la Stima risultati.</td></tr>
-<tr><td></td><td><b>Pasti fuori casa</b> — non più solo "mensa": segni i giorni in cui mangi fuori (mensa, trattoria, bar, menù fisso) e per ognuno se è <b>pranzo, cena o entrambi</b> — utile a chi lavora in viaggio. Il totale settimanale si conta da sé, e per quei pasti il piano descrive come comporre il piatto invece di inventarne uno.</td></tr>
-<tr><td></td><td><b>Varietà a tre livelli</b> — scegli tu se il piano deve girare su pochi ingredienti che tornano (spesa corta, poco da cucinare), stare in mezzo, o proporre piatti sempre diversi. L'AI costruisce la settimana di conseguenza.</td></tr>
-<tr><td></td><td><b>Il piano segue il tuo peso</b> — quando cali (o sali) di oltre 3 kg rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.</td></tr>
-<tr><td></td><td><b>Mensa davvero generica</b> — per i pasti in mensa il piano non inventa un piatto preciso, ma descrive come comporre il vassoio (fonte proteica, contorno, porzione di carboidrati). Quei pasti non finiscono mai nella lista della spesa.</td></tr>
-<tr><td></td><td><b>Obiettivo di peso, un valore solo</b> — vive in un unico posto, visibile in <b>Io → Obiettivi</b> e usato ovunque (proteine, proiezione, grafici, stima). Lo cambi solo tu: se il campo resta vuoto l'app chiede conferma invece di cancellarlo, e quando l'AI propone una correzione puoi accettarla o riscriverla.</td></tr>
-<tr><td></td><td><b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), <b>mensa giorno per giorno</b> con scelta pranzo/cena, <b>intolleranze</b> a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.</td></tr>
-<tr><td></td><td><b>Proteine tarate su di te</b> — g/kg automatici: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · massa 1,6–2,2, sempre sul peso di riferimento e modificabili nelle Regole.</td></tr>
-<tr><td></td><td><b>Controllo dell'obiettivo</b> — prima di costruire il piano l'app verifica che il peso desiderato sia sano per la tua altezza: se è troppo basso te lo dice, mostra l'intervallo corretto in kg (BMI 18,5–24,9) e ti lascia <b>riscrivere l'obiettivo sul momento</b>, con rianalisi immediata, senza uscire dalla schermata.</td></tr>
-<tr><td></td><td><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (a ogni apertura, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.</td></tr>
-<tr><td></td><td><b>Pesate modificabili</b> — con la matita correggi una pesata o <b>aggiungi i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche giorni dopo; col cestino la elimini, sempre con conferma.</td></tr>
-<tr><td></td><td><b>Le tue note</b> (in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.</td></tr>
-<tr><td></td><td><b>Ritmo dichiarato = ritmo reale</b> — il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app <b>te lo dice</b> e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.</td></tr>
-<tr><td></td><td><b>Generatore di piano AI</b> — sette giorni costruiti <b>uno alla volta</b>: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.</td></tr>
-<tr><td></td><td><b>Importa il piano da foto</b> — fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e <b>alternative</b>, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.</td></tr>
-<tr><td></td><td><b>Stima risultati</b> — media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la <b>ritaratura automatica delle grammature</b> (i piatti restano gli stessi) con spesa e stima rigenerate.</td></tr>
-<tr><td></td><td><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata ${ic("primavera",14)} Primaverile · ${ic("estate",14)} Estivo · ${ic("autunno",14)} Autunnale · ${ic("inverno",14)} Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.</td></tr>
-<tr><td></td><td><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
-<tr><td></td><td><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con  e la stima si rifà usando esattamente i tuoi numeri. Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
-<tr><td></td><td><b>Ribilancia le calorie residue</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
-<tr><td></td><td><b>Recupero sfori</b> — gli sbagli degli ultimi 5 giorni si spalmano nei giorni dopo con soglie e tetti di sicurezza: mai un giorno di digiuno.</td></tr>
-<tr><td></td><td><b>Aiuti sul singolo pasto</b> —  modifica con ristima,  alternativa a parità di macro,  sostituzione ingrediente (anche dalla foto di ciò che hai in casa),  crea un piatto dal frigo, selezionatore di menù al ristorante, ⭐ piatti salvati riusabili senza AI. I piatti salvati finiscono in <b>⭐ Piatti</b>: da lì li riusi per qualsiasi pasto o come extra, senza consumare AI, e l'AI li considera già graditi quando propone o ribilancia.</td></tr>
-<tr><td></td><td><b>Lista della spesa</b> — derivata dal <b>tuo</b> piano e <b>rigenerata da sola</b> quando il piano cambia, con AI o senza, categorie da supermercato, spunte persistenti, link al tuo negozio, invio WhatsApp.</td></tr>
-<tr><td></td><td><b>Sport</b> — 24 sport pronti (ciclismo, nuoto, padel, CrossFit…) e nuovi sport con stima MET via AI coerente con le regole dell'app; kcal calcolate sul tuo peso del momento.</td></tr>
-<tr><td></td><td><b>Regole trasparenti</b> — ogni numero che governa l'app è visibile e modificabile; la <b>verifica sui tuoi dati</b> ricava il fabbisogno reale dalle pesate; "Vedi cosa legge l'AI" mostra il contesto esatto di ogni richiesta.</td></tr>
-<tr><td></td><td><b>Storico</b> — recap, mesi e settimane passate sempre modificabili, pesate e biometriche con grafici, proiezione verso l'obiettivo, report AI, esportazione a 38 colonne (CSV/JSON) e analisi dei pattern.</td></tr>
-<tr><td></td><td><b>Protezioni</b> — istantanee automatiche prima di ogni operazione importante con ripristino, pulizia selettiva per intervallo di date (pesate, settimane, spesa, eventi e anche i <b>piatti salvati</b>, utile quando se ne accumulano troppi), backup su Drive con copie datate e backup locale.</td></tr>
-<tr><td></td><td><b>Aggiornamento automatico</b> — a ogni avvio l'app controlla se c'è una versione nuova e si aggiorna da sola, senza gesti manuali; i dati non vengono toccati.</td></tr>
-<tr><td></td><td><b>Compatibilità iOS</b> — dialoghi interni all'app al posto di quelli di sistema: conferme, salvataggi e cancellazioni funzionano anche come web-app sulla schermata Home.</td></tr>
-<tr><td></td><td><b>Privacy</b> — tutto vive sul tuo dispositivo: niente account, niente server, chiave AI e Drive solo tuoi; lo sviluppatore non vede nulla.</td></tr>
+<tr><td colspan="2"><b>Ciclo e allattamento</b> (in Oggi → Come stai) — la fase luteale alza il metabolismo basale di qualche punto percentuale e l'allattamento costa energia vera: attivandoli, quelle calorie si <b>sommano</b> al fabbisogno, non ci stanno dentro. Il ciclo si spegne da solo dopo 7 giorni e avvisa che l'aumento di peso di quei giorni è acqua, non grasso; l'allattamento (esclusivo o parziale) resta finché non lo cambi e alza anche il pavimento calorico di sicurezza. Tutti i valori sono modificabili in Regole, lo stato finisce nell'esportazione, e il pulsante <b> Ricalibra</b> ritara grammature e spesa su questi numeri.</td></tr>
+<tr><td colspan="2"><b>Condizioni di salute a spunte</b> — colon irritabile, reflusso, colesterolo, trigliceridi, pressione alta, diabete 2, PCOS, fegato grasso, acido urico, tiroide, anemia, calcoli, diverticoli, celiachia, più quelle che aggiungi a mano. Ogni spunta porta con sé <b>criteri dietetici concreti</b> che entrano in tutte le proposte dell'AI: con i trigliceridi taglia zuccheri e alcol, col colesterolo i grassi saturi, col reflusso fritti e piatti acidi. È contesto, non terapia: le indicazioni cliniche restano del medico e del nutrizionista.</td></tr>
+<tr><td colspan="2"><b>Piatti tipici di dove sei</b> (in Oggi) — in viaggio o in trasferta l'AI parte dalla <b>cucina della regione</b> in cui ti trovi e propone tre piatti tipici <b>adatti al pasto di quel momento</b> (a colazione dolci da forno e latticini locali, non secondi di carne) e compatibili con le tue regole, spiegando <b>come ordinarli</b> per restare nel target: porzione, contorno, condimento a parte. Se la terna non convince, chiedi altre proposte. La posizione serve solo a dedurre regione e nazione — le coordinate vengono arrotondate a ~11 km e non vengono mai salvate — e in alternativa scrivi tu dove sei. Sono piatti della tradizione locale, non il menù del locale: per quello c'è il selezionatore di menù, che ora <b>compone il pasto</b> invece di scegliere un piatto solo: spunti le portate che vuoi fare — antipasto, stuzzicherie, primo, secondo, contorno, pizza, panino, dolce, bevanda — più le sezioni che scrivi tu (insalatone, poke, taglieri…) — e l'AI mette insieme la combinazione che sta nel <b>totale</b> del target, con il conto delle calorie, come ordinare ogni portata e un'alternativa per ciascuna. Puoi chiedere altre combinazioni finché le opzioni compatibili non finiscono. Le foto del menù <b>scadono dopo tre ore</b>, il tempo di un pasto: un'altra volta in un altro locale non ti ritrovi le proposte di quello di prima.</td></tr>
+<tr><td colspan="2"><b>Tre livelli separati</b> — l'<b>impostazione di riferimento</b> è lo stile di fondo (mediterranea, onnivora, vegetariana, vegana, pescetariana, flexitariana); i <b>protocolli</b> sono gli schemi tecnici (basso FODMAP, digiuno intermittente, low carb, chetogenica, DASH, basso indice glicemico, ipocalorica bilanciata, antinfiammatoria, alta proteina, iposodica, più quelli che scrivi tu); le <b>intolleranze</b> sono le esclusioni. La <b>dieta di riferimento</b> si sceglie dal menù: selezionando <i>vegetariana</i> compaiono da sole le due precisazioni che contano (uova e pesce ammessi o no), perché le versioni cambiano da persona a persona. Prima erano mescolati in un unico menù e se ne poteva scegliere uno solo: ora possono convivere, e ogni protocollo porta con sé le sue regole operative che l'AI applica a ogni proposta.</td></tr>
+<tr><td colspan="2"><b>Allenamenti e tempi dell'obiettivo</b> — le calorie bruciate con gli allenamenti pianificati <b>non alzano le calorie da mangiare</b>: il target dei pasti resta fabbisogno meno deficit. Servono a stimare <b>in quanto tempo</b> arrivi all'obiettivo, e le usa la Stima risultati.</td></tr>
+<tr><td colspan="2"><b>Pasti fuori casa</b> — non più solo "mensa": segni i giorni in cui mangi fuori (mensa, trattoria, bar, menù fisso) e per ognuno se è <b>pranzo, cena o entrambi</b> — utile a chi lavora in viaggio. Il totale settimanale si conta da sé, e per quei pasti il piano descrive come comporre il piatto invece di inventarne uno.</td></tr>
+<tr><td colspan="2"><b>Varietà a tre livelli</b> — scegli tu se il piano deve girare su pochi ingredienti che tornano (spesa corta, poco da cucinare), stare in mezzo, o proporre piatti sempre diversi. L'AI costruisce la settimana di conseguenza.</td></tr>
+<tr><td colspan="2"><b>Il piano segue il tuo peso</b> — quando cali (o sali) di oltre 3 kg rispetto a quando il piano è nato, l'app te lo dice, mostra come è cambiato il fabbisogno e propone di ritarare le grammature. Mai in automatico: decidi tu.</td></tr>
+<tr><td colspan="2"><b>Mensa davvero generica</b> — per i pasti in mensa il piano non inventa un piatto preciso, ma descrive come comporre il vassoio (fonte proteica, contorno, porzione di carboidrati). Quei pasti non finiscono mai nella lista della spesa.</td></tr>
+<tr><td colspan="2"><b>Obiettivo di peso, un valore solo</b> — vive in un unico posto, visibile in <b>Io → Obiettivi</b> e usato ovunque (proteine, proiezione, grafici, stima). Lo cambi solo tu: se il campo resta vuoto l'app chiede conferma invece di cancellarlo, e quando l'AI propone una correzione puoi accettarla o riscriverla.</td></tr>
+<tr><td colspan="2"><b>Caratteristiche alimentari a spunte</b> — pasti che fai davvero (tutti gli slot, Dopo cena compreso), <b>mensa giorno per giorno</b> con scelta pranzo/cena, <b>intolleranze</b> a checkbox (lattosio, glutine, nichel, uova, frutta a guscio, pesce/crostacei, soia, basso FODMAP) più testo libero, <b>vegetariana con uova e pesce ammessi o esclusi</b>, vegana.</td></tr>
+<tr><td colspan="2"><b>Proteine tarate su di te</b> — g/kg automatici: sedentari 0,8–1,0 · attivi e mantenimento 1,2–1,6 (media 1,3) · massa 1,6–2,2, sempre sul peso di riferimento e modificabili nelle Regole.</td></tr>
+<tr><td colspan="2"><b>Controllo dell'obiettivo</b> — prima di costruire il piano l'app verifica che il peso desiderato sia sano per la tua altezza: se è troppo basso te lo dice, mostra l'intervallo corretto in kg (BMI 18,5–24,9) e ti lascia <b>riscrivere l'obiettivo sul momento</b>, con rianalisi immediata, senza uscire dalla schermata.</td></tr>
+<tr><td colspan="2"><b>Modelli AI sempre aggiornati</b> — in modalità «auto» l'app legge dal tuo account quali modelli Gemini esistono (a ogni apertura, o subito con «Cerca modelli nuovi» in Io) e usa il più recente disponibile: quando Google ne pubblica uno nuovo lo prende da solo, senza aggiornare l'app.</td></tr>
+<tr><td colspan="2"><b>Pesate modificabili</b> — con la matita correggi una pesata o <b>aggiungi i valori che ti mancavano</b> (grasso, muscolo, pressione, saturazione) anche giorni dopo; col cestino la elimini, sempre con conferma.</td></tr>
+<tr><td colspan="2"><b>Le tue note</b> (in Storico) — tutte le note del diario in un unico elenco. Vengono archiviate con la settimana, escono nel CSV (colonna «nota») e le legge l'AI quando cerca le correlazioni.</td></tr>
+<tr><td colspan="2"><b>Ritmo dichiarato = ritmo reale</b> — il deficit non può superare il 30% del fabbisogno per sicurezza. Se il ritmo che scegli richiede di più, l'app <b>te lo dice</b> e mostra il ritmo a cui lavorerà davvero, invece di ridurlo in silenzio.</td></tr>
+<tr><td colspan="2"><b>Generatore di piano AI</b> — sette giorni costruiti <b>uno alla volta</b>: ogni giorno conosce i piatti già usati (niente ripetizioni), rispetta mensa, intolleranze, stagione e target; solo cibo vero, integratori soltanto se indispensabili e da concordare con un nutrizionista.</td></tr>
+<tr><td colspan="2"><b>Importa il piano da foto</b> — fotografi il piano che hai già, o carichi le immagini dalla galleria (carta o PDF, anche più pagine in una volta): l'AI trascrive giorni, pasti e <b>alternative</b>, stima kcal e macro dalle grammature scritte e prepara la lista della spesa.</td></tr>
+<tr><td colspan="2"><b>Stima risultati</b> — media del piano vs fabbisogno + allenamenti = kg/settimana e data stimata dell'obiettivo; se l'obiettivo non torna, propone la <b>ritaratura automatica delle grammature</b> (i piatti restano gli stessi) con spesa e stima rigenerate.</td></tr>
+<tr><td colspan="2"><b>Alternative stagionali</b> — a pranzi e cene si aggiunge un'opzione di stagione etichettata ${ic("primavera",14)} Primaverile · ${ic("estate",14)} Estivo · ${ic("autunno",14)} Autunnale · ${ic("inverno",14)} Invernale, a parità di kcal e proteine; il piano base resta generico e rigenerando spariscono le stagioni vecchie.</td></tr>
+<tr><td colspan="2"><b>Diario di oggi</b> — anello col deficit in tempo reale, spunte ✓/✗ su pasti ed extra, acqua, sonno/relax/umore, eventi, nota del giorno, swipe fra i giorni.</td></tr>
+<tr><td colspan="2"><b>Foto del piatto</b> — l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro, e scrive la descrizione pesata: correggi i grammi con  e la stima si rifà usando esattamente i tuoi numeri. Al ristorante una portata alla volta; barcode multiplo senza consumare AI.</td></tr>
+<tr><td colspan="2"><b>Ribilancia le calorie residue</b> — riscrive solo i pasti non ancora spuntati per rientrare nel budget del giorno: prima le grammature, poi eventuali sostituzioni; proteine mai ridotte, minimo per pasto rispettato.</td></tr>
+<tr><td colspan="2"><b>Recupero sfori</b> — gli sbagli degli ultimi 5 giorni si spalmano nei giorni dopo con soglie e tetti di sicurezza: mai un giorno di digiuno.</td></tr>
+<tr><td colspan="2"><b>Aiuti sul singolo pasto</b> —  modifica con ristima,  alternativa a parità di macro,  sostituzione ingrediente (anche dalla foto di ciò che hai in casa),  crea un piatto dal frigo, selezionatore di menù al ristorante, ⭐ piatti salvati riusabili senza AI. I piatti salvati finiscono in <b>⭐ Piatti</b>: da lì li riusi per qualsiasi pasto o come extra, senza consumare AI, e l'AI li considera già graditi quando propone o ribilancia.</td></tr>
+<tr><td colspan="2"><b>Lista della spesa</b> — derivata dal <b>tuo</b> piano e <b>rigenerata da sola</b> quando il piano cambia, con AI o senza, categorie da supermercato, spunte persistenti, link al tuo negozio, invio WhatsApp.</td></tr>
+<tr><td colspan="2"><b>Sport</b> — 24 sport pronti (ciclismo, nuoto, padel, CrossFit…) e nuovi sport con stima MET via AI coerente con le regole dell'app; kcal calcolate sul tuo peso del momento.</td></tr>
+<tr><td colspan="2"><b>Regole trasparenti</b> — ogni numero che governa l'app è visibile e modificabile; la <b>verifica sui tuoi dati</b> ricava il fabbisogno reale dalle pesate; "Vedi cosa legge l'AI" mostra il contesto esatto di ogni richiesta.</td></tr>
+<tr><td colspan="2"><b>Storico</b> — recap, mesi e settimane passate sempre modificabili, pesate e biometriche con grafici, proiezione verso l'obiettivo, report AI, esportazione a 38 colonne (CSV/JSON) e analisi dei pattern.</td></tr>
+<tr><td colspan="2"><b>Protezioni</b> — istantanee automatiche prima di ogni operazione importante con ripristino, pulizia selettiva per intervallo di date (pesate, settimane, spesa, eventi e anche i <b>piatti salvati</b>, utile quando se ne accumulano troppi), backup su Drive con copie datate e backup locale.</td></tr>
+<tr><td colspan="2"><b>Aggiornamento automatico</b> — a ogni avvio l'app controlla se c'è una versione nuova e si aggiorna da sola, senza gesti manuali; i dati non vengono toccati.</td></tr>
+<tr><td colspan="2"><b>Compatibilità iOS</b> — dialoghi interni all'app al posto di quelli di sistema: conferme, salvataggi e cancellazioni funzionano anche come web-app sulla schermata Home.</td></tr>
+<tr><td colspan="2"><b>Privacy</b> — tutto vive sul tuo dispositivo: niente account, niente server, chiave AI e Drive solo tuoi; lo sviluppatore non vede nulla.</td></tr>
 </table></div></details></div>`;
 function renderNuvia(){
 /* La casa del marchio: chi è Nuvia, cosa promette, e la mappa completa
@@ -9801,61 +9826,61 @@ Da <b>Storico → Esporta i dati</b> scarichi qualsiasi periodo come tabella: un
 </div></details></div>
 
 <div class="card guida-sec"><details class="gdet"><summary><h2>Le pagine</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body"><table class="gtable">
-<tr><td></td><td><b>Oggi</b> — bilancio del giorno (anello con il <b>deficit</b> in grande e <b>Pianificato</b> = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.</td></tr>
-<tr><td></td><td><b>Piano</b> — tutta la settimana con i sei comandi:  gestisci · alternativa stagionale ·  ripeti questionario ·  genera nuovo piano ·  importa da foto ·  stima risultati; più opzioni, orari e alternative per ogni pasto.</td></tr>
-<tr><td></td><td><b>Spesa</b> — checklist che si costruisce e si aggiorna da sola dal piano, ricerca sul sito del tuo supermercato, alternative AI, invio WhatsApp.</td></tr>
-<tr><td></td><td><b>Sport</b> — registra allenamenti (le kcal si calcolano sul tuo peso); nuovi sport con stima MET.</td></tr>
-<tr><td></td><td><b>Storico</b> — recap settimanale, riepilogo esteso, mesi e settimane passate, <b>pesate e biometriche</b> in tabella (data, kg, Δ, %MG, %MM, pressione, SpO₂) con grafico dell'andamento, analisi ed esportazione, <b>Riepilogo esteso</b> (medie settimanali o mensili di tutta la storia, in un riquadro scorrevole), <b>Mesi passati</b> e <b>Settimane passate</b> sempre modificabili, grafici, report AI, stampa PDF.</td></tr>
-<tr><td></td><td><b>Codice piano</b> (in Regole → Il piano, o nell'ultimo passo del benvenuto): carica un piano già pronto. <b>00000000</b> è la dieta standard con cui è nata Nuvia — mediterranea, cinque pasti, mensa il martedì e il giovedì.</td></tr>
-<tr><td></td><td><b>Regole</b> — la configurazione del sistema: fabbisogno, formula degli allenamenti, soglie di ribilanciamento e recupero, obiettivo proteine, caratteristiche alimentari e gestione del piano.</td></tr>
-<tr><td></td><td><b>Io</b> — solo il tuo corpo e i tuoi obiettivi: <b>Anagrafica</b>, <b>Nuova pesata</b> (ogni salvataggio aggiunge una riga allo storico), <b>Obiettivi</b>, <b>Attività di base</b>, promemoria, vacanza e percorso guidato.</td></tr>
-<tr><td></td><td><b>Sistema</b> — tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.</td></tr>
-<tr><td></td><td><b>Percorso guidato</b> (in Piano) — lo stesso percorso di benvenuto, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. "Modifica il piano attuale" per ritocchi a mano. Sempre da validare con un nutrizionista.</td></tr></table></div></details></div>
+<tr><td colspan="2"><b>Oggi</b> — bilancio del giorno (anello con il <b>deficit</b> in grande e <b>Pianificato</b> = le kcal previste dal piano per quel giorno), acqua, sonno/relax/umore, pasti ed extra da spuntare. Le frecce ‹ › in alto cambiano giorno.</td></tr>
+<tr><td colspan="2"><b>Piano</b> — tutta la settimana con i sei comandi:  gestisci · alternativa stagionale ·  ripeti questionario ·  genera nuovo piano ·  importa da foto ·  stima risultati; più opzioni, orari e alternative per ogni pasto.</td></tr>
+<tr><td colspan="2"><b>Spesa</b> — checklist che si costruisce e si aggiorna da sola dal piano, ricerca sul sito del tuo supermercato, alternative AI, invio WhatsApp.</td></tr>
+<tr><td colspan="2"><b>Sport</b> — registra allenamenti (le kcal si calcolano sul tuo peso); nuovi sport con stima MET.</td></tr>
+<tr><td colspan="2"><b>Storico</b> — recap settimanale, riepilogo esteso, mesi e settimane passate, <b>pesate e biometriche</b> in tabella (data, kg, Δ, %MG, %MM, pressione, SpO₂) con grafico dell'andamento, analisi ed esportazione, <b>Riepilogo esteso</b> (medie settimanali o mensili di tutta la storia, in un riquadro scorrevole), <b>Mesi passati</b> e <b>Settimane passate</b> sempre modificabili, grafici, report AI, stampa PDF.</td></tr>
+<tr><td colspan="2"><b>Codice piano</b> (in Regole → Il piano, o nell'ultimo passo del benvenuto): carica un piano già pronto. <b>00000000</b> è la dieta standard con cui è nata Nuvia — mediterranea, cinque pasti, mensa il martedì e il giovedì.</td></tr>
+<tr><td colspan="2"><b>Regole</b> — la configurazione del sistema: fabbisogno, formula degli allenamenti, soglie di ribilanciamento e recupero, obiettivo proteine, caratteristiche alimentari e gestione del piano.</td></tr>
+<tr><td colspan="2"><b>Io</b> — solo il tuo corpo e i tuoi obiettivi: <b>Anagrafica</b>, <b>Nuova pesata</b> (ogni salvataggio aggiunge una riga allo storico), <b>Obiettivi</b>, <b>Attività di base</b>, promemoria, vacanza e percorso guidato.</td></tr>
+<tr><td colspan="2"><b>Sistema</b> — tutto il tecnico in un posto solo: livello di dettaglio dell'interfaccia, chiave AI (Gemini), Google Drive, backup locale, ripristino di emergenza, pulizia selettiva, dati d'uso anonimi e segnalazioni.</td></tr>
+<tr><td colspan="2"><b>Percorso guidato</b> (in Piano) — lo stesso percorso di benvenuto, con tutti i campi già compilati (dati, intolleranze, gusti, obiettivi) da cui l'AI genera una settimana su misura, modificabile prima della conferma. "Modifica il piano attuale" per ritocchi a mano. Sempre da validare con un nutrizionista.</td></tr></table></div></details></div>
 
 <div class="card guida-sec"><details class="gdet"><summary><h2>I simboli</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">Sui pasti</div><table class="gtable">
 <tr><td>○ ✓ ✗</td><td>Tocca il cerchio per ciclare: <b>da fare → mangiato → saltato</b>. Solo i ✓ contano nel bilancio; i ✗ restano segnati come saltati.</td></tr>
 <tr><td>→</td><td>I due menu spostano il pasto in un altro <b>giorno</b> e/o <b>fascia</b> (anche pranzo↔cena dello stesso giorno). Il badge rosso ricorda da dove viene.</td></tr>
-<tr><td></td><td><b>Modifica ingredienti</b> (la matita): cambi il testo e l'AI ristima kcal e macro. Funziona anche sui pasti già ribilanciati o modificati, e <b>premendo OK senza cambiare nulla</b> rifà comunque la stima.</td></tr>
-<tr><td></td><td><b>Alternativa</b> (il dado): l'AI inventa un piatto diverso con gli stessi macro; puoi renderla fissa o solo per questa settimana.</td></tr>
+<tr><td>${ic("pencil",18)}</td><td><b>Modifica ingredienti</b> (la matita): cambi il testo e l'AI ristima kcal e macro. Funziona anche sui pasti già ribilanciati o modificati, e <b>premendo OK senza cambiare nulla</b> rifà comunque la stima.</td></tr>
+<tr><td>${ic("dice",18)}</td><td><b>Alternativa</b> (il dado): l'AI inventa un piatto diverso con gli stessi macro; puoi renderla fissa o solo per questa settimana.</td></tr>
 <tr><td>⇄</td><td><b>Non ho un ingrediente</b>: si apre un pannello con 3 proposte <b>cliccabili</b> (tocca per selezionare, poi OK). " Altre proposte" ne genera di nuove; " Scatta foto del cibo che hai in casa" (anche più foto) e poi " Proponi dalla foto" ti fa suggerire il sostituto migliore tra ciò che possiedi.</td></tr>
 <tr><td>⭐</td><td><b>I miei piatti</b>: quando un piatto AI ti piace, salvalo con ⭐; lo ritrovi nel bottone "⭐ I miei piatti" (dentro Crea un piatto) e lo riusi con un tap, senza consumare AI.</td></tr>
-<tr><td></td><td><b>Allenamenti</b>: kcal = (MET dello sport × intensità − 1) × <b>peso corporeo</b> × ore. Il −1 toglie il metabolismo a riposo, già incluso nel fabbisogno: senza quella sottrazione ogni sessione risulterebbe più generosa del reale.</td></tr>
-<tr><td></td><td><b>Passi</b>: nel fabbisogno sono già inclusi i tuoi <b>passi base</b> (3.000 di riferimento, modificabili in Io). Nei giorni in cui cammini molto più del solito li scrivi in <b>Allenamento → Passi</b>: l'app <b>sottrae i 3.000 già conteggiati</b> e aggiunge al bilancio solo la differenza, così non si contano due volte. Le camminate vere e proprie si registrano come sport, con durata e intensità.</td></tr>
-<tr><td></td><td><b>Obiettivo peso</b> (in Io): imposta il traguardo e vedi la linea nel grafico + la data stimata di arrivo al ritmo attuale.</td></tr>
+<tr><td colspan="2"><b>Allenamenti</b>: kcal = (MET dello sport × intensità − 1) × <b>peso corporeo</b> × ore. Il −1 toglie il metabolismo a riposo, già incluso nel fabbisogno: senza quella sottrazione ogni sessione risulterebbe più generosa del reale.</td></tr>
+<tr><td colspan="2"><b>Passi</b>: nel fabbisogno sono già inclusi i tuoi <b>passi base</b> (3.000 di riferimento, modificabili in Io). Nei giorni in cui cammini molto più del solito li scrivi in <b>Allenamento → Passi</b>: l'app <b>sottrae i 3.000 già conteggiati</b> e aggiunge al bilancio solo la differenza, così non si contano due volte. Le camminate vere e proprie si registrano come sport, con durata e intensità.</td></tr>
+<tr><td colspan="2"><b>Obiettivo peso</b> (in Io): imposta il traguardo e vedi la linea nel grafico + la data stimata di arrivo al ritmo attuale.</td></tr>
 <tr><td>↩</td><td>Ripristina il pasto originale dopo ,  o .</td></tr>
-<tr><td></td><td><b>Analisi</b> (dentro ogni pasto): con <b></b> scatti sul momento, con <b></b> scegli una foto già nella galleria (comoda se l'hai scattata prima o se non hai rete) e l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro; la descrizione salvata contiene i pesi, così li correggi con  e la ristima usa esattamente i tuoi numeri. Al ristorante puoi fotografare <b>una portata alla volta</b> (primo, secondo, dolce): ti chiede se <b>aggiungere</b> al pasto o sostituirlo. La spunta ✓ resta sempre tua.</td></tr>
-<tr><td></td><td>Appare sui pasti spostati: riporta <b>entrambi</b> i pasti dello scambio al loro giorno di origine, anche quello che da qui non vedi (e anche se è già spuntato). Lo scambio infatti è <b>automatico e bidirezionale</b>.</td></tr>
-<tr><td></td><td><b>Il piano non si muove</b>: ribilanciamenti, foto e correzioni cambiano solo la giornata in Oggi. Il pianificato del giorno resta quello del piano, così il confronto "previsto vs mangiato" ha sempre senso.</td></tr>
-<tr><td></td><td><b>Ribilancia le calorie residue</b>: rimette in riga la giornata agendo <b>solo sui pasti non ancora spuntati</b>; se sei già in linea non tocca nulla. Quando taglia usa <b>valori reali</b>: prima abbassa le <b>grammature</b>, poi — solo se il piatto diventa poco saziante — sostituisce ingredienti con alternative più leggere e voluminose. Mai numeri ritoccati a piatto invariato (scartati in automatico), mai pasti eliminati.</td></tr>
+<tr><td colspan="2"><b>Analisi</b> (dentro ogni pasto): con <b></b> scatti sul momento, con <b></b> scegli una foto già nella galleria (comoda se l'hai scattata prima o se non hai rete) e l'AI stima <b>il peso in grammi di ogni elemento</b> oltre a kcal e macro; la descrizione salvata contiene i pesi, così li correggi con  e la ristima usa esattamente i tuoi numeri. Al ristorante puoi fotografare <b>una portata alla volta</b> (primo, secondo, dolce): ti chiede se <b>aggiungere</b> al pasto o sostituirlo. La spunta ✓ resta sempre tua.</td></tr>
+<tr><td colspan="2">Appare sui pasti spostati: riporta <b>entrambi</b> i pasti dello scambio al loro giorno di origine, anche quello che da qui non vedi (e anche se è già spuntato). Lo scambio infatti è <b>automatico e bidirezionale</b>.</td></tr>
+<tr><td colspan="2"><b>Il piano non si muove</b>: ribilanciamenti, foto e correzioni cambiano solo la giornata in Oggi. Il pianificato del giorno resta quello del piano, così il confronto "previsto vs mangiato" ha sempre senso.</td></tr>
+<tr><td colspan="2"><b>Ribilancia le calorie residue</b>: rimette in riga la giornata agendo <b>solo sui pasti non ancora spuntati</b>; se sei già in linea non tocca nulla. Quando taglia usa <b>valori reali</b>: prima abbassa le <b>grammature</b>, poi — solo se il piatto diventa poco saziante — sostituisce ingredienti con alternative più leggere e voluminose. Mai numeri ritoccati a piatto invariato (scartati in automatico), mai pasti eliminati.</td></tr>
 </table>
 <div class="gsec">Colori dei pasti</div><table class="gtable">
-<tr><td></td><td>Verde = pasto normale del piano.</td></tr>
-<tr><td></td><td>Arancione = pasto <b>libero</b> (sushi, pizza, aperitivo, cornetto): non obbligatorio, c'è sempre l'opzione normale.</td></tr>
-<tr><td></td><td>Blu = <b>mensa</b>, nei giorni e nel pasto che hai impostato tu: segui la regola scritta nella riga.</td></tr></table>
+<tr><td colspan="2">Verde = pasto normale del piano.</td></tr>
+<tr><td colspan="2">Arancione = pasto <b>libero</b> (sushi, pizza, aperitivo, cornetto): non obbligatorio, c'è sempre l'opzione normale.</td></tr>
+<tr><td colspan="2">Blu = <b>mensa</b>, nei giorni e nel pasto che hai impostato tu: segui la regola scritta nella riga.</td></tr></table>
 <div class="gsec">Altri</div><table class="gtable">
-<tr><td></td><td><b>Selezionatore di menù</b>: scatti <b>più foto</b> del menù (anche pagine diverse), poi premi <b>Cerca</b> e l'AI sceglie il piatto più compatibile con quello che dovresti mangiare adesso, più due riserve. In alternativa incolli il testo e usi "Usa il testo".</td></tr>
-<tr><td></td><td><b>Crea un piatto con quello che hai</b>: fotografi frigo, congelatore e dispensa (più foto), poi <b>Crea</b>; il piatto è tarato sul pasto di questo momento e compensa le calorie già accumulate. "⭐ I miei piatti" riusa i piatti salvati senza consumare AI.</td></tr>
-<tr><td></td><td><b>Esporta i dati</b> (in Storico): scegli il periodo e scarichi una riga per giorno con tutto — pianificato e mangiato, macro completi, zuccheri, sport, sonno, relax, umore, acqua, evento, periodo di dieta, ribilanciamenti, recuperi, pasti spuntati e saltati. CSV per Excel o Fogli Google, oppure <b>Analizza i pattern</b> per farlo leggere all'AI di Nuvia.</td></tr>
-<tr><td></td><td><b>Regole del sistema</b> (sezione Regole): tutti i numeri che governano l'app — formula del fabbisogno, calcolo degli allenamenti, minimo per pasto, soglie di recupero, obiettivo proteine — visibili e modificabili, più un campo di regole libere che viene allegato a ogni richiesta all'AI.</td></tr>
-<tr><td></td><td><b>Caratteristiche alimentari</b> (sezione Regole): impostazione di riferimento (mediterranea, low carb, digiuno intermittente, vegetariana…), pasti al giorno e quali salti, pasti liberi, pasti fuori casa e mensa, tempo per cucinare, budget, intolleranze, vincoli religiosi, condizioni da tenere presenti. Da qui l'AI può anche <b>generare un piano completo</b>.</td></tr>
+<tr><td colspan="2"><b>Selezionatore di menù</b>: scatti <b>più foto</b> del menù (anche pagine diverse), poi premi <b>Cerca</b> e l'AI sceglie il piatto più compatibile con quello che dovresti mangiare adesso, più due riserve. In alternativa incolli il testo e usi "Usa il testo".</td></tr>
+<tr><td colspan="2"><b>Crea un piatto con quello che hai</b>: fotografi frigo, congelatore e dispensa (più foto), poi <b>Crea</b>; il piatto è tarato sul pasto di questo momento e compensa le calorie già accumulate. "⭐ I miei piatti" riusa i piatti salvati senza consumare AI.</td></tr>
+<tr><td colspan="2"><b>Esporta i dati</b> (in Storico): scegli il periodo e scarichi una riga per giorno con tutto — pianificato e mangiato, macro completi, zuccheri, sport, sonno, relax, umore, acqua, evento, periodo di dieta, ribilanciamenti, recuperi, pasti spuntati e saltati. CSV per Excel o Fogli Google, oppure <b>Analizza i pattern</b> per farlo leggere all'AI di Nuvia.</td></tr>
+<tr><td colspan="2"><b>Regole del sistema</b> (sezione Regole): tutti i numeri che governano l'app — formula del fabbisogno, calcolo degli allenamenti, minimo per pasto, soglie di recupero, obiettivo proteine — visibili e modificabili, più un campo di regole libere che viene allegato a ogni richiesta all'AI.</td></tr>
+<tr><td colspan="2"><b>Caratteristiche alimentari</b> (sezione Regole): impostazione di riferimento (mediterranea, low carb, digiuno intermittente, vegetariana…), pasti al giorno e quali salti, pasti liberi, pasti fuori casa e mensa, tempo per cucinare, budget, intolleranze, vincoli religiosi, condizioni da tenere presenti. Da qui l'AI può anche <b>generare un piano completo</b>.</td></tr>
 <tr><td>${seasonEmoji()}</td><td><b>Opzioni stagionali</b>: tra le opzioni dei pasti principali, l'etichetta 🌸 Primaverile · ☀️ Estivo · 🍂 Autunnale · ❄️ Invernale indica l'alternativa di stagione creata con "${seasonEmoji()} Alternativa stagionale" nel Piano. Il piano base resta intatto; rigenerando, le stagioni vecchie vengono sostituite.</td></tr>
-<tr><td></td><td><b>Stima risultati</b> (nel Piano): bilancio del piano → kg a settimana e data stimata dell'obiettivo; se l'obiettivo non sembra raggiungibile, ti propone di <b>ritarare le grammature</b> automaticamente (con spesa e stima rigenerate) o di mantenere tutto com'è.</td></tr>
+<tr><td colspan="2"><b>Stima risultati</b> (nel Piano): bilancio del piano → kg a settimana e data stimata dell'obiettivo; se l'obiettivo non sembra raggiungibile, ti propone di <b>ritarare le grammature</b> automaticamente (con spesa e stima rigenerate) o di mantenere tutto com'è.</td></tr>
 <tr><td>Z</td><td><b>Zuccheri</b> (g): accanto a P/C/G/F. Arrivano dal barcode (Open Food Facts) o dall'AI; se mancano sono stimati dalla descrizione.</td></tr>
 <tr><td>＋</td><td><b>+ Extra</b>: crea una card <b>vuota</b> da compilare —  a mano,  con la foto o con il barcode. Gli extra si spuntano come i pasti (✓ mangiato / ✗ non mangiato) e, una volta spuntati, sbiadiscono e vengono barrati esattamente come gli altri. Il cestino elimina davvero, con conferma.</td></tr>
 <tr><td>RGP</td><td><b>Recupero</b> (riga Evento, solo su oggi): la tendina mostra le calorie <b>ancora da recuperare</b> degli ultimi 5 giorni — un giorno solo o "Tutti". Tre regole di sicurezza: gli sfori <b>sotto la soglia</b> (10% del giorno, minimo 150 kcal — regolabile in Io) non vengono nemmeno proposti; in un giorno si taglia al massimo il <b>25% del pianificato</b>; <b>nessun pasto scende sotto ~250 kcal</b>. Se lo sforo è grande, il resto resta in coda e lo recuperi nei giorni seguenti — mai un giorno di digiuno.</td></tr>
-<tr><td></td><td><b>Evento</b> del giorno (Natale, compleanno, festa, cena fuori, lavoro/trasferta, giornata no, malattia…): il giorno resta tracciato ma <b>escluso dalle medie</b> e non spezza la serie .</td></tr>
-<tr><td></td><td>Barcode (dentro ogni pasto): scansiona PIÙ prodotti, correggi i grammi e conferma la somma — da Open Food Facts, senza consumare AI.</td></tr>
-<tr><td></td><td><b>La serie, in parole semplici</b>: conta i giorni "buoni" di fila. Ogni mattina l'app guarda com'è andata IERI e si fa 3 domande: hai spuntato i pasti? sei rimasto dentro le calorie? gli extra erano al massimo 300 kcal? <b>Tre sì = fiamma +1. Anche un solo no = si riparte da 0.</b> Fa tutto da sola, non devi premere nulla; in  vacanza si mette in pausa.</td></tr>
-<tr><td></td><td>Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.</td></tr>
+<tr><td colspan="2"><b>Evento</b> del giorno (Natale, compleanno, festa, cena fuori, lavoro/trasferta, giornata no, malattia…): il giorno resta tracciato ma <b>escluso dalle medie</b> e non spezza la serie .</td></tr>
+<tr><td colspan="2">Barcode (dentro ogni pasto): scansiona PIÙ prodotti, correggi i grammi e conferma la somma — da Open Food Facts, senza consumare AI.</td></tr>
+<tr><td colspan="2"><b>La serie, in parole semplici</b>: conta i giorni "buoni" di fila. Ogni mattina l'app guarda com'è andata IERI e si fa 3 domande: hai spuntato i pasti? sei rimasto dentro le calorie? gli extra erano al massimo 300 kcal? <b>Tre sì = fiamma +1. Anche un solo no = si riparte da 0.</b> Fa tutto da sola, non devi premere nulla; in  vacanza si mette in pausa.</td></tr>
+<tr><td colspan="2">Acqua: l'obiettivo è l'acqua <b>da bere</b>, non il fabbisogno totale. Si parte da 35 ml per kg (32 se il BMI supera 25, 28 se supera 30: il tessuto adiposo contiene molta meno acqua del muscolo), poi si <b>sottrae il ~22% che arriva già dal cibo</b> — frutta, verdura, minestre, latte. Il risultato è in bicchieri da 200 ml, <b>+2</b> nei giorni con allenamento intenso o oltre 45 minuti. Puoi sempre scrivere il tuo valore in Io → Obiettivi.</td></tr>
 <tr><td>⭐</td><td>Sonno · Relax · Come ti senti: scala 1 basso → 5 alto. Alimentano le correlazioni AI di fine settimana.</td></tr>
-<tr><td></td><td>Vacanza (in Io): congela deficit e ; l'app resta un diario senza giudizio.</td></tr>
-<tr><td></td><td>Promemoria del mattino: "Ieri hai segnato tutti i Pasti, l'Acqua e lo Sport?" — appare se qualcosa manca e resta in alto finché non premi <b>Fatto</b> (o apri ieri e sistemi).</td></tr>
-<tr><td></td><td>Il bottone del tema cicla tra chiaro → scuro → <b>automatico</b> (segue le impostazioni del telefono).</td></tr>
-<tr><td></td><td>Sulla pagina Oggi puoi <b>scorrere col dito</b> (swipe sinistra/destra) per cambiare giorno, oltre alle frecce ‹ ›.</td></tr>
-<tr><td></td><td>Fine settimana: l'archiviazione è <b>automatica</b> con quello che c'è, senza bottoni da premere. Le settimane chiuse restano <b>sempre modificabili</b> da Storico → Settimane passate → .</td></tr>
-<tr><td></td><td><b>Link di ricerca della spesa</b> (in cima a Spesa): quasi tutti i supermercati online richiedono prima la scelta del negozio, quindi non c'è un link universale. Fai una ricerca sul sito del TUO negozio, copia l'indirizzo e incollalo sostituendo la parola cercata con <b>{q}</b>: da lì ogni link ↗ della lista cerca direttamente nel tuo supermercato.</td></tr>
-<tr><td></td><td><b>Prodotti in lista</b> (in Spesa): arrivano tutti dal piano, compresi gli ingredienti dei pasti che modifichi o aggiungi tu — la lista si riallinea da sola. Per una cosa fuori piano usa il ＋ accanto alla categoria.</td></tr>
+<tr><td colspan="2">Vacanza (in Io): congela deficit e ; l'app resta un diario senza giudizio.</td></tr>
+<tr><td colspan="2">Promemoria del mattino: "Ieri hai segnato tutti i Pasti, l'Acqua e lo Sport?" — appare se qualcosa manca e resta in alto finché non premi <b>Fatto</b> (o apri ieri e sistemi).</td></tr>
+<tr><td colspan="2">Il bottone del tema cicla tra chiaro → scuro → <b>automatico</b> (segue le impostazioni del telefono).</td></tr>
+<tr><td colspan="2">Sulla pagina Oggi puoi <b>scorrere col dito</b> (swipe sinistra/destra) per cambiare giorno, oltre alle frecce ‹ ›.</td></tr>
+<tr><td colspan="2">Fine settimana: l'archiviazione è <b>automatica</b> con quello che c'è, senza bottoni da premere. Le settimane chiuse restano <b>sempre modificabili</b> da Storico → Settimane passate → .</td></tr>
+<tr><td colspan="2"><b>Link di ricerca della spesa</b> (in cima a Spesa): quasi tutti i supermercati online richiedono prima la scelta del negozio, quindi non c'è un link universale. Fai una ricerca sul sito del TUO negozio, copia l'indirizzo e incollalo sostituendo la parola cercata con <b>{q}</b>: da lì ogni link ↗ della lista cerca direttamente nel tuo supermercato.</td></tr>
+<tr><td colspan="2"><b>Prodotti in lista</b> (in Spesa): arrivano tutti dal piano, compresi gli ingredienti dei pasti che modifichi o aggiungi tu — la lista si riallinea da sola. Per una cosa fuori piano usa il ＋ accanto alla categoria.</td></tr>
 </table></div></details></div>
 
 
@@ -10755,6 +10780,8 @@ function tipApply(p){
   const top=su?(r.top+window.scrollY-o.offsetHeight-10):(r.bottom+window.scrollY+10);
   const left=Math.max(10,Math.min(r.left+window.scrollX,window.innerWidth-o.offsetWidth-10));
   o.style.top=top+"px";o.style.left=left+"px";
+  const ax=Math.max(14,Math.min(o.offsetWidth-22,(r.left+r.width/2+window.scrollX)-left-7));
+  o.style.setProperty("--ax",ax+"px");
   o.onclick=()=>tipClose(tip.id);
   setTimeout(()=>{document.addEventListener("click",function h(e){
     if(e.target.closest&&e.target.closest("#tipOv"))return;

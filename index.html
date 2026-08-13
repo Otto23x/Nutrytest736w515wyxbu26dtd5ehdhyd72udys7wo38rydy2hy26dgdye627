@@ -573,6 +573,9 @@ html[data-theme="dark"] .water span.f{background:#0E2C29}
 .gtable{width:100%;font-size:13px}
 .gtable td{padding:6px 6px;vertical-align:top;border-bottom:1px solid var(--linea)}
 .gtable td:first-child{width:64px;text-align:center;font-size:17px}
+/* Riga senza simbolo (celle unite): torna testo normale allineato a sinistra,
+   altrimenti eredita larghezza 64px, centratura e corpo 17px della colonna icone. */
+.gtable td[colspan]{width:auto;text-align:left;font-size:inherit}
 .obwrap{max-width:620px;margin:0 auto}
 .obtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .obstep{font-size:12px;font-weight:700;color:var(--grigio);letter-spacing:.03em}
@@ -1040,7 +1043,7 @@ enrichFiber(BASE_PLAN);
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="11.68.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="11.69.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false
@@ -2187,8 +2190,21 @@ let DLGQ=Promise.resolve();
    i tag scritti a schermo. Si continua a NEUTRALIZZARE tutto — perché
    qui passano anche testi che vengono dall'AI — e poi si riabilitano
    solo <b>, <i> e <br>, che non possono fare danni. */
+/* Alcune risposte libere dell'AI arrivano in markdown (**grassetto**, «* voce»,
+   ### titoli): a schermo diventavano asterischi. Qui si convertono nel poco
+   HTML che il dialogo già consente, e il resto si ripulisce. */
+function mdPlain(t){
+  return String(t==null?"":t)
+    .replace(/```+/g,"")
+    .replace(/^\s{0,3}#{1,6}\s*/gm,"")
+    .replace(/\*\*\*(.+?)\*\*\*/g,"<b>$1</b>")
+    .replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")
+    .replace(/(^|[\s(])\*(?!\s)([^*\n]+?)\*(?=[\s).,;:!?]|$)/g,"$1<i>$2</i>")
+    .replace(/^\s*[-*•]\s+/gm,"• ")
+    .replace(/^\s*\d+\.\s+/gm,m=>m.trim()+" ")
+    .replace(/__(.+?)__/g,"<b>$1</b>");}
 function dlgHTML(m){
-  return esc(String(m==null?"":m))
+  return esc(mdPlain(m))
     .replace(/&lt;(\/?)(b|i|small|em|strong)&gt;/g,"<$1$2>")
     .replace(/&lt;br\s*\/?&gt;/g,"<br>");}
 function dlgShow(msg,opts){opts=opts||{};
@@ -5075,7 +5091,7 @@ function shopQ(t){ // pulizia testo per la ricerca sul sito del supermercato
     .replace(/\s+/g," ").trim();}
 window.subAI=async(txt)=>{
   if(!aiOn())return aiFail(new Error("nokey"));
-  try{const t=await aiAsk('Al supermercato è esaurito: "'+txt+'". Suggerisci 2-3 alternative acquistabili in un supermercato italiano, coerenti con le caratteristiche alimentari dichiarate. '+dietStr()+' Elenco brevissimo, testo semplice.');
+  try{const t=await aiAsk('Al supermercato è esaurito: "'+txt+'". Suggerisci 2-3 alternative acquistabili in un supermercato italiano, coerenti con le caratteristiche alimentari dichiarate. '+dietStr()+' Elenco brevissimo, testo semplice, niente markdown né asterischi.');
     dlgAlert("Alternative per: "+txt+"\n\n"+t);}catch(e){aiFail(e);}};
 /* La lista base SHOP appartiene alla dieta standard: finché l'utente non ha un
    piano, la spesa resta vuota e si popola solo dopo la sincronizzazione. */

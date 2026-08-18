@@ -1,0 +1,1101 @@
+/* ══════════════════════════════════════════════════════════════
+   NUTRY UI 2.0 — design system moderno
+   Glass cards, gradienti animati, micro-interazioni, reveal on
+   scroll, dock di navigazione flottante, zoom sui grafici.
+   Tutti i selettori originali sono preservati.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  /* Chiaro come impostazione: dà l'idea di leggerezza, che è il punto.
+     Superfici più fredde e meno sature del verde precedente, linee più
+     tenui, ombre quasi assenti: l'aria fa il lavoro che facevano i bordi. */
+  /* Brand Nuvia: teal come colore d'identità, corallo come energia,
+     menta per i fondi morbidi, grigio soft come tela. I testi usano un
+     teal molto scuro: il teal pieno (#00AFA3) resta per accenti e barre,
+     dove il contrasto non è un problema. */
+  --bosco:#0A4E49; --azione:#0C7C74; --salvia:#00AFA3; --menta:#E4F7F4; --crema:#F5F5F5; --card:#FFFFFF;
+  --ink:#0D2422; --grigio:#5C7773; --linea:#E3EAE8;
+  --zaff:#E4632F; --zafft:#BF4E1D; --zaffbg:#FFF0E9; --mensa:#5B7FE0; --mensabg:#EEF2FD;
+  --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
+  --grad:#0C7C74;
+  --gradz:#FF7F50;
+    --glass:rgba(255,255,255,.72);
+  --shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.22);
+  --shadow-lift:0 2px 4px rgba(14,60,30,.06),0 18px 44px -10px rgba(14,60,30,.18);
+  --hdr1:#083E39; --hdr2:#00AFA3; --hdr3:#0C7C74;
+  --r-lg:20px;   /* angolo delle card: sulla scala 4/8/12/16/20/24 */
+  --ease:cubic-bezier(.22,1,.36,1);
+  /* Scala tipografica: pochi passi, distanze nette. Prima i titoli erano
+     appena più grandi del testo e tutto sembrava della stessa importanza. */
+  --t-xl:clamp(24px,6.2vw,30px);
+  --t-lg:19px; --t-md:14.5px; --t-sm:13px; --t-xs:11.5px;
+}
+html[data-theme="dark"]{
+  /* --azione va RIDEFINITO qui, e per un motivo misurabile: nel tema
+     scuro il testo dei pulsanti diventa #04211E, e sul teal profondo
+     del tema chiaro (#0C7C74) il contrasto scendeva a 3,34:1 — sotto
+     la soglia AA di 4,5:1 per un testo di 14,5px. Il difetto non si
+     vedeva perché a occhio «sembra un bottone»: l'ha trovato il
+     validatore di contrasto scritto per il co-branding degli studi,
+     puntato prima di tutto sui nostri colori. Ora sono 8,2:1. */
+  --azione:#2FC9BC;
+  --bosco:#7FE0D6; --salvia:#2FC9BC; --menta:#0E2C29; --crema:#0A1211; --card:#11201E;
+  --ink:#E6F4F2; --grigio:#8FA8A3; --linea:#20332F;
+  --zaff:#FF9B72; --zafft:#FF9B72; --zaffbg:#2C1A10; --mensa:#7FA9F2; --mensabg:#131E31;
+  --rosso:#EF8B8B; --rossobg:#2F1717; --ok:#3ECF6E; --okbg:#0E2C29;
+  --glass:rgba(19,30,21,.72);
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px -6px rgba(0,0,0,.45);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 20px 48px -10px rgba(0,0,0,.6);
+  --hdr1:#083E39; --hdr2:#00AFA3; --hdr3:#0C7C74;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* ═══ SOLO SCORRIMENTO VERTICALE ═══════════════════════════════════
+   Niente barre laterali: tutto si adatta alla larghezza dello schermo.
+   Le tre regole sotto sono la rete di sicurezza — se un elemento futuro
+   dovesse sforare, si stringe invece di spingere fuori la pagina. */
+/* overflow-x:hidden su <html> crea un contenitore di scorrimento e ANNULLA
+   position:sticky dell'intestazione. Si usa clip, che taglia il traboccamento
+   senza creare il contenitore; hidden resta come ripiego sul solo body. */
+html{overflow-x:clip;max-width:100%}
+body{overflow-x:clip;max-width:100%}
+@supports not (overflow:clip){body{overflow-x:hidden}}
+img,canvas,table,pre,iframe,video{max-width:100%}
+input,select,textarea,button{max-width:100%}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--crema);color:var(--ink);font-size:14.5px;padding-bottom:96px;transition:background .3s,color .3s;position:relative;min-height:100vh}
+/* sfondo vivo: blob sfocati che fluttuano lentissimi */
+/* v5.1: nessun blob animato/sfocato in sfondo (batteria) */
+body::before,body::after{display:none!important}
+
+
+h1,h2,.dayname,.mtx .v,.stat3 .v{font-variant-numeric:tabular-nums}
+h1{font-size:var(--t-xl);letter-spacing:-.022em;line-height:1.08}
+.card{font-size:var(--t-md)}
+.ru,.mtx .l,.mtx .s{font-size:var(--t-xs)}
+h1,h2,.dayname{font-family:'Fraunces',Georgia,'Noto Serif',serif}
+::selection{background:var(--salvia);color:#fff}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--linea);border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--grigio)}
+/* ══ HEADER: aurora animata + shrink allo scroll ══ */
+header{background:rgba(243,246,243,.86);backdrop-filter:saturate(1.5) blur(14px);
+  color:var(--ink);padding:12px 16px 12px;position:sticky;top:0;z-index:50;
+  border-bottom:1px solid var(--linea);transition:background .3s,border-color .3s}
+
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
+.logo-badge{display:inline-flex;align-items:center;gap:8px;color:var(--bosco);font-weight:800;font-size:19px;letter-spacing:-.03em;line-height:1.15;transition:transform .25s var(--ease)}
+.logo-badge:hover{transform:rotate(-2deg) scale(1.05)}
+.nvlogo{flex:0 0 auto}
+/* ── Pagina Nuvia (brand) ── */
+.nvhero{text-align:center;padding:24px 16px 20px;background:var(--card);border-radius:var(--r-lg)}
+.nvhero h1{margin:12px 0 4px;font-size:30px;color:var(--bosco);letter-spacing:-.02em}
+.nvtag{font-family:'Fraunces',Georgia,serif;font-size:18.5px;color:var(--bosco);font-style:italic}
+.nvprom{border-left:4px solid var(--gradz);background:var(--zaffbg);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;color:var(--ink)}
+.nvval{border-left:4px solid var(--salvia);background:var(--menta);border-radius:12px;padding:12px 16px;margin:12px 0}
+.nvval b{display:block;color:var(--bosco);margin-bottom:4px}
+.nvval p{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink)}
+.hint2p{font-size:14.5px;line-height:1.6;color:var(--ink);margin:8px 0}
+.hbtns{display:flex;gap:8px;align-items:center}
+.hbtn{border:1px solid var(--linea);background:var(--card);color:var(--grigio);border-radius:12px;padding:8px 12px;font-size:16px;line-height:1.2;cursor:pointer;transition:background .2s,transform .15s var(--ease)}
+.hbtn:hover{background:var(--menta);color:var(--bosco);transform:translateY(-1px)}
+.hbtn:active{transform:scale(.92)}
+
+/* ══ Scorrimento date ══ */
+.datebar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0;flex:1;min-width:0}
+.datebar button{border:1px solid var(--linea);background:var(--card);color:var(--grigio);border-radius:50%;width:30px;height:30px;flex:none;font-size:14.5px;cursor:pointer;transition:transform .18s var(--ease),background .2s}
+.datebar button:hover{background:var(--menta);color:var(--bosco);transform:scale(1.1)}
+.datebar button:active{transform:scale(.88)}
+.datebar .dnav{border:0;background:none;color:var(--grigio);font-size:22px;line-height:1;
+  padding:4px 8px;cursor:pointer;opacity:.55;transition:opacity .2s,transform .15s var(--ease)}
+.dnav:active{opacity:1;transform:scale(.88)}
+.dt{font-size:14.5px;font-weight:700;color:var(--ink);letter-spacing:-.015em;text-transform:capitalize;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;cursor:pointer;transition:opacity .2s}
+.datebar .dt:hover{opacity:.85}
+.datebar .dt small{display:block;font-size:11.5px;opacity:.8}
+/* ══ PAGINE: transizione slide+fade ══ */
+.page{display:none;padding:16px 16px 12px;max-width:640px;margin:0 auto}
+.page.active{display:block}
+
+/* ══ NAV: dock flottante in vetro ══ */
+/* ══ AVANZAMENTO DEL PERCORSO ══ */
+.obprog{margin-bottom:16px}
+.obpbar{height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
+.obpbar i{display:block;height:100%;border-radius:99px;background:var(--bosco);transition:width .45s var(--ease)}
+.obpl{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grigio)}
+/* ══ AVANZAMENTO DELLA GENERAZIONE ══
+   Un riquadro fisso in fondo, per quando la pagina Piano non c'è —
+   tipicamente alla fine dell'onboarding, che è proprio la prima volta
+   in cui l'utente aspetta e non sa se sta succedendo qualcosa. */
+.genfloat{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));
+  z-index:95;background:var(--card);border-radius:var(--r-lg);padding:16px 16px;
+  box-shadow:0 1px 2px rgba(12,31,23,.06),0 18px 40px -20px rgba(12,31,23,.4);
+  font-size:13px;line-height:1.5;max-height:46vh;overflow:auto;
+  opacity:0;transform:translateY(14px);transition:opacity .25s,transform .25s var(--ease)}
+.genfloat.on{opacity:1;transform:none}
+/* ══ ACQUA NEL PUNTO ══
+   Bicchieri da toccare, non un promemoria scritto: se bere costa un
+   tocco lo si fa, se costa aprire un'altra pagina non lo fa nessuno. */
+.acqriga{margin:16px 0 4px}
+.ah{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-sm);color:var(--grigio)}
+.ah b{color:var(--ink);font-variant-numeric:tabular-nums}
+.agl{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 8px}
+.ag::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+/* I bicchieri sono volutamente sottili, ma il dito non è sottile: la
+   pastiglia visibile resta 26px e l'area toccabile la circonda fino a 44. */
+.ag{flex:1 1 0;min-width:16px;height:26px;border-radius:8px;border:1.5px solid var(--linea);position:relative;
+  background:var(--card);cursor:pointer;padding:0;transition:background .2s,border-color .2s,transform .15s var(--ease)}
+.ag.on{background:#00AFA3;border-color:#0C7C74;
+  box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
+.ag:active{transform:scale(.9)}
+.af{font-size:var(--t-xs);color:var(--grigio)}
+/* ══ AVANZAMENTO DELLA GENERAZIONE ══ */
+.gday{font-size:13px;padding:8px 0;color:var(--grigio);font-variant-numeric:tabular-nums}
+.gday.ok{color:var(--bosco);font-weight:600}
+.gday.now{color:var(--ink);font-weight:600}
+/* ══ SCHEDE CON BARRETTA DI RICHIAMO ══
+   Prima il bordo colorato era scritto a mano in otto punti, con spessori
+   diversi (3px o 4px) e colori scelti caso per caso. Una classe sola,
+   con la variante per il colore. */
+.card.nota{border-left:3px solid var(--zaff)}
+.card.nota.buona{border-left-color:var(--salvia)}
+.card.nota.info{border-left-color:var(--mensa)}
+.card.nota.grave{border-left-color:var(--rosso)}
+.card.nota.riga{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+/* Rientro dentro una scheda, per un dettaglio subordinato */
+.rientro{border-left:3px solid var(--zaff);padding-left:12px;margin-top:8px}
+/* ══ INVITI ══
+   Erano strisce con il bordo colorato a sinistra e i pulsanti in fila
+   sulla stessa riga del testo: si stringevano e andavano a capo male.
+   Ora hanno la forma delle altre schede, con l'etichetta in alto. */
+.card.invito{border-left:3px solid var(--zaff)}
+.card.invito .ik{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--zafft)}
+.card.invito .it{font-size:14.5px;line-height:1.45;color:var(--ink);margin-top:8px}
+/* ══ LA GIORNATA ══
+   Stessa forma degli stati del corpo: nome, effetto sotto, comando a
+   destra. Prima erano tre strisce con il bordo, l'unico elemento
+   dell'app che lo aveva ancora. */
+.glist{display:flex;flex-direction:column;gap:4px;margin-top:12px;margin-bottom:-6px}
+.mname.tap,.mdesc.tap{cursor:pointer;-webkit-tap-highlight-color:rgba(11,61,44,.08)}
+.mname.tap:active,.mdesc.tap:active{opacity:.6}
+.grow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--linea);flex-wrap:wrap}
+.grow:last-child{border-bottom:0;padding-bottom:0}
+.gl{flex:1 1 150px;min-width:0}
+.gl b{display:block;font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
+.gl small{display:block;font-size:14.5px;color:var(--grigio);margin-top:4px;line-height:1.4}
+.grow.on .gl b{color:var(--bosco)}
+/* Riga già compilata: niente sottotitolo, meno spazio. La scheda si
+   accorcia man mano che la giornata si riempie, invece di restare una
+   lista di cose da fare lunga uguale. */
+.grow.fatta{padding:12px 4px}
+.grow.fatta .gl b{font-size:13px}
+.gc{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
+.gc select{width:auto;min-width:0;max-width:170px;font-size:13px;padding:8px 12px;margin:0}
+.gc .btn{margin:0}
+/* Una scritta, non un pulsante: apre una scelta e non ruba peso visivo
+   alla riga, che è informazione prima che comando. */
+.glink{border:0;background:none;font-family:inherit;font-size:13px;font-weight:700;
+  color:var(--bosco);cursor:pointer;padding:8px 4px;white-space:nowrap;text-align:right}
+.glink:active{opacity:.55}
+/* ══ STATI DEL CORPO ══
+   Prima erano caselle strette in griglia con etichette abbreviate, del
+   tipo «All. escl.», e non si capiva cosa facessero. Ora una riga per
+   stato, nome intero e sotto in grigio l'effetto reale sui numeri. */
+.statolist{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
+/* ATTENZIONE: queste righe sono <label> e da label{} ereditavano
+   maiuscoletto, grigio e spaziatura delle lettere: è per questo che
+   sembravano un elemento estraneo al resto della pagina. */
+.stato,.ck{text-transform:none;letter-spacing:normal;font-weight:400;color:var(--ink);margin:0}
+.stato .sl b,.stato .sl small{text-transform:none;letter-spacing:normal;font-size:14.5px}
+.stato{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:12px;
+  background:var(--crema);cursor:pointer;transition:background .2s,box-shadow .2s}
+.stato input{margin:4px 0 0;flex:0 0 auto}
+.stato .sl{flex:1;min-width:0;display:block}
+.stato .sl b{display:block;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.3}
+.stato .sl small{display:block;font-size:14.5px;color:var(--grigio);margin-top:4px;line-height:1.45;font-weight:400}
+.stato.on{background:var(--menta);box-shadow:inset 3px 0 0 var(--bosco)}
+.stato.on .sl b{color:var(--bosco)}
+.stato.off{opacity:.5;cursor:default}
+/* ══ COSA VEDI A OGNI LIVELLO ══ */
+.denslist{margin-top:8px}
+.dline{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea);font-size:14.5px;color:var(--grigio)}
+.dline:last-child{border-bottom:0}
+.dline::before{content:"○";color:var(--linea);font-size:13px}
+.dline.on{color:var(--ink)}
+.dline.on::before{content:"●";color:var(--salvia)}
+.dtag2{margin-left:auto;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--zafft);background:var(--zaffbg);padding:4px 8px;border-radius:99px;white-space:nowrap}
+/* ══ VOTO ALLA SPESA ══ */
+.svoto{display:flex;align-items:center;gap:16px;margin-top:16px}
+.sfaccia{font-size:40px;line-height:1;flex:0 0 auto}
+.sdett{flex:1;min-width:0}
+.stit{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:700;letter-spacing:-.015em;color:var(--ink)}
+.sbar{height:8px;border-radius:99px;background:var(--linea);overflow:hidden;margin:8px 0 8px}
+.sbar i{display:block;height:100%;border-radius:99px;transition:width .5s var(--ease)}
+.snum{font-size:11.5px;color:var(--grigio);font-variant-numeric:tabular-nums}
+.pantry{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pchip{display:inline-flex;align-items:center;gap:8px;background:var(--crema);border-radius:99px;
+  padding:8px 8px 8px 12px;font-size:13px;color:var(--ink);max-width:100%}
+.pchip b{font-weight:700;color:var(--grigio);font-variant-numeric:tabular-nums}
+.pchip button{border:0;background:none;color:var(--grigio);font-size:16px;line-height:1;cursor:pointer;padding:0 4px}
+/* ══ RECAP DELLA SETTIMANA ══
+   Sette colonne di sigle erano illeggibili su un telefono: una riga per
+   giorno, con una barra che si capisce senza legenda. */
+.wlist{margin-top:16px}
+.wrow{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--linea)}
+.wrow:last-child{border-bottom:0}
+.wrow.vuota{opacity:.5}
+.wd{flex:0 0 44px;font-size:13px;font-weight:700;color:var(--ink);text-transform:capitalize;padding-top:4px}
+.wpend{display:block;font-size:11.5px;font-weight:600;color:var(--zafft);text-transform:none;margin-top:4px}
+.wmain{flex:1;min-width:0}
+.wtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.wk{font-size:13px;color:var(--grigio);font-variant-numeric:tabular-nums}
+.wdef{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.wdef.ok{color:var(--salvia)}
+.wdef.no{color:var(--rosso)}
+.wbar{height:7px;border-radius:99px;background:var(--linea);overflow:hidden;margin-top:8px}
+.wbar i{display:block;height:100%;border-radius:99px;transition:width .4s var(--ease)}
+.wnote{font-size:11.5px;color:var(--grigio);margin-top:8px;line-height:1.4}
+.wq{flex:0 0 auto;padding-top:4px}
+/* ══ SCHEDE GRAFICO ══
+   Una scheda per grafico, titolo sopra, niente altro dentro: prima erano
+   tre grafici impilati nella stessa card, senza respiro fra loro. */
+.card.chart{padding:16px 16px 16px}
+.cht{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--grigio);margin-bottom:12px}
+.card.chart canvas{display:block;width:100%!important}
+/* ══ LINEE GUIDA OMS: i numeri in evidenza ══ */
+.omsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:16px 0 4px}
+.omscard{background:var(--crema);border-radius:16px;padding:12px 12px;min-width:0}
+.omsv{font-size:17px;font-weight:700;color:var(--bosco);letter-spacing:-.02em;line-height:1.15}
+.omst{font-size:13px;font-weight:600;color:var(--ink);margin-top:4px}
+.omsd{font-size:11.5px;color:var(--grigio);margin-top:4px;line-height:1.35}
+/* ══ IL PUNTO ══ */
+.psaluto{padding:4px 4px 16px;border-bottom:1px solid var(--linea);margin-bottom:16px}
+.psaluto.tap{cursor:pointer}
+.psaluto.tap:active .ph{opacity:.6}
+.pgo{color:var(--grigio);font-weight:400}
+.psaluto .ph{font-family:'Fraunces',Georgia,serif;font-size:clamp(22px,6vw,27px);font-weight:700;letter-spacing:-.022em;color:var(--ink)}
+.psaluto .pd{font-size:var(--t-sm);color:var(--grigio);margin-top:8px;line-height:1.5}
+/* ══ OGGI: LA RISPOSTA ══════════════════════════════════════════
+   Il blocco che apre la giornata. Nessun bordo, nessuna card: il testo
+   sta sulla pagina e respira. È l'unica cosa che deve saltare all'occhio. */
+.today{padding:8px 4px 4px;margin-bottom:8px}
+.tanswer{
+  font-family:'Fraunces',Georgia,'Noto Serif',serif;
+  font-size:clamp(23px,6.6vw,29px);font-weight:700;line-height:1.16;
+  letter-spacing:-.022em;color:var(--ink);font-variant-numeric:tabular-nums;
+}
+.tanswer .hi{color:var(--bosco)}
+.tanswer .warn{color:var(--zafft)}
+.tanswer b{font-weight:700}
+.tsub{font-size:var(--t-sm);color:var(--grigio);margin-top:8px}
+.tmeter{margin:16px 0 4px}
+.trow{display:flex;justify-content:space-between;font-size:var(--t-xs);color:var(--grigio);margin-bottom:8px}
+.trow b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
+.ttrack{height:9px;border-radius:99px;background:var(--linea);overflow:hidden}
+.ttrack i{display:block;height:100%;border-radius:99px;transition:width .5s var(--ease)}
+.tnext{
+  background:var(--card);border:1px solid var(--linea);border-radius:var(--r-lg);
+  padding:16px 16px;margin-top:16px;
+}
+.tnext .k{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--zafft)}
+.tnext .t{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:700;margin:4px 0 4px;letter-spacing:-.015em;line-height:1.25}
+.tnext .m{font-size:var(--t-xs);color:var(--grigio);font-variant-numeric:tabular-nums}
+.tcta{display:flex;gap:8px;margin-top:12px}
+.tcta .btn{flex:1;margin:0;text-align:center}
+
+/* ══ ASSISTENTE ══ */
+.fab{
+  position:fixed;right:16px;bottom:82px;z-index:70;width:56px;height:56px;border-radius:50%;
+  border:0;background:var(--azione);color:#fff;cursor:pointer;display:grid;place-items:center;
+  box-shadow:0 10px 26px -8px rgba(11,61,44,.65);transition:transform .2s var(--ease);
+}
+.fab:active{transform:scale(.94)}
+.fab svg{position:relative;z-index:1}
+.fabpulse{
+  position:absolute;inset:0;border-radius:50%;border:2px solid var(--bosco);opacity:0;
+}
+@media (prefers-reduced-motion:no-preference){
+/* ── S-D · IL MOVIMENTO DELL'INTERFACCIA ─────────────────────────
+   Tre regole, e la terza è quella che tiene i 60fps:
+   1. UNA COSA SOLA SI MUOVE PER VOLTA. Se si muove tutto insieme
+      l'occhio non sa dove guardare e sembra lento anche se è veloce.
+   2. NIENTE OLTRE 280ms. Sopra, l'animazione smette di essere
+      risposta e diventa attesa.
+   3. SOLO transform e opacity. Animare altezze o margini fa
+      ricalcolare il layout a ogni fotogramma: è il motivo per cui
+      un'app "curata" scatta sui telefoni di tre anni fa.        */
+.page.active{animation:pgEntra .22s var(--ease) both}
+@keyframes pgEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Lo scheletro: al posto della rotella si mostra la FORMA di quello
+   che sta arrivando. La rotella dice «aspetta»; lo scheletro dice
+   «ecco cosa stai aspettando», e l'attesa percepita si dimezza. */
+.skel{background:linear-gradient(100deg,var(--linea) 20%,var(--card) 40%,var(--linea) 60%);
+  background-size:220% 100%;border-radius:8px;animation:skelOnda 1.3s linear infinite}
+.skel-r{height:16px;margin:8px 0}
+.skel-r.corta{width:46%} .skel-r.media{width:72%}
+.skel-card{border:1px solid var(--linea);border-radius:12px;padding:16px;margin:8px 0;background:var(--card)}
+@keyframes skelOnda{from{background-position:120% 0}to{background-position:-120% 0}}
+
+/* La spunta del pasto: un micro-rimbalzo, non un rimbalzo. È il gesto
+   più ripetuto dell'app — se è vistoso, alla decima volta irrita. */
+.pulsa{animation:pulsaOk .28s var(--ease)}
+@keyframes pulsaOk{0%{transform:scale(1)}38%{transform:scale(1.11)}100%{transform:scale(1)}}
+
+/* Il foglio che sale: la maniglia si trascina davvero, e mentre lo si
+   trascina NON c'è transizione (seguirebbe il dito in ritardo). */
+.sheet-drag{transition:none!important}
+.sheet-chiudi{animation:sheetGiu .2s var(--ease) both}
+@keyframes sheetGiu{to{transform:translateY(100%)}}
+
+/* ── figure esercizi animate ─────────────────────────────────────
+   La figura respira il gesto, la freccia lo indica pulsando.
+   Solo transform/opacity; chi chiede reduced-motion vede le pose
+   ferme (questo blocco vive dentro no-preference). */
+.esfig-corpo,.esfig-gesto{transform-box:fill-box;transform-origin:center}
+.mo-su{animation:esSu 1.6s ease-in-out infinite}
+.mo-giu{animation:esGiu 1.6s ease-in-out infinite}
+.mo-lato{animation:esLato 1.7s ease-in-out infinite}
+.mo-ruota{animation:esRuota 2s ease-in-out infinite}
+.mo-tieni{animation:esTieni 2.4s ease-in-out infinite}
+.mo-passo{animation:esPasso .9s ease-in-out infinite}
+.mo-passo2{animation:esPasso .55s ease-in-out infinite}
+.mo-pedala{animation:esPedala 1.1s linear infinite}
+.mo-a-su{animation:esFrecciaSu 1.6s ease-in-out infinite}
+.mo-a-giu{animation:esFrecciaGiu 1.6s ease-in-out infinite}
+.mo-a-lato{animation:esFrecciaLato 1.7s ease-in-out infinite}
+.mo-a-ruota{animation:esFrecciaRuota 2s ease-in-out infinite}
+.mo-a-tieni{animation:esFrecciaTieni 2.4s ease-in-out infinite}
+.mo-a-passo,.mo-a-passo2,.mo-a-pedala{animation:esFrecciaTieni 1.2s ease-in-out infinite}
+@keyframes esSu{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes esGiu{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes esLato{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@keyframes esRuota{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes esTieni{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes esPasso{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-2px) rotate(1.5deg)}}
+@keyframes esPedala{0%,100%{transform:translateY(0)}25%{transform:translateY(-1.5px)}75%{transform:translateY(1.5px)}}
+@keyframes esFrecciaSu{0%,100%{transform:translateY(2px);opacity:.55}50%{transform:translateY(-3px);opacity:1}}
+@keyframes esFrecciaGiu{0%,100%{transform:translateY(-2px);opacity:.55}50%{transform:translateY(3px);opacity:1}}
+@keyframes esFrecciaLato{0%,100%{transform:translateX(-2px);opacity:.55}50%{transform:translateX(4px);opacity:1}}
+@keyframes esFrecciaRuota{0%,100%{transform:rotate(-6deg);opacity:.6}50%{transform:rotate(6deg);opacity:1}}
+@keyframes esFrecciaTieni{0%,100%{opacity:.5}50%{opacity:1}}
+
+  .fabpulse{animation:fabp 3.4s var(--ease) infinite}
+  @keyframes fabp{
+    0%{transform:scale(1);opacity:.55}
+    60%{transform:scale(1.55);opacity:0}
+    100%{opacity:0}
+  }
+}
+body.onb .fab{display:none}
+.asksheet{max-height:86vh;display:flex;flex-direction:column}
+.askhd{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;letter-spacing:-.015em;margin:4px 4px 12px}
+.askbody{flex:1;overflow:auto;min-height:140px;max-height:46vh;padding-right:4px}
+/* Appena si scrive, la conversazione diventa la cosa principale: il
+   pannello sale a tutta altezza e l'elenco guidato si ritira in fondo,
+   richiudibile. Prima la chat restava schiacciata sotto il menu. */
+.asksheet.conversa{height:88vh;max-height:88vh}
+.asksheet.conversa .askbody{max-height:none;min-height:0}
+.askmenu-tog{display:block;width:100%;text-align:left;background:var(--crema);border:1px solid var(--linea);
+  border-radius:12px;padding:12px 16px;font-size:14.5px;font-weight:700;color:var(--teal2);cursor:pointer;margin-top:12px}
+.askmenu-tog[aria-expanded="true"]{background:var(--menta);border-color:var(--salvia)}
+.askmsg{
+  background:var(--crema);border-radius:16px 16px 16px 8px;padding:12px 16px;
+  font-size:14.5px;line-height:1.5;margin-bottom:8px;
+}
+.askmsg.me{background:var(--bosco);color:#fff;border-radius:16px 16px 8px 16px;margin-left:44px}
+.askwait{color:var(--grigio)}
+.askchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.askchip{
+  font-family:inherit;font-size:13px;font-weight:600;background:var(--card);
+  border:1px solid var(--linea);border-radius:99px;padding:8px 12px;color:var(--ink);cursor:pointer;
+}
+.askchip:active{background:var(--menta)}
+.askbar{display:flex;gap:8px;align-items:center;margin-top:12px}
+.askbar input{flex:1;margin:0}
+.askgo{
+  flex:0 0 auto;width:42px;height:42px;border-radius:12px;border:0;background:var(--zaff);
+  color:var(--ink);display:grid;place-items:center;cursor:pointer;
+}
+/* Il microfono dell'assistente: si può parlare da qualunque pagina. Acceso
+   diventa corallo e pulsa, così si vede che sta ascoltando. */
+.askmic{flex:0 0 auto;width:42px;height:42px;border-radius:12px;border:1px solid var(--linea);
+  background:var(--card);color:var(--teal2);display:grid;place-items:center;cursor:pointer;
+  transition:background .2s,color .2s,border-color .2s}
+.askmic.on{background:var(--zaff);border-color:var(--zaff);color:#fff;animation:micpulsa 1.4s infinite}
+@keyframes micpulsa{0%,100%{box-shadow:0 0 0 0 rgba(228,99,47,.45)}50%{box-shadow:0 0 0 7px rgba(228,99,47,0)}}
+/* ══ PANNELLO «ALTRE SEZIONI» ══ */
+.sheet{position:fixed;inset:0;z-index:120}
+.sheet[hidden]{display:none}
+.sheetbg{position:absolute;inset:0;background:rgba(12,31,23,.34);opacity:0;transition:opacity .22s var(--ease)}
+.sheet.on .sheetbg{opacity:1}
+.sheetbox{
+  position:absolute;left:0;right:0;bottom:0;background:var(--card);
+  border-radius:24px 24px 0 0;padding:12px 16px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(102%);transition:transform .26s var(--ease);
+  box-shadow:0 -10px 40px -12px rgba(12,31,23,.35);max-height:82vh;overflow:auto;
+}
+.sheet.on .sheetbox{transform:none}
+.sheetgrab{width:38px;height:4px;border-radius:99px;background:var(--linea);margin:4px auto 12px}
+.sheethd{font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grigio);margin:4px 4px 8px}
+.sheetrow{
+  width:100%;display:flex;align-items:center;gap:12px;padding:16px 8px;border:0;background:none;
+  border-bottom:1px solid var(--linea);font-family:inherit;font-size:14.5px;color:var(--ink);
+  cursor:pointer;text-align:left;
+}
+.sheetrow:last-child{border-bottom:0}
+.sheetrow span{flex:1}
+.sheetrow em{font-style:normal;color:var(--grigio);font-size:19px;line-height:1}
+.sheetrow:active{background:var(--menta)}
+.hbtn.on{background:var(--menta);color:var(--bosco)}
+/* ── Guida ad accordion: sei sezioni chiuse, si apre quella che serve ── */
+.gdet>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;-webkit-tap-highlight-color:transparent}
+.gdet>summary::-webkit-details-marker{display:none}
+.gdet>summary h2{margin:0;flex:1}
+.gdet-arrow{color:var(--grigio);font-size:14.5px;transition:transform .2s var(--ease)}
+.gdet[open] .gdet-arrow{transform:rotate(180deg)}
+.gdet-body{margin-top:12px}
+.sheetbody{padding:4px 4px 4px}
+.sheetbody .btn{width:100%}
+.pstars{display:flex;gap:8px;margin-top:8px}
+.pstars button{flex:1;min-height:46px;border-radius:12px;border:1px solid var(--linea);background:var(--card);font-size:21px;color:var(--linea);cursor:pointer;transition:color .15s,border-color .15s,transform .12s var(--ease)}
+.pstars button.on{color:var(--zafft);border-color:var(--zafft)}
+.pstars button:active{transform:scale(.92)}
+.tabs{position:fixed;bottom:10px;left:6px;right:6px;background:var(--card);border:1px solid var(--linea);display:flex;z-index:60;padding:8px;border-radius:20px;box-shadow:var(--shadow-lift);margin-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;min-width:0;border:0;background:none;padding:8px 4px 8px;font-size:11.5px;letter-spacing:-.01em;white-space:nowrap;color:var(--grigio);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;border-radius:16px;transition:background .25s,color .25s,transform .2s var(--ease);position:relative}
+.tabs button svg.ico{display:block;transition:transform .3s var(--ease)}
+.tabs button span{font-size:11.5px;letter-spacing:-.01em}
+.tabs button.on svg.ico{transform:translateY(-1px)}
+/* Selezione più leggera: il pieno verde su otto voci pesava troppo */
+.tabs button.on{color:var(--bosco);font-weight:700;background:var(--menta);box-shadow:none}
+.tabs button:hover svg.ico{transform:translateY(-2px)}
+.tabs button:active{transform:scale(.93)}
+
+/* ══ CARD: vetro + lift al hover ══ */
+.card{background:var(--card);border:0;border-radius:var(--r-lg);padding:20px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 24px -18px rgba(12,31,23,.22);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+
+.card h2{font-size:var(--t-lg);color:var(--ink);margin-bottom:8px;letter-spacing:-.018em;line-height:1.2;display:flex;align-items:center;gap:8px}
+.dayname{font-size:23px;color:var(--bosco);margin:24px 0 4px;display:flex;align-items:center;gap:8px}
+.dayctx{font-size:13px;color:var(--grigio);font-style:italic;margin-bottom:12px}
+/* ══ PASTI ══ */
+.meal{background:var(--card);border:0;border-left:3px solid var(--salvia);border-radius:16px;
+  padding:16px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start;
+  box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 22px -18px rgba(12,31,23,.24);
+  transition:transform .25s var(--ease),box-shadow .25s}
+
+.meal.free{border-left-color:var(--zafft);background:var(--card)}
+.meal.mensa{border-left-color:var(--mensa);background:var(--card)}
+.meal.done{opacity:.55;filter:saturate(.7)}.meal.done .mdesc{text-decoration:line-through}
+.meal.skip{opacity:.55;border-left-color:var(--rosso)}
+.meal.skip .mdesc{text-decoration:line-through;color:var(--rosso)}
+.chk{min-width:32px;height:32px;margin-top:4px;border:1.5px solid var(--linea);border-radius:50%;background:var(--card);cursor:pointer;font-size:14.5px;line-height:26px;text-align:center;color:#fff;transition:transform .2s var(--ease),background .25s,box-shadow .25s;text-transform:none;letter-spacing:normal}
+.chk:hover{transform:scale(1.1)}
+.chk:active{transform:scale(.82)}
+.meal.free .chk{border-color:var(--zafft)}
+.chk.c{background:var(--salvia);border-color:var(--salvia);box-shadow:0 0 0 5px color-mix(in srgb,var(--salvia) 18%,transparent)}
+.meal.free .chk.c{background:var(--zaff);border-color:var(--zafft);box-shadow:0 0 0 5px color-mix(in srgb,var(--zaff) 18%,transparent)}
+.chk.s{background:var(--rosso)!important;border-color:var(--rosso)!important}
+
+
+.mbody{flex:1;min-width:0}
+.mtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;margin-bottom:4px}
+.mname{font-weight:700;color:var(--ink);font-size:14.5px;letter-spacing:-.012em}
+.meal.free .mname{color:var(--zafft)}
+.meal.mensa .mname{color:var(--mensa)}
+.meal.skip .mname{color:var(--rosso)}
+.qdot{display:inline-block;border-radius:50%;vertical-align:-1px;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.85) inset,0 1px 2px rgba(0,0,0,.18)}
+.qdot.empty{background:transparent;border:2px dashed var(--linea);box-shadow:none}
+.qwrap{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--grigio);white-space:nowrap}
+.mdesc{font-size:14.5px;line-height:1.5}   /* la descrizione del piatto è testo di lettura */
+.mkcal{font-size:13px;font-weight:700;color:var(--salvia);margin-top:4px}
+.mopts{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+.mopts button,.chipbtn{border:1.5px solid var(--linea);background:var(--card);border-radius:20px;padding:4px 12px;font-size:11.5px;cursor:pointer;color:var(--grigio);transition:all .2s var(--ease)}
+.mopts button:hover,.chipbtn:hover{border-color:var(--salvia);color:var(--salvia);transform:translateY(-1px)}
+.chipbtn.on{border-color:var(--salvia);background:var(--salvia);color:#fff}
+.mopts button.sel{border-color:var(--zafft);color:var(--zafft);font-weight:700;background:var(--zaffbg)}
+.mtools{margin-top:16px;display:flex;gap:8px;row-gap:8px;align-items:center;flex-wrap:wrap}
+/* La fila degli strumenti del pasto sta su UNA riga, TUTTA in vista:
+   niente scorrimento laterale — un'icona mezza fuori sembra un difetto,
+   non un invito a scorrere. Le icone si dividono la larghezza in parti
+   uguali e si stringono quel tanto che basta; l'ALTEZZA resta 44 px
+   (la soglia del dito), quindi l'area toccabile non si sacrifica. */
+.mtools .btn{margin-top:0}
+.mtools select{border:1px solid var(--linea);border-radius:12px;padding:8px 8px;font-size:11.5px;color:var(--grigio);background:var(--card);flex:1 1 120px;min-width:0}
+.badge{font-size:11.5px;background:var(--okbg);color:var(--ok);border-radius:8px;padding:4px 8px;font-weight:700}
+.badge.moved{background:var(--rossobg);color:var(--rosso)}
+.badge.ai{background:var(--mensabg);color:var(--mensa)}
+.legend{display:flex;gap:12px;font-size:13px;color:var(--grigio);margin-top:8px;flex-wrap:wrap}
+.legend b{font-size:14.5px}
+.daytotal{font-size:13px;font-weight:700;color:var(--bosco);padding:8px 4px 16px}
+.daytotal span{color:var(--salvia)}
+/* ══ FORM ══ */
+textarea,input[type=text],input[type=number],input[type=date],input[type=password],select{
+  width:100%;border:1px solid var(--linea);border-radius:12px;padding:12px 16px;font-size:16px;
+  font-family:inherit;background:var(--crema);color:var(--ink);
+  transition:border-color .2s,background .2s,box-shadow .2s}
+/* 16px sugli input NON è estetica: sotto questa misura iOS ingrandisce
+   automaticamente la pagina al tocco, e la lascia storta. */
+textarea:focus,input:focus,select:focus{border-color:var(--bosco);background:var(--card);box-shadow:0 0 0 3px color-mix(in srgb,var(--bosco) 12%,transparent);outline:none}
+textarea{min-height:54px;resize:vertical}
+label{font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--grigio);display:block;margin:16px 0 8px}
+/* ══ BOTTONI: gradiente + lift ══ */
+/* La firma dello studio: il suo logo accanto al nostro nome, mai al
+   posto. Misure contenute apposta — è una provenienza, non un'insegna. */
+.studio-firma{display:flex;align-items:center;gap:12px}
+.studio-logo{width:40px;height:40px;object-fit:contain;border-radius:8px;background:var(--card)}
+.studio-nome{font-weight:700;font-size:15px;color:var(--ink);line-height:1.2}
+.studio-con{font-size:12px;color:var(--grigio);letter-spacing:.02em}
+.btn{display:inline-block;border:0;background:var(--azione);color:#fff;border-radius:16px;
+  padding:12px 20px;font-size:14.5px;font-weight:700;letter-spacing:-.005em;cursor:pointer;margin-top:8px;
+  box-shadow:0 6px 16px -8px rgba(11,61,44,.55);
+  transition:transform .22s var(--ease),box-shadow .25s,filter .2s;position:relative;overflow:hidden}
+.btn::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.14);opacity:0;transform:translateX(-120%);transition:transform .6s var(--ease)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px -8px rgba(22,163,74,.65)}
+.btn:hover::after{transform:translateX(120%)}
+.btn:active{transform:scale(.96)}
+html[data-theme="dark"] .btn{color:#04211E}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--linea);box-shadow:none;font-weight:600}
+.btn.ghost:hover{background:var(--menta)}
+.btn.warn{background:var(--rosso);box-shadow:0 6px 16px -8px rgba(198,64,46,.5)}
+/* Azione delicata A CONTORNO: cancellare tutto o fare pulizia deve essere
+   trovabile, mai il bottone più forte della schermata. Il pieno rosso
+   resta per le conferme dentro il dialogo, dove la scelta è già stata
+   presa e l'unica cosa che conta è non sbagliare bottone. */
+.btn.ghost.warn{background:var(--card);color:var(--rosso);border:1px solid var(--rosso);box-shadow:none}
+.btn.small{padding:12px 16px;font-size:13px;border-radius:12px;margin-top:4px}
+.row2{display:flex;gap:12px}.row2>*{flex:1;min-width:0}
+.row3{display:flex;gap:12px}.row3>*{flex:1;min-width:0}
+/* Il troncamento vale SOLO per le etichette dentro le righe a colonne strette:
+   applicato a tutte tagliava a metà le etichette lunghe in tutta l'app. */
+.row2 label,.row3 label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Nessun contenuto deve uscire dal riquadro: parole lunghe, link e numeri
+   vanno a capo invece di sfondare il bordo. */
+.card,.obbox,.obwarn,.hint,.wline,.aibox{overflow-wrap:anywhere;word-break:break-word}
+.card>*{max-width:100%}
+/* ══ SPESA ══ */
+.shopcat{font-weight:700;color:#fff;background:var(--grad);background-size:200% 200%;border-radius:16px 16px 0 0;padding:12px 16px;font-size:13px;margin-top:16px;letter-spacing:.2px}
+.shopitems{background:var(--card);border:1px solid var(--linea);border-top:0;border-radius:0 0 16px 16px;padding:4px 0;box-shadow:var(--shadow)}
+.shopitem{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--linea);font-size:14.5px;transition:background .2s,opacity .3s}
+.shopitem:hover{background:color-mix(in srgb,var(--menta) 55%,transparent)}
+.shopitem:last-child{border-bottom:0}
+.shopitem.c{opacity:.42}.shopitem.c .st{text-decoration:line-through}
+.shopitem{min-height:48px}
+.shopitem .box{min-width:26px;height:26px;border:2px solid var(--salvia);border-radius:12px;text-align:center;line-height:22px;color:#fff;font-size:14.5px;cursor:pointer;flex-shrink:0;transition:transform .2s var(--ease),background .25s}
+.shopitem .st{padding:12px 0}
+.shopitem .box:active{transform:scale(.8)}
+.shopitem.c .box{background:var(--salvia)}
+.shopitem .st{flex:1;cursor:pointer}
+.ibtn{border:1px solid var(--linea);background:var(--card);border-radius:12px;
+  min-width:44px;min-height:44px;padding:0 8px;   /* 44 = soglia dell'area toccabile */display:inline-grid;place-items:center;
+  font-size:14.5px;cursor:pointer;flex-shrink:0;color:var(--ink);text-decoration:none;
+  transition:transform .18s var(--ease),border-color .2s,color .2s}
+.ibtn .ico{display:block}
+.ibtn:hover{transform:translateY(-1px) scale(1.06);border-color:var(--salvia)}
+.ibtn:active{transform:scale(.9)}
+/* Fila icone: MAI lo scorrimento laterale — sei pulsanti, una riga.
+   flex:1 1 0 + min-width:0 li fa stringere insieme; gap e padding sulla
+   scala 4/8, e i 44px di altezza toccabile non si toccano. */
+.mtools.filaicone{flex-wrap:nowrap;gap:4px;overflow:visible;padding-bottom:4px;max-width:100%}
+.mtools.filaicone .ibtn{flex:1 1 0;min-width:0;padding:0 4px}
+/* NOTA D'ORDINE: questa deroga sta DOPO la regola base .ibtn qui sopra.
+   Il collaudo a11y legge la PRIMA «.ibtn{» del foglio per verificare i
+   44px: se la deroga la precede, legge quella sbagliata. La cascata non
+   dipende dall'ordine (la deroga vince per specificità), il test sì. */
+/* ══ GAUGE / STATISTICHE ══ */
+.gaugecard{background:var(--card);border:1px solid var(--linea);border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);text-align:center;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+
+
+.stat3{display:flex;gap:8px;margin-top:12px}
+.stat3>div{flex:1;background:var(--menta);border-radius:12px;padding:12px 4px;text-align:center;transition:transform .25s var(--ease),box-shadow .25s}
+.stat3>div:hover{transform:translateY(-2px) scale(1.03);box-shadow:var(--shadow)}
+.stat3 .v{font-weight:800;font-size:16px;color:var(--bosco)}
+.stat3 .l{font-size:11.5px;color:var(--grigio)}
+.mtx{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.mtx>div{background:var(--crema);border-radius:16px;padding:12px 12px 16px;min-width:0}
+.mtx .v{font-weight:700;font-size:18px;color:var(--ink);line-height:1.1;letter-spacing:-.02em}
+.mtx .l{font-size:11.5px;color:var(--grigio);margin-top:4px}
+.mtx .s{font-size:11.5px;color:var(--grigio);margin-top:4px}
+.wline{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--linea);font-size:13px;gap:8px;transition:background .2s}
+.wline:last-child{border-bottom:0}
+.wline .del{color:var(--rosso);cursor:pointer;font-weight:700;padding:12px 12px;margin:-12px -3px;transition:transform .15s var(--ease)}
+.wline .del:hover{transform:scale(1.25)}
+/* Le celle si allungano tutte quanto la più alta, e i campi restano
+   ancorati in basso: così due etichette di lunghezza diversa — «Settimane
+   in deficit» e «Settimane di mantenimento» — non sfalsano i riquadri. */
+/* I campi affiancati si allineano in BASSO: quando un'etichetta va su
+   due righe («Settimane di mantenimento») la sua casella scendeva e le
+   due risultavano sfalsate. */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.duo>div{display:flex;flex-direction:column;justify-content:flex-end}
+.duo label{min-height:2.6em;display:flex;align-items:flex-end}
+.duo>div{display:flex;flex-direction:column;justify-content:flex-end}
+.duo>div>label{margin-top:0}
+.duo .stars{font-size:19px;gap:4px}
+.famrow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.famrow input,.famrow select{margin:0;min-width:0}
+.famrow .fnome{flex:1 1 auto}
+.famrow .fsex{flex:0 0 58px;text-align:center;padding-left:8px;padding-right:8px}
+.famrow .feta{flex:0 0 52px;text-align:center;border:1px solid var(--linea);border-radius:12px;
+  background:var(--card);color:var(--ink);font-size:13px;font-weight:600;padding:8px 0;cursor:pointer}
+.famrow .fdob{flex:1 1 128px;min-width:0;font-size:13px;padding-left:8px;padding-right:8px}
+.famrow .fbadge{flex:0 0 auto;font-size:13px;color:var(--grigio);white-space:nowrap;min-width:44px;text-align:right}
+.water span:hover{transform:translateY(-3px)}
+
+html[data-theme="dark"] .water span.f{background:#0E2C29}
+.stars{display:flex;gap:4px;font-size:23px;cursor:pointer;user-select:none}
+.stars span{filter:grayscale(1);opacity:.35;transition:all .25s var(--ease)}
+/* Mancava del tutto la regola per la stella ACCESA: si spegnevano tutte
+   e toccarle non produceva nessun effetto visibile. */
+.stars span.on{filter:none;opacity:1;transform:scale(1.06)}
+.stars span:active{transform:scale(.85)}
+.stars span:hover{transform:scale(1.25) rotate(8deg)}
+.stars span.on{filter:none;opacity:1}
+
+.hint{font-size:var(--t-md);color:var(--grigio);margin-top:8px;line-height:1.55}
+.gp{font-size:14.5px;line-height:1.55;margin:0 0 12px}
+.gtable{width:100%;font-size:14.5px}   /* stessa misura della prosa della Guida */
+.gtable td{padding:8px 8px;vertical-align:top;border-bottom:1px solid var(--linea)}
+.gtable td:first-child{width:64px;text-align:center;font-size:17px}
+/* Riga senza simbolo (celle unite): torna testo normale allineato a sinistra,
+   altrimenti eredita larghezza 64px, centratura e corpo 17px della colonna icone. */
+.gtable td[colspan]{width:auto;text-align:left;font-size:inherit}
+.obwrap{max-width:620px;margin:0 auto}
+.obtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.obstep{font-size:13px;font-weight:700;color:var(--grigio);letter-spacing:.03em}
+.obdots{display:flex;gap:8px;margin-bottom:12px}
+.obp{font-size:14.5px;line-height:1.55;color:var(--ink);margin:0 0 12px}
+.obwrap label{white-space:normal}
+.obwrap .card{padding:16px 16px}
+.obwrap input,.obwrap select,.obwrap textarea{max-width:100%}
+.obbox{background:var(--menta);border-left:4px solid var(--salvia);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;margin:12px 0}
+.obwarn{background:var(--zaffbg);border-left:4px solid var(--zaff);border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;margin:12px 0}
+.obwhere{font-size:13px;color:var(--grigio);margin-top:12px;padding-top:8px;border-top:1px dashed var(--linea)}
+.obol{margin:8px 0 0 16px;padding:0;font-size:13px;line-height:1.7}
+.obstat{display:inline-block;margin:0 16px 12px 0}
+.obstat .n{font-size:30px;font-weight:800;color:var(--bosco);line-height:1}
+.obstat .l{font-size:11.5px;color:var(--grigio);margin-top:4px}
+.obchoice{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.obcard{border:1px solid var(--linea);border-radius:12px;padding:12px}
+.obcard h3{margin:0 0 8px;font-size:17px;color:var(--bosco)}
+.obcard p{font-size:14.5px;line-height:1.5;color:var(--grigio);margin:0 0 12px}
+@media(max-width:560px){.obchoice{grid-template-columns:1fr}}
+.wzbar{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
+.wzbar .btn{flex:1 1 104px;min-width:0;margin-top:0;text-align:center}
+.wzval{margin:8px 0 0;padding:8px 12px;overflow-wrap:anywhere;line-height:1.5;border:1px dashed var(--linea);border-radius:12px;font-size:13px;color:var(--bosco);font-weight:600;background:var(--menta)}
+/* Etichetta e comando su una riga sola quando ci stanno, altrimenti il
+   comando scende sotto ALLINEATO A SINISTRA invece di lasciare un vuoto:
+   prima il pulsante andava a capo da solo e la riga restava alta e sguarnita. */
+.ctlrow{display:flex;align-items:center;gap:12px;margin:0 0 8px;padding:12px 16px;border-radius:16px;
+  background:var(--card);border:0;font-size:13px;flex-wrap:wrap;
+  box-shadow:0 1px 2px rgba(12,31,23,.04),0 8px 22px -18px rgba(12,31,23,.22)}
+.ctlrow .cl{font-weight:700;color:var(--grigio);flex:1 1 auto;min-width:0;display:inline-flex;align-items:center;gap:8px;
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;line-height:1.3}
+.ctlrow .cl svg.ico{flex:0 0 auto}
+.ctlrow.tap{cursor:pointer}
+.ctlrow.tap:active{background:var(--menta)}
+.ctlrow .coff{margin-left:auto;flex:0 0 auto;color:var(--grigio);font-size:13px;white-space:nowrap}
+.ctlrow select{flex:1 1 150px;width:auto;min-width:0;max-width:100%}
+/* Quando qualcosa va a capo, i comandi restano insieme sulla stessa riga */
+.ctlrow select{max-width:132px;min-width:0;flex:1 1 96px;font-size:13px;padding:4px 8px;margin:0}
+.ctlrow .ck{display:flex;align-items:center;gap:4px;color:var(--grigio);flex-shrink:0}
+.ctlrow .ck input{width:19px;height:19px;margin:0}
+/* Il quadratino deve stare sulla stessa linea del testo, non più in alto */
+.ck input[type=checkbox],.ck input[type=radio]{width:19px;height:19px;margin:0;flex:0 0 auto;accent-color:var(--bosco)}
+.ctlrow .ck input:disabled+span{opacity:.45}
+.lnk{color:var(--salvia);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.wtab{font-size:13px;width:100%;table-layout:auto}
+.wtab th,.wtab td{padding:8px 4px;white-space:nowrap}
+.wtab th:first-child,.wtab td:first-child{padding-left:4px}
+.wtab td:first-child{font-weight:600;color:var(--ink)}
+@media(max-width:400px){.wtab{font-size:11.5px}.wtab th,.wtab td{padding:8px 4px}}
+.card.pesata{border-left:3px solid var(--salvia);background:var(--card)}
+.card.pesata h2{color:var(--bosco)}
+.clchip.on{border-color:var(--salvia);color:var(--salvia);font-weight:700;background:var(--menta)}
+/* .ckline e .chk sono elementi <label> ma contengono FRASI, non titoli:
+   vanno esentate dal maiuscoletto delle etichette di sezione, altrimenti
+   ereditano MAIUSCOLO + spaziatura e diventano sproporzionate. */
+.ckline{display:flex;align-items:center;gap:12px;padding:12px 0;min-height:44px;font-size:14.5px;font-weight:500;color:var(--ink);
+  text-transform:none;letter-spacing:normal;white-space:normal}
+.ckline small{font-weight:400;color:var(--grigio);text-transform:none;letter-spacing:normal}
+.ckline small{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ckline input{width:20px;height:20px;margin:0}
+.ckline small{color:var(--grigio);font-weight:400}
+.ctlrow .coff{color:var(--grigio);opacity:.6;flex-shrink:0}
+.ctlrow{align-items:center}
+.ctlrow select{align-self:center}
+.gsec{font-weight:700;color:var(--grigio);margin:20px 4px 8px;font-size:11.5px;letter-spacing:.11em;text-transform:uppercase}
+details.why{margin-top:4px}
+details.why>summary{cursor:pointer;color:var(--salvia);font-weight:600;font-size:11.5px;list-style:none;display:inline-block}
+details.why>summary::-webkit-details-marker{display:none}
+details.why>summary::after{content:" ▸"}
+details.why>summary{padding:8px 0;margin:-6px 0}
+details.why[open]>summary::after{content:" ▾"}
+details.why>div{margin-top:4px;padding-left:8px;border-left:2px solid var(--linea)}
+.aibox{background:var(--crema);border:0;border-radius:16px;padding:16px 16px;margin-top:12px;font-size:14.5px;line-height:1.55;white-space:pre-wrap}
+.histweek{border:1px solid var(--linea);border-radius:16px;background:var(--card);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .3s}
+.histweek:hover{box-shadow:var(--shadow-lift)}
+.histweek .hh{padding:12px 16px;display:flex;justify-content:space-between;cursor:pointer;font-weight:700;color:var(--bosco);font-size:14.5px;transition:background .2s}
+.histweek .hh:hover{background:color-mix(in srgb,var(--menta) 50%,transparent)}
+.histweek .hb{display:none;padding:0 16px 12px;font-size:13px}
+.histweek.open .hb{display:block}
+table{width:100%;border-collapse:collapse;font-size:14.5px}   /* tabelle di TESTO */
+table.rules,table.wtab,table.histweek,#printreport table{font-size:13px}   /* tabelle di NUMERI */
+th,td{padding:8px 4px;border-bottom:1px solid var(--linea);text-align:left}
+th{color:var(--grigio);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr{transition:background .15s}
+tbody tr:hover,table tr:hover td{background:color-mix(in srgb,var(--menta) 40%,transparent)}
+.pill{display:inline-block;font-size:11.5px;border-radius:12px;padding:4px 12px;background:var(--okbg);color:var(--ok);font-weight:700;margin:4px 4px 0 0}
+.todaytag{background:var(--gradz);color:#fff;border-radius:8px;font-size:11.5px;padding:4px 8px;font-family:system-ui;font-weight:700;box-shadow:0 3px 8px -2px rgba(234,138,31,.5)}
+/* ══ GRAFICI: zoomabili ══ */
+canvas{max-width:100%;cursor:zoom-in;border-radius:12px;transition:transform .25s var(--ease)}
+
+#zoomOv{position:fixed;inset:0;background:rgba(6,14,8,.88);z-index:120;display:none;align-items:center;justify-content:center;overflow:hidden;touch-action:none}
+#zoomOv.on{display:flex}
+
+#zoomOv img{max-width:96vw;max-height:82vh;background:#fff;border-radius:12px;box-shadow:0 30px 80px -20px rgba(0,0,0,.8);transform-origin:center;cursor:grab;user-select:none;-webkit-user-drag:none}
+html[data-theme="dark"] #zoomOv img{background:#11201E}
+
+#zoomOv .ztools{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;gap:8px;background:var(--card);border:1px solid var(--linea);border-radius:20px;padding:8px;box-shadow:var(--shadow-lift)}
+#zoomOv .ztools button{border:0;background:var(--card);color:var(--ink);border-radius:12px;width:44px;height:40px;font-size:17px;cursor:pointer;transition:transform .18s var(--ease),background .2s}
+#zoomOv .ztools button:hover{transform:scale(1.1);background:var(--menta)}
+#zoomOv .zhint{position:fixed;top:calc(16px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);color:#fff;font-size:13px;opacity:.8;background:rgba(0,0,0,.35);border-radius:12px;padding:8px 12px}
+#scanbox{display:none;margin-top:12px}
+#scanreader{width:100%;border-radius:12px;overflow:hidden}
+#aiSpin{position:fixed;left:50%;transform:translateX(-50%);justify-content:center;
+  max-width:calc(100vw - 110px);bottom:calc(152px + env(safe-area-inset-bottom));z-index:90;background:var(--card);border:1px solid var(--linea);box-shadow:var(--shadow-lift);border-radius:20px;padding:12px 16px;display:none;align-items:center;gap:12px;font-size:13px;color:var(--bosco);font-weight:700}
+#aiSpin.on{display:flex}
+/* rotella dell'AI: unica animazione rimasta, gira SOLO mentre l'AI lavora */
+@keyframes nspin{to{transform:rotate(360deg)}}
+/* ══ CIAMBELLA DELL'AI ══
+   Un anello che si riempie e ricomincia, disegnato in SVG. La versione
+   con conic-gradient dipendeva da @property, che molti browser non
+   conoscono: lì cadeva nel ripiego e diventava un anello che gira e
+   basta. Con stroke-dasharray funziona ovunque, senza eccezioni. */
+.sp{width:20px;height:20px;flex:0 0 auto;transform:rotate(-90deg)}
+.sp circle{fill:none;stroke-width:4}
+.sp .sp-b{stroke:var(--linea)}
+.sp .sp-f{stroke:var(--azione);stroke-linecap:round;
+  stroke-dasharray:97.4;stroke-dashoffset:97.4;
+  animation:nfill 1.7s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes nfill{
+  0%  {stroke-dashoffset:97.4}
+  75% {stroke-dashoffset:0;opacity:1}
+  100%{stroke-dashoffset:0;opacity:.12}}
+
+@media(prefers-reduced-motion:reduce){#aiSpin .sp{animation:none}}
+/* Il messaggio era una pastiglia verde piena sopra l'intestazione: la
+   copriva, e il verde acceso a tutta larghezza non c'entra niente con il
+   resto dell'app. Ora è una scheda chiara in basso, come tutto il resto,
+   e lascia libero l'angolo del pulsante dell'assistente. */
+#obMic.on{background:var(--zaffbg);border-color:var(--zaff);color:var(--zafft)}
+.esgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}
+.escard{border:1px solid var(--linea);border-radius:12px;padding:8px;background:var(--card);text-align:center}
+.esfig{color:var(--teal2);display:flex;justify-content:center;margin-bottom:4px}
+.esnome{font-size:13px;font-weight:700;color:var(--ink)}
+.esdose{font-size:13px;color:var(--salvia);font-weight:700;margin:4px 0}
+.escome{font-size:13px;color:var(--grigio);line-height:1.45;text-align:left}
+.eserr{font-size:12.5px;color:var(--zaff);margin-top:4px;line-height:1.45}
+.rbolle{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.rbolla{display:inline-flex;align-items:center;border:1.5px solid var(--salvia);color:var(--teal2);
+  background:var(--menta);border-radius:99px;padding:8px 12px;font-size:13px;font-weight:600;
+  transition:all .35s var(--ease)}
+/* Le bolle del secondo giro sono DOMANDE da toccare, non etichette di
+   stato: si vede che sono premibili, e si distinguono dalle prime. */
+.rbolla.g2{border-style:dashed;border-color:var(--zaff);color:var(--zafft);
+  background:var(--zaffbg);cursor:pointer;font-weight:600;text-align:left}
+.rbolla.g2:active{transform:scale(.97)}
+.rbolla.fatta{border-color:var(--linea);color:var(--grigio);background:var(--card);
+  text-decoration:line-through;opacity:.65;transform:scale(.96)}
+.tundo{margin-left:12px;background:transparent;border:1px solid rgba(255,255,255,.45);color:inherit;
+  border-radius:99px;padding:4px 12px;font-size:13px;font-weight:700;cursor:pointer;min-height:32px}
+.tundo:active{background:rgba(255,255,255,.15)}
+#toast{position:fixed;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom));
+  transform:translateY(12px);z-index:96;max-width:520px;margin:0 auto;
+  background:var(--card);color:var(--ink);border-left:3px solid var(--salvia);
+  border-radius:var(--r-lg);padding:16px 16px;font-size:14.5px;font-weight:500;line-height:1.45;
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--ease);
+  box-shadow:0 1px 2px rgba(12,31,23,.06),0 18px 40px -20px rgba(12,31,23,.45)}
+#toast.on{opacity:1;transform:translateY(0)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:97;overflow:hidden}
+#confetti span{position:absolute;width:9px;height:9px;border-radius:4px;top:-12px}
+/* ══ MODALI ══ */
+table.rules{table-layout:fixed}
+table.rules td{vertical-align:middle}
+table.rules td:first-child{white-space:normal;width:30%;font-weight:600;color:var(--ink)}
+/* Riga a tutta larghezza (avvisi). Deve avere la stessa specificità della
+   regola qui sopra, altrimenti vince quella e l'avviso resta stretto. */
+table.rules td.rfull{display:block;width:auto;white-space:normal;padding:8px 12px;border-radius:12px;margin:4px 0;font-size:14.5px;line-height:1.45}
+table.rules td.rd{font-size:14.5px;line-height:1.45;color:var(--grigio)}
+table.rules td.rc{width:154px;text-align:right;white-space:nowrap}
+table.rules .rv{width:96px;display:inline-block;margin:0;padding:8px 8px;font-size:13px;text-align:right;vertical-align:middle}
+table.rules select.rv{width:150px;text-align:left;padding:8px 8px}
+table.rules .ru{font-size:11.5px;color:var(--grigio);margin-left:4px}
+table.rules .rout{font-family:inherit;font-weight:700;color:var(--salvia);font-size:14.5px}
+@media(max-width:520px){
+  table.rules,table.rules tbody,table.rules tr,table.rules td{display:block;width:auto}
+  table.rules tr{padding:12px 0;border-bottom:1px solid var(--linea)}
+  table.rules tr:last-child{border-bottom:0}
+  table.rules td{border:0;padding:4px 0}
+  table.rules td.rc{text-align:left;width:auto;margin-top:8px}
+  table.rules select.rv{width:100%;max-width:260px}
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+@media(max-width:420px){.grid2{grid-template-columns:1fr}}
+.grid2.g2fix{grid-template-columns:1fr 1fr!important;gap:8px}
+.grid2.g2fix input{min-width:0;width:100%}
+/* barre di pulsanti: stessa altezza e stessa spaziatura ovunque */
+.mtools>.btn,.mtools>.ibtn,.mtools>a.btn,.mtools>input,.mtools>select{margin-top:0}
+.modal{position:fixed;inset:0;background:rgba(6,14,8,.55);z-index:95;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .mcard{width:100%;max-width:530px;max-height:86vh;overflow:auto;background:var(--card);border:1px solid var(--linea);border-radius:20px;padding:16px;box-shadow:var(--shadow-lift)}
+
+.optbtn{display:block;width:100%;text-align:left;border:2px solid var(--linea);border-radius:12px;padding:12px 12px;margin-top:8px;background:var(--card);cursor:pointer;font-size:13px;line-height:1.45;color:var(--ink);transition:all .22s var(--ease)}
+.optbtn:hover{border-color:var(--salvia);transform:translateX(3px)}
+.optbtn.sel{border-color:var(--salvia);background:var(--menta);box-shadow:0 4px 14px -6px rgba(22,163,74,.4)}
+.optbtn b{color:var(--bosco)}
+
+
+button:focus-visible,select:focus-visible,input:focus-visible,.chk:focus-visible{outline:2.5px solid var(--mensa);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}#confetti{display:none}}
+@media(min-width:700px){.tabs{max-width:620px;left:50%;right:auto;transform:translateX(-50%)}}
+/* ══════════ STAMPA: Report per il nutrizionista ══════════ */
+@media print{
+  body{padding:0;background:#fff;color:#000}
+  body::before,body::after{display:none}
+  header,.tabs,.btn,.ibtn,.chipbtn,.datebar,#scanbox,#zoomOv{display:none!important}
+  .page{display:none!important}
+  #printreport{display:block!important;padding:20px;font-size:13px}
+  #printreport h1{font-size:20px;margin-bottom:4px}
+  #printreport h2{font-size:15px;margin:16px 0 8px}
+  #printreport table{font-size:11.5px}
+  .card,.histweek{box-shadow:none;border:1px solid #ccc;background:#fff}
+}
+#printreport{display:none}
+/* Una casella per riga: appaiate a due a due sembravano disallineate,
+   perché i testi hanno lunghezze diverse e le colonne non tornavano mai. */
+.ckgrid{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+.ckgrid .ck{width:100%;justify-content:flex-start}
+.freqrow{display:flex;gap:8px;align-items:center}
+.freqsel{flex:0 0 auto;width:auto;min-width:0;max-width:44%;font-size:13px;padding:8px 8px;margin:0}
+.freqsel:disabled{opacity:.4}
+.ck{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--linea);border-radius:12px;padding:12px 12px;font-size:14.5px;cursor:pointer;background:var(--card);transition:background .2s,border-color .2s}
+.ck input[type=checkbox]{}
+.ck input{width:18px;height:18px;margin:0;accent-color:var(--salvia)}
+.ckmensa-w{margin:8px 0 12px}
+.ckmensa{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ckmensa .ck{flex:1;justify-content:flex-start}
+.ckmensa select{width:118px;flex:none;padding:8px 12px;font-size:13px;border:1.5px solid var(--linea);border-radius:12px;background:var(--card);color:var(--ink);margin:0}
+.wkhead{display:flex;gap:8px;margin:4px 0 4px;font-size:11.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--grigio)}
+.wkhead span{min-width:0}
+.btngrid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 8px}
+/* Righe-azione nei pannelli: titolo + spiegazione, tutta la riga è toccabile */
+.shrow{display:block;width:100%;text-align:left;background:var(--cremina,#F5F5F5);border:1px solid var(--linea);
+  border-radius:12px;padding:12px 16px;margin:8px 0;cursor:pointer;font:inherit;color:inherit}
+.shrow:active{transform:scale(.985)}
+.shrow b{display:block;color:var(--bosco);font-size:14.5px;margin-bottom:4px}
+.shrow small{display:block;color:var(--grigio);font-size:13px;line-height:1.45}
+/* ── Faro: UN solo elemento alla volta, l'azione più utile adesso ── */
+.faro{box-shadow:0 0 0 3px rgba(0,175,163,.45)!important;border-radius:12px}
+/* ── Regole a schede: tre gruppi, si naviga senza perdersi ── */
+.rtabs{display:flex;gap:8px;margin:4px 0 16px}
+.rtabs button{flex:1;padding:12px 8px;border-radius:12px;border:1.5px solid var(--linea);background:#fff;
+  font:600 12.8px Inter,system-ui,sans-serif;color:var(--grigio);cursor:pointer;transition:.15s}
+.rtabs button.on{background:var(--menta);border-color:var(--teal);color:var(--bosco)}
+#pg-regole .regsec{display:none}
+#pg-regole[data-rt="scelte"] .regsec[data-rt="scelte"],
+#pg-regole[data-rt="ai"] .regsec[data-rt="ai"],
+#pg-regole[data-rt="formule"] .regsec[data-rt="formule"]{display:block}
+.gstep{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;font:inherit;color:inherit;cursor:pointer;padding:0}
+/* ── Suggerimento una-tantum: bolla ancorata, si chiude con un tocco ── */
+#tipOv{position:absolute;z-index:1200;max-width:min(78vw,320px);background:var(--teal2,#0C7C74);color:#fff;
+  border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.5;box-shadow:0 14px 34px -14px rgba(10,78,73,.55)}
+#tipOv:after{content:"";position:absolute;top:-7px;left:var(--ax,26px);border:7px solid transparent;border-top:0;border-bottom-color:var(--teal2,#0C7C74)}
+#tipOv.up:after{top:auto;bottom:-7px;border:7px solid transparent;border-bottom:0;border-top-color:var(--teal2,#0C7C74)}
+#tipOv small{display:block;margin-top:4px;opacity:.75;font-size:11.5px}
+/* ── Micro-animazioni ─────────────────────────────────────────────
+   Piccole, veloci, mai bloccanti. Il blocco vive dentro una media
+   query: chi ha "riduci animazioni" sul telefono non le vede. */
+@media (prefers-reduced-motion: no-preference){
+  .chk.c{animation:chkpop .32s var(--ease)}
+  @keyframes chkpop{0%{transform:scale(.6)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .qwrap{animation:qfade .45s ease}
+  @keyframes qfade{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+  .meal{transition:box-shadow .25s,border-color .25s}
+  .card{transition:box-shadow .3s}
+  .btn:active,.ibtn:active,.shrow:active{transition:transform .08s}
+  .hungry span{transition:transform .15s var(--ease),background .2s}
+  .hungry span:active{transform:scale(1.25)}
+  .sheetbox{transition:transform .32s var(--ease)}
+  .badge{animation:qfade .4s ease}
+  .faro{animation:faroPulse 2.2s ease-in-out infinite}
+  @keyframes faroPulse{0%,100%{box-shadow:0 0 0 3px rgba(0,175,163,.45)}50%{box-shadow:0 0 0 8px rgba(0,175,163,.12),0 0 0 3px rgba(0,175,163,.6)}}
+  .nvfloat{animation:nvfloat 3.4s ease-in-out infinite}
+  @keyframes nvfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+}
+.btngrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0 8px}
+.btngrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 8px}
+.btngrid4 .btn{margin:0;width:100%;padding:8px 4px;font-size:11.5px;white-space:normal;line-height:1.2}
+.btngrid2 .btn,.btngrid3 .btn{margin:0;width:100%;padding-left:8px;padding-right:8px;white-space:normal;line-height:1.25}
+.swipe{position:relative;touch-action:pan-y}
+.swipe .swipebg{position:absolute;inset:0;border-radius:16px;background:var(--rossobg);color:var(--rosso);display:flex;align-items:center;justify-content:flex-end;padding-right:20px;font-weight:800;font-size:14.5px;pointer-events:none;opacity:0}
+.swipe > .meal{position:relative;transition:transform .18s var(--ease)}
+.ckgrid.crave3{display:grid;grid-template-columns:repeat(3,1fr);flex-direction:unset}
+.ckgrid.crave3 .ck{padding:12px 8px;justify-content:center;font-size:13px;text-align:center}
+.mbar{height:6px;border-radius:4px;background:var(--linea);overflow:hidden;margin-top:8px}
+.mbar i{display:block;height:100%;border-radius:4px;transition:width .35s var(--ease)}
+.skel{height:12px;border-radius:8px;margin:8px 0;background:linear-gradient(90deg,var(--linea) 25%,var(--menta) 37%,var(--linea) 63%);background-size:400% 100%;animation:skelp 1.3s ease infinite}
+@keyframes skelp{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.hungry{display:inline-flex;gap:4px;align-items:center;margin-top:8px}
+.hungry b{font-size:11.5px;color:var(--grigio);font-weight:700;margin-right:4px}
+.hungry span{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--linea);cursor:pointer;background:var(--card);transition:.15s}
+.hungry span.on{background:var(--zaff);border-color:var(--zafft)}
+body.onb .tabs{display:none}
+body.onb{padding-bottom:0}
+
+/* ══ ONBOARDING CONVERSAZIONALE (Sprint 1) ═══════════════════════
+   Una domanda per schermata. Niente decorazioni: il contenuto è la
+   domanda, e la risposta deve stare sotto il pollice. */
+#pg-onb2{padding:0 4px 40px}
+.o2top{position:sticky;top:0;z-index:5;background:var(--crema);padding:12px 4px 12px}
+.o2chip{display:inline-block;background:var(--zaffbg);color:var(--zafft);font-weight:700;
+  font-size:var(--t-xs);padding:4px 12px;border-radius:99px;margin-bottom:8px}
+.o2segs{display:flex;gap:4px}
+.o2seg{flex:1;height:5px;border-radius:99px;background:var(--linea);overflow:hidden}
+.o2seg.ora{background:var(--menta)}
+.o2seg i{display:block;height:100%;background:var(--azione);border-radius:99px;
+  transition:width .45s var(--ease)}
+.o2wrap{padding:8px 4px 0;animation:o2in .32s var(--ease) both}
+@keyframes o2in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.o2q{font-family:'Fraunces',Georgia,serif;font-size:clamp(23px,6vw,29px);line-height:1.14;
+  letter-spacing:-.02em;margin:4px 0 8px}
+.o2sub{color:var(--grigio);font-size:var(--t-md);line-height:1.5;margin:0 0 20px}
+.o2ops{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.o2op{width:100%;text-align:left;background:var(--card);border:1.5px solid var(--linea);
+  border-radius:16px;padding:16px 16px;cursor:pointer;color:var(--ink);
+  transition:border-color .18s,transform .18s var(--ease),background .18s}
+.o2op b{display:block;font-size:16px;font-weight:700;margin-bottom:0px}
+.o2op span{display:block;font-size:var(--t-sm);color:var(--grigio);line-height:1.4}
+.o2op:hover{border-color:var(--salvia)}
+.o2op:active{transform:scale(.985)}
+.o2op.scelta{border-color:var(--azione);background:var(--menta)}
+.o2form{margin-bottom:16px}
+.o2form label{display:block;font-size:var(--t-sm);font-weight:600;color:var(--grigio);margin:12px 0 4px}
+.o2avanti{width:100%;margin-bottom:12px}
+.o2mic{width:100%;justify-content:center}
+.o2stop{width:100%;margin-top:8px}
+.o2ins{background:var(--menta);border-radius:16px;padding:16px 16px;margin-bottom:16px;
+  font-size:var(--t-md);line-height:1.5}
+.o2ins b{font-size:17px}
+.o2hint{display:block;color:var(--grigio);font-size:var(--t-sm);margin-top:4px;line-height:1.45}
+.o2mini{color:var(--grigio);font-size:var(--t-xs);margin-top:8px}
+.o2cons{background:var(--card);border:1.5px solid var(--linea);border-left:3px solid var(--zaff);
+  border-radius:16px;padding:12px 16px;margin-bottom:16px;font-size:var(--t-sm);line-height:1.5}
+.o2cons b{display:block;margin-bottom:4px}
+.o2cons span{display:block;color:var(--grigio)}
+.o2cons.ok{border-left-color:var(--ok);color:var(--grigio)}
+.o2consb{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.o2chips{margin-bottom:12px}
+.o2chip2{display:inline-flex;align-items:center;gap:8px;background:var(--menta);color:var(--bosco);
+  border-radius:99px;padding:8px 8px 8px 12px;font-size:var(--t-sm);font-weight:600}
+.o2chipx{background:transparent;border:0;color:var(--bosco);cursor:pointer;font-size:14px;
+  line-height:1;padding:4px 4px;border-radius:99px;opacity:.65}
+.o2chipx:hover{opacity:1;background:rgba(0,0,0,.06)}
+.o2nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.o2gen{margin-top:16px}
+.o2genbar{height:7px;background:var(--linea);border-radius:99px;overflow:hidden}
+.o2genbar i{display:block;height:100%;width:0;background:var(--azione);border-radius:99px;
+  transition:width .5s var(--ease)}
+.o2gent{color:var(--grigio);font-size:var(--t-sm);margin-top:8px;line-height:1.45}
+@media (prefers-reduced-motion:reduce){
+  .o2wrap{animation:none}
+  .o2seg i,.o2genbar i{transition:none}}
+
+/* ══ ARCO NUVIA, MASCOTTE, STATI VUOTI (Sprint 2) ════════════════
+   Una domanda per grafico. L'arco dice quanto RESTA; le pillole
+   stanno sotto e non gli fanno concorrenza. */
+:root{--masc-corpo:#00AFA3;--masc-tratto:#0A4E49;--masc-pancia:#FFD166;
+  --masc-gioia:#E4632F;--masc-acqua:#5B7FE0}
+html[data-theme="dark"]{--masc-corpo:#2FC9BC;--masc-tratto:#0E2C29;
+  --masc-pancia:#FFD166;--masc-gioia:#FF9B72;--masc-acqua:#7FA9F2}
+.masc{display:block;margin:0 auto}
+.arcobox{margin:0 0 16px}
+.arco{position:relative;width:100%;max-width:220px;margin:0 auto;aspect-ratio:1}
+.arcosvg{width:100%;height:100%;transform:rotate(135deg)}
+.arcosvg circle{fill:none;stroke-width:12;stroke-linecap:round;
+  transform-origin:50% 50%}
+.arcofondo{stroke:var(--linea)}
+/* L'animazione entra una volta e finisce: 400 ms, poi ferma per sempre. */
+.arcopieno{animation:arcoIn .4s var(--ease) both}
+@keyframes arcoIn{from{stroke-dasharray:0 999}}
+.arcoc{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:0 24px}
+.arcon{font-family:'Fraunces',Georgia,serif;font-size:clamp(32px,9vw,44px);
+  font-weight:600;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+  color:var(--ink)}
+.arcol{font-size:var(--t-sm);color:var(--grigio);margin-top:4px;font-weight:600}
+.arcos{font-size:var(--t-xs);color:var(--grigio);margin-top:4px;opacity:.85}
+.pills{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.pill{background:var(--crema);border-radius:12px;padding:8px 12px}
+.pilltop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pilll{font-size:var(--t-xs);color:var(--grigio);font-weight:600}
+.pillv{font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums}
+.pillv i{font-style:normal;font-weight:400;color:var(--grigio);font-size:var(--t-xs)}
+.pillb{height:4px;background:var(--linea);border-radius:99px;overflow:hidden;margin-top:4px}
+.pillb i{display:block;height:100%;border-radius:99px;animation:pillIn .4s var(--ease) both}
+@keyframes pillIn{from{width:0}}
+.arcomini{display:inline-block;width:32px;height:32px;flex:0 0 auto}
+.arcomini svg{width:100%;height:100%;transform:rotate(135deg)}
+.arcomini circle{fill:none;stroke-width:4;stroke-linecap:round}
+.vuoto{text-align:center;padding:24px 16px;color:var(--grigio)}
+.vuotot{font-size:var(--t-md);line-height:1.5;margin:12px 0 16px;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){
+  .arcopieno,.pillb i{animation:none}}
+
+/* ══ MODALITÀ LIBERA: foto-pasto e linee guida (Sprint 3) ═══════
+   La faccina è grande perché è la prima cosa che si legge, e il
+   testo che la segue è più grande del solito: sono due frasi, e
+   vanno lette davvero. */
+.fotoesito{text-align:center}
+.fotofaccia{font-size:44px;line-height:1;margin:4px 0 8px}
+.fototesto{font-size:var(--t-md);line-height:1.5;margin:0 0 16px;color:var(--ink)}
+.fotochips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:12px}
+.lgrid{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.lg{background:var(--menta);border-radius:12px;padding:12px 16px;font-size:var(--t-sm);
+  color:var(--bosco);font-weight:600}
+
+/* ══ GAMIFICATION E PESO (Sprint 4) ════════════════════════════
+   L'anello si riempie da solo: nessuna di queste forme è cliccabile,
+   e non deve sembrarlo. */
+.anello{display:flex;gap:8px;justify-content:space-between;margin:16px 0}
+.tacca{flex:1;height:36px;border-radius:12px;background:var(--linea);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s var(--ease),border-color .3s var(--ease)}
+.tacca i{font-style:normal;font-size:var(--t-xs);font-weight:700;color:var(--grigio)}
+.tacca.pieno{background:var(--azione)}
+.tacca.pieno i{color:#fff}
+.tacca.segnato{background:var(--menta);border:1px solid var(--salvia)}
+.tacca.segnato i{color:var(--bosco)}
+.tacca.futuro{background:transparent;border:1px dashed var(--linea)}
+.missione{display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:var(--crema);border-radius:12px;font-size:var(--t-sm)}
+.missione.fatta{background:var(--menta);color:var(--bosco);font-weight:600}
+.msegno{font-weight:700;color:var(--grigio)}
+.missione.fatta .msegno{color:var(--azione)}
+.trlist{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.trg{background:var(--menta);color:var(--bosco);border-radius:99px;
+  padding:8px 12px;font-size:var(--t-xs);font-weight:600}
+.p3{display:flex;justify-content:space-between;text-align:center;margin:16px 0}
+.p3>div{flex:1}
+.pv{font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:700;
+  color:var(--grigio);font-variant-numeric:tabular-nums}
+.pv.ora{font-size:32px;color:var(--bosco)}
+.pl{font-size:var(--t-xs);color:var(--grigio);margin-top:4px}
+.abitlist{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.abitrow{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:var(--crema);border-radius:12px;padding:8px 8px 8px 16px;font-size:var(--t-sm)}
+
+/* ══ CONSENSI (Sprint 7) ════════════════════════════════════════ */
+.conslist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.consriga{align-items:flex-start;gap:12px;background:var(--crema);
+  border-radius:12px;padding:12px 16px}
+.consriga input{margin-top:4px;flex:0 0 auto}
+.consriga .hint{margin:4px 0 0}

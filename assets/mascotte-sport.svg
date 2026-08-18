@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes heavyBreath-sport { 0%, 100% { transform: translateY(0px) scaleY(1); } 50% { transform: translateY(-4px) scaleY(1.02); } }
+    .mascot-sport-sport { animation: heavyBreath-sport 1.2s ease-in-out infinite; transform-origin: 150px 280px; }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-sport" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-sport" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="mascot-sport-sport">
+    <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-sport)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-sport)"/>
+    <circle cx="120" cy="190" r="7" fill="#1A4D40"/><circle cx="180" cy="190" r="7" fill="#1A4D40"/>
+    <line x1="105" y1="180" x2="130" y2="185" stroke="#1A4D40" stroke-width="4" stroke-linecap="round"/>
+    <line x1="195" y1="180" x2="170" y2="185" stroke="#1A4D40" stroke-width="4" stroke-linecap="round"/>
+    <path d="M 140,215 Q 150,225 160,215" fill="none" stroke="#1A4D40" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>

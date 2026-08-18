@@ -589,6 +589,21 @@ html[data-theme="dark"] .btn{color:#04211E}
   font-size:14.5px;cursor:pointer;flex-shrink:0;color:var(--ink);text-decoration:none;
   transition:transform .18s var(--ease),border-color .2s,color .2s}
 .ibtn .ico{display:block}
+/* dieci strumenti, due file da cinque: griglia esplicita così la
+   seconda fila non resta mai spaiata */
+.attrezzi{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.attrezzi .apic{font-size:18px;padding:8px 0;line-height:1;text-align:center}
+/* fame ed energia: più grandi, si toccano col pollice */
+.hungry span{width:26px;height:26px}
+.energy{display:inline-flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.energy b{font-size:11.5px;color:var(--grigio);font-weight:700;margin-right:4px}
+.energy span{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--linea);
+  background:var(--card);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+.energy span svg{width:15px;height:15px;fill:var(--linea)}
+.energy span.on{background:#FFF3E2;border-color:var(--zaff)}
+.energy span.on svg{fill:var(--zaff)}
+.energy small{color:var(--grigio);margin-left:4px}
+.energy-nota{font-size:11px;color:var(--grigio);margin-top:4px}
 .ibtn:hover{transform:translateY(-1px) scale(1.06);border-color:var(--salvia)}
 .ibtn:active{transform:scale(.9)}
 /* Fila icone: MAI lo scorrimento laterale — sei pulsanti, una riga.

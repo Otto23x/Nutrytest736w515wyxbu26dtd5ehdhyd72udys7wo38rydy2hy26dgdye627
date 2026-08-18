@@ -617,6 +617,18 @@ html[data-theme="dark"] .btn{color:#04211E}
 .cucpassi li{margin-bottom:12px}
 .cucpassi b{color:var(--bosco)}
 .cucmin{font-size:11.5px;color:var(--zaff);margin-left:8px;font-variant-numeric:tabular-nums}
+/* ── Insieme: la piazza ── */
+.ins-num{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:12px 0}
+.ins-num div{text-align:center}
+.ins-num b{display:block;font-family:'Fraunces',Georgia,serif;font-size:26px;color:var(--bosco);
+  font-variant-numeric:tabular-nums}
+.ins-num span{font-size:11.5px;color:var(--grigio);line-height:1.35;display:block;margin-top:4px}
+.msg-studio{padding:12px;border-radius:12px;background:var(--mensabg);margin-top:12px;font-size:14.5px;line-height:1.6}
+.msg-firma{font-size:11.5px;color:var(--grigio);margin-top:8px}
+.app-riga{display:flex;gap:8px;align-items:center;font-size:14.5px;color:var(--bosco);margin-top:8px}
+.ins-card h2{font-size:16px}
+.ins-storia{font-size:14.5px;line-height:1.6}
+.ins-reaz{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .cucnota{margin-top:12px;padding:12px;border-radius:12px;background:var(--mensabg);
   font-size:13.5px;color:var(--ink)}
 .ibtn:hover{transform:translateY(-1px) scale(1.06);border-color:var(--salvia)}

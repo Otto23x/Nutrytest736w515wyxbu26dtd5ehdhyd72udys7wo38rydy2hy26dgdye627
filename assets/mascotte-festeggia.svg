@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes jump-festeggia { 0%, 100% { transform: translateY(0px); } 40%, 60% { transform: translateY(-12px); } }
+    .mascot-jump-festeggia { animation: jump-festeggia 0.8s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-festeggia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-festeggia" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="mascot-jump-festeggia">
+    <path d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-festeggia)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-festeggia)"/>
+    <path d="M 110,190 Q 120,175 130,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 170,190 Q 180,175 190,190" fill="none" stroke="#1A4D40" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 130,205 Q 150,240 170,205 Z" fill="#1A4D40"/>
+  </g>
+</svg>

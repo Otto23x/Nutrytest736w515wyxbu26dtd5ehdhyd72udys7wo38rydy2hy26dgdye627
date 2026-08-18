@@ -386,12 +386,15 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
         </div>
         ${acquaRiga(di)}
         ${prox?`<div class="tnext">
-          <div class="k">${prox.tardi?"Da segnare":tr("Il prossimo pasto")}</div>
+          <div class="k">${prox.tardi?"Da segnare":tr("Questo pasto")}</div>
           <div class="t">${esc(fascia(prox.d||prox.slot||""))}</div>
           <div class="m">${Math.round(prox.k||0)} kcal · ${Math.round(prox.p||0)}g proteine ${(function(){const q=qPeek(prox.d);return q!=null?`<span class="qwrap" title="${tr("Qualità stimata del piatto")}">${qDot(q)}${q}%</span>`:"";})()}</div>
           ${(prox.pdi!=null&&prox.mi!=null)?hungryHTML(prox.pdi,prox.mi):""}
+          ${(prox.pdi!=null&&prox.mi!=null&&typeof energyHTML==="function")?energyHTML(prox.pdi,prox.mi):""}
+          ${(prox.pdi!=null&&prox.mi!=null)?attrezziPasto(prox.pdi,prox.mi):""}
           <div class="tcta">
             <button class="btn small" onclick="tgl(${prox.pdi},${prox.mi})">L'ho mangiato</button>
+            <button class="btn ghost small" onclick="saltaPasto(${prox.pdi},${prox.mi})">${tr("Non l'ho mangiato")}</button>
             <button class="btn ghost small" onclick="vaiPasto(${prox.pdi},${prox.mi})">${tr("Modifica")}</button>
           </div>
           ${prox.tardi?`<div class="hint" style="margin-top:12px">${tr("L'orario è passato. Se l'hai saltato, segnalo con ✗ in Oggi: così il bilancio resta giusto.")}</div>`:""}

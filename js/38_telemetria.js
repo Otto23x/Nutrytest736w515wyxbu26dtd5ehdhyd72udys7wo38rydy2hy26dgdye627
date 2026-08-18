@@ -85,7 +85,7 @@ window.tlmAccendi=tlmAccendi;
         '<h3>'+tr("Statistiche anonime d'uso")+'</h3>'+
         '<p class="hint">'+tr("Se le accendi, ci dici quali funzioni usi — mai cosa mangi, quanto pesi o come stai: solo «funzione usata», contata in forma anonima. Non esiste un tuo profilo da nessuna parte: per questo non c'è niente da cancellare.")+'</p>'+
         '<label class="ckline riga-toggle"><input type="checkbox" id="tlm-int" '+(on?"checked":"")+'> '+
-        (on?tr("Accese — grazie: ci aiuti a capire dove lavorare"):tr("Spente — l'app funziona identica"))+'</label>';
+        on?tr("Accese — grazie: ci aiuti a capire dove lavorare"):tr("Spente — l'app funziona identica")+'</label>';
       el.appendChild(box);
       const ck=box.querySelector("#tlm-int");
       ck.addEventListener("change",function(){tlmAccendi(ck.checked);renderIo();});

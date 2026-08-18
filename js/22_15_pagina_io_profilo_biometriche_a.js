@@ -1735,7 +1735,8 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   </div>`;
   h+=`<div class="gsec">Aiuto</div>`;
   /* Bug e proposte vivono nella stessa scheda (modulo 40): sono lo
-     stesso gesto e avere due strade diverse confondeva soltanto. */
+     stesso gesto — una persona che si ferma e ti scrive — e due
+     strade diverse confondevano soltanto. */
   h+=(typeof segnalazioniHTML==="function")?segnalazioniHTML():"";
   // AI
   el.innerHTML=h;}

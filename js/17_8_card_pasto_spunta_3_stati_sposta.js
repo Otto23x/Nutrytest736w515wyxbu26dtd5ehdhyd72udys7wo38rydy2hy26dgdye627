@@ -800,6 +800,64 @@ function hungryHTML(pdi,mi){
   return `<div class="hungry"><b>${st.done?"Che fame avevi?":tr("Che fame hai?")}</b>`+
     [1,2,3,4,5].map(n=>`<span class="${v>=n?"on":""}" title="${n} = ${n===1?"nessuna":(n===5?"tantissima":"")}" onclick="setHunger(${pdi},${mi},${n})"></span>`).join("")+
     `${v?`<small style="color:var(--grigio);margin-left:6px">${v}/5</small>`:""}</div>`;}
+
+/* ── L'ENERGIA GUARDA INDIETRO ────────────────────────────────────
+   La fame è di adesso; l'energia è un giudizio sul pasto PRECEDENTE:
+   «il pranzo ti ha retto fino a ora?». È l'unico modo di scoprire
+   quali piatti spengono — e si segna qui, sulla card di adesso,
+   perché è ora che lo sai, non tre ore fa. Il voto finisce sul
+   pasto precedente, non su questo: chi legge i numeri deve trovare
+   la colpa (o il merito) sul piatto giusto. */
+function pastoPrima(pdi,mi){
+  const d=S.week.days[pdi];if(!d)return null;
+  for(let i=mi-1;i>=0;i--){const m=d.meals[i];if(m&&m.done&&!m.skip)return {pdi,mi:i,st:m};}
+  const p=S.week.days[pdi-1];
+  if(p&&p.meals)for(let i=p.meals.length-1;i>=0;i--){const m=p.meals[i];if(m&&m.done&&!m.skip)return {pdi:pdi-1,mi:i,st:m};}
+  return null;}
+
+function energyHTML(pdi,mi){
+  const pre=pastoPrima(pdi,mi);
+  if(!pre)return "";                       /* niente pasto prima: niente domanda */
+  const v=+pre.st.energy||0;
+  const eti=["","spento","fiacco","normale","bene","pieno di energia"];
+  return `<div class="energy"><b>${tr("Quanta energia ti ha dato?")}</b>`+
+    [1,2,3,4,5].map(n=>`<span class="${v>=n?"on":""}" title="${n} = ${eti[n]}" onclick="setEnergy(${pre.pdi},${pre.mi},${n})">${FULMINE}</span>`).join("")+
+    `${v?`<small>${v}/5</small>`:""}</div>
+    <div class="energy-nota">${esc(tr("Sul pasto precedente"))}: ${esc((pre.st.d||"").slice(0,42))}${(pre.st.d||"").length>42?"…":""}</div>`;}
+
+const FULMINE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z"/></svg>';
+
+window.setEnergy=(pdi,mi,n)=>{
+  const st=S.week.days[pdi].meals[mi];
+  st.energy=(+st.energy===n)?0:n;
+  const d=S.week.days[pdi];
+  const vals=(d.meals||[]).filter(m=>m.energy>0).map(m=>+m.energy);
+  d.energyAvg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:0;
+  save();render(cur);};
+
+/* Quali piatti ti spengono: serve almeno 3 voti sullo stesso piatto,
+   altrimenti è aneddoto, non pattern. */
+function energyStats(){
+  const per={};
+  for(const d of flattenDiet())for(const m of (d.meals||[])){
+    if(!m.energy||!m.d)continue;
+    const k=(m.d||"").toLowerCase().slice(0,40);
+    (per[k]=per[k]||[]).push(+m.energy);}
+  const righe=Object.entries(per).filter(([,v])=>v.length>=3)
+    .map(([k,v])=>({piatto:k,media:Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10,n:v.length}))
+    .sort((a,b)=>a.media-b.media);
+  return righe.length?righe:null;}
+window.energyStats=energyStats;
+/* «Non l'ho mangiato» dalla card di adesso: salta questo e mostra il
+   prossimo, senza passare dal Piano. Annullabile come tutto il resto:
+   un tocco per sbaglio non deve costare un pasto. */
+window.saltaPasto=(pdi,mi)=>{
+  const st=S.week.days[pdi].meals[mi];
+  st.done=false;st.skip=true;
+  save();render(cur);   /* save() registra da solo lo stato di prima:
+                           «Annulla» in cima alla pagina lo riporta */
+  toast(tr("Pasto saltato. Il bilancio si è riassestato — Annulla se è stato un tocco per sbaglio."));};
+
 window.setHunger=(pdi,mi,n)=>{const st=S.week.days[pdi].meals[mi];
   st.hunger=(+st.hunger===n)?0:n;
   const d=S.week.days[pdi];
@@ -998,6 +1056,32 @@ function pendingMeals(di){
 /* Un'unica funzione per i bicchieri: prima ce n'erano due — «.water»
    con le gocce in Oggi e «.ag» nel Punto — e la stessa cosa aveva due
    forme diverse a seconda di dove la guardavi. */
+/* ── GLI STRUMENTI DEL PASTO, ANCHE SULLA SCHEDA PUNTO ────────────
+   Erano solo dentro il Piano: chi vive sulla card di adesso doveva
+   fare un viaggio per fotografare o scansionare. Dieci strumenti,
+   due file da cinque — pari, senza il bottone spaiato che tradisce
+   una griglia pensata male. Gli handler sono QUELLI DEL PIANO, non
+   copie: stessa funzione, un posto solo da correggere. I due nuovi
+   (commensali, cucina guidata) arrivano col prossimo sprint: finché
+   non esistono il bottone lo DICE, invece di rompersi in silenzio. */
+window.prossimamente=()=>toast(tr("Arriva col prossimo aggiornamento — ci stiamo lavorando."));
+
+function attrezziPasto(pdi,mi){
+  const B=[
+   ["camera",tr("Scatta la foto del piatto adesso"),"mealPhoto("+pdi+","+mi+")"],
+   ["gallery",tr("Scegli una foto già salvata nella galleria"),"mealPhoto("+pdi+","+mi+",true)"],
+   ["mic",tr("Detta cosa hai mangiato (conferma prima di salvare)"),"vocePasto()"],
+   ["tag",tr("Barcode: scansiona i prodotti di questo pasto"),"scanStart(viewIdx(),"+pdi+","+mi+")"],
+   ["guest",tr("Sono ospite: registra il pasto con una stima"),"stealthOpen("+pdi+","+mi+")"],
+   ["persone",tr("Per quante persone cucini?"),"prossimamente()"],
+   ["pentola",tr("Come si cucina: te lo spiega passo passo"),"prossimamente()"],
+   ["dice",tr("Inventami un'alternativa con gli stessi macro"),"altMeal("+pdi+","+mi+")"],
+   ["swap",tr("Non ho un ingrediente: 3 sostituzioni"),"subIngr("+pdi+","+mi+")"],
+   ["undo",tr("Ripristina originale"),"resetMeal("+pdi+","+mi+")"]
+  ];
+  return `<div class="attrezzi">${B.map(([icn,ti,fn])=>
+    `<button class="ibtn apic" title="${ti}" aria-label="${ti}" onclick="${fn}">${ic(icn,19)}</button>`).join("")}</div>`;}
+
 function acquaRiga(di,titolo){
   const g=waterGoal(di),b=(S.week.days[di]||{}).water||0;
   const pct=Math.min(100,Math.round(b/Math.max(1,g)*100));

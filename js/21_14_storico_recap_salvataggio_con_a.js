@@ -1471,11 +1471,7 @@ window.cleanupRun=async ()=>{
   dlgAlert(rep.length
     ? tr("Pulizia completata ✓")+"\n\n"+rep.join("\n")+"\n\n"+tr("Se qualcosa non torna, recuperi tutto da Ripristino di emergenza.")
     : tr("Non c'era nulla da rimuovere con questi criteri.\n\nControlla il periodo selezionato: con un intervallo di date vengono toccati solo pesate, settimane archiviate ed eventi che ci ricadono dentro."));};
-/* Compatibilità: la scheda è stata unificata nel modulo 40. Se qualcosa
-   chiama ancora la vecchia funzione, la gira alla nuova invece di
-   cercare campi che non esistono più. */
 window.sendBug=()=>{
-  if(typeof segInvia==="function"&&document.getElementById("segTxt"))return segInvia();
   const t=document.getElementById("bugType"),x=document.getElementById("bugTxt"),c=document.getElementById("bugCtx");
   const txt=(x&&x.value||"").trim();
   if(!txt)return dlgAlert(tr("Scrivi prima cosa vuoi segnalare."));

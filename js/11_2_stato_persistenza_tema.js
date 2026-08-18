@@ -2,7 +2,7 @@
    2. STATO, PERSISTENZA, TEMA
    ═══════════════════════════════════════════════════════════════ */
 const KEY="diarioDieta_v2"; // NON cambiare mai: e' dove vivono i dati dell'utente
-const APP_VER="12.66.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
+const APP_VER="12.65.0";        // aggiorna a ogni release: visibile in Io per verificare il deploy
 /*   SBLOCCO DI TEST — DA METTERE A false PRIMA DEL RILASCIO  
    Con true, ciclo/allattamento/gravidanza restano CLICCABILI anche sui
    profili maschili, per poterli provare senza cambiare genere. Con false

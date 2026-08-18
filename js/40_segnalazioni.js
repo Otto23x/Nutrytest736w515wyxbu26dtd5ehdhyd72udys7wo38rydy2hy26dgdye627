@@ -21,10 +21,10 @@ const SEG_CHIAVE="nuvia_segnalazioni";
 const SEG_BOZZA="nuvia_seg_bozza";
 
 const SEG_TIPI=[
-  {k:"bug",    e:"🐞", n:"Bug",           d:"Qualcosa non funziona"},
-  {k:"idea",   e:"💡", n:"Idea",          d:"Vorrei che facesse anche…"},
-  {k:"meglio", e:"✨", n:"Miglioria",     d:"Funziona, ma si può fare meglio"},
-  {k:"altro",  e:"💬", n:"Altro",         d:"Un pensiero, un dubbio, un grazie"}
+  {k:"bug",    e:"gear", n:"Bug",           d:"Qualcosa non funziona"},
+  {k:"idea",   e:"star", n:"Idea",          d:"Vorrei che facesse anche…"},
+  {k:"meglio", e:"pencil", n:"Miglioria",     d:"Funziona, ma si può fare meglio"},
+  {k:"altro",  e:"chiedi", n:"Altro",         d:"Un pensiero, un dubbio, un grazie"}
 ];
 
 const SEG_GRAVITA=[
@@ -187,7 +187,7 @@ function segnalazioniHTML(){
   const storia=segLista().slice().reverse();
 
   const chips=SEG_TIPI.map(x=>
-    `<button type="button" class="chipbtn${x.k===b.tipo?" on":""}" onclick="segTipo('${x.k}')">${x.e} ${esc(tr(x.n))}</button>`
+    `<button type="button" class="chipbtn${x.k===b.tipo?" on":""}" onclick="segTipo('${x.k}')">${ic(x.e,15)} ${esc(tr(x.n))}</button>`
   ).join("");
 
   const gravita = b.tipo==="bug"
@@ -215,8 +215,8 @@ function segnalazioniHTML(){
             <span class="pilll">${s.e||"💬"} ${esc(s.n||"")}${s.schermo?" · "+esc(s.schermo):""}</span>
             <span class="pilll">${esc(new Date(s.q).toLocaleDateString(typeof dataLoc==="function"?dataLoc():"it-IT"))}</span>
           </div>
-          <div style="font-size:13px;margin-top:2px">${esc(s.estratto||"")}${(s.estratto||"").length>=90?"…":""}</div>
-          <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="segScorda('${s.q}')">${esc(tr("Togli dalla lista"))}</button></div>
+          <div style="font-size:13px;margin-top:4px">${esc(s.estratto||"")}${(s.estratto||"").length>=90?"…":""}</div>
+          <div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="segScorda('${s.q}')">${esc(tr("Togli dalla lista"))}</button></div>
         </div>`).join("")}</div>
        <div class="hint">${esc(tr("Questa lista sta solo sul tuo telefono: è un promemoria per te, non un ticket aperto da qualche parte."))}</div>`
     : "";
@@ -242,10 +242,10 @@ function segnalazioniHTML(){
   <label class="ckline"><input type="checkbox" id="segTec" ${b.tec?"checked":""} onchange="segCambia()">
     ${esc(tr("Allega i dati tecnici"))}</label>
   <div class="hint">${esc(tr("Versione, dispositivo, schermo, lingua e se l'AI è configurata. Non escono né i tuoi dati alimentari né il profilo."))}</div>
-  <div class="mtools" style="margin-top:6px"><button class="btn ghost small" onclick="segVediTecnici()">${esc(tr("Vedi cosa esce"))}</button></div>
+  <div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="segVediTecnici()">${esc(tr("Vedi cosa esce"))}</button></div>
 
   <div class="btngrid2">
-    <button class="btn" onclick="segInvia()">${esc(tr("Invia per email"))}</button>
+    <button class="btn ghost" onclick="segInvia()">${esc(tr("Invia per email"))}</button>
     <button class="btn ghost" onclick="segCopia()">${esc(tr("Copia il testo"))}</button>
   </div>
   ${hint2(tr("Se la posta non si apre, usa «Copia»: incolli dove preferisci."),

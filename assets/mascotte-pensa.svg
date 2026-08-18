@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Nuvia">
+  <style>
+    @keyframes gentleFloat-pensa { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
+    @keyframes thinkTwitch-pensa { 0%, 80%, 100% { transform: rotate(0deg); } 85% { transform: rotate(4deg); } 90% { transform: rotate(-4deg); } 95% { transform: rotate(2deg); } }
+    .mascot-pensa-pensa { animation: gentleFloat-pensa 4s ease-in-out infinite; }
+    .leaf-antenna-pensa { animation: thinkTwitch-pensa 3s infinite; transform-origin: 150px 140px; }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>
+  <defs>
+    <linearGradient id="tealGrad-pensa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E0C6" /><stop offset="100%" stop-color="#00AFA3" /></linearGradient>
+    <linearGradient id="coralGrad-pensa" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFA07A" /><stop offset="100%" stop-color="#FF7F50" /></linearGradient>
+  </defs>
+  <g class="mascot-pensa-pensa">
+    <path class="leaf-antenna-pensa" d="M 150,140 C 170,70 220,70 220,120 C 220,150 170,160 150,140" fill="url(#coralGrad-pensa)"/>
+    <path d="M 70,230 C 70,140 110,130 150,130 C 190,130 230,140 230,230 C 230,280 190,280 150,280 C 110,280 70,280 70,230" fill="url(#tealGrad-pensa)"/>
+    <circle cx="125" cy="185" r="8" fill="#1A4D40"/><circle cx="185" cy="185" r="8" fill="#1A4D40"/>
+    <circle cx="130" cy="182" r="3" fill="#FFFFFF"/><circle cx="190" cy="182" r="3" fill="#FFFFFF"/>
+    <circle cx="150" cy="215" r="4" fill="#1A4D40"/>
+  </g>
+</svg>

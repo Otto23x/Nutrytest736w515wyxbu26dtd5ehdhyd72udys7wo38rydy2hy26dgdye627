@@ -171,3 +171,37 @@ function arcoMiniHTML(usati,quota,titolo){
     <circle class="arcopieno" cx="18" cy="18" r="13" stroke="${arcoColore(pct)}" stroke-dasharray="${pieno.toFixed(1)} 999"/></svg>
   </span>`;}
 window.arcoMiniHTML=arcoMiniHTML;
+
+
+/* ═══ IL FESTONE ═══════════════════════════════════════════════
+   Un pasto spuntato è la cosa più frequente che si fa qui dentro,
+   e finora non succedeva niente. Adesso cadono sei coriandoli per
+   novecento millisecondi.
+
+   LE REGOLE, che sono più importanti dell'effetto:
+   · DURATA: 900 ms e via. Una festa più lunga diventa un ostacolo
+     fra te e la cosa dopo.
+   · FREQUENZA: solo alla spunta di un pasto, non a ogni tocco.
+     Se si festeggia tutto non si festeggia niente.
+   · SILENZIO: niente suoni, niente vibrazione. La gente segna i
+     pasti in ufficio e in mensa.
+   · RISPETTO: chi ha chiesto meno movimento non vede nulla — e
+     non perde niente, perché il pasto è spuntato lo stesso.     */
+const FESTONE_COLORI=["#00AFA3","#FF7F50","#7FD4CC","#FFB37A","#0C7C74","#E4632F"];
+window.festone=(x,y)=>{
+  try{
+    if(!matchMedia("(prefers-reduced-motion: no-preference)").matches)return;
+  }catch(e){return;}
+  const box=document.createElement("div");
+  box.className="festone";
+  const cx=(x==null?innerWidth/2:x), cy=(y==null?innerHeight*0.35:y);
+  for(let i=0;i<6;i++){
+    const p=document.createElement("i");
+    p.style.background=FESTONE_COLORI[i%FESTONE_COLORI.length];
+    p.style.left=cx+"px";p.style.top=cy+"px";
+    p.style.setProperty("--dx",(Math.random()*140-70).toFixed(0)+"px");
+    p.style.setProperty("--rot",(Math.random()*540-270).toFixed(0)+"deg");
+    p.style.animationDelay=(i*40)+"ms";
+    box.appendChild(p);}
+  document.body.appendChild(box);
+  setTimeout(()=>box.remove(),1300);};

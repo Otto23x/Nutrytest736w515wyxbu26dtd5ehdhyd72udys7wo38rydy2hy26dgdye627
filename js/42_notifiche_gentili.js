@@ -182,9 +182,12 @@ function curaRitorno(){
 window.curaRitorno=curaRitorno;
 
 /* ── il «come stai?» del dopo-traguardo ───────────────────────── */
-function curaComeStai(){
+/* L'orario si può passare: una funzione che legge l'ora di sistema
+   dà risultati diversi a seconda di quando gira, e un collaudo che
+   passa di giorno e fallisce di notte non difende niente. */
+function curaComeStai(quando){
   if(giorniDaTraguardo()===null)return null;
-  if(!curaSiPuo("comestai").ok)return null;
+  if(!curaSiPuo("comestai",quando).ok)return null;
   return curaComponi({
     messaggio:tr("Come stai?"),
     mossa:tr("Serve una mano a mantenere?")});}

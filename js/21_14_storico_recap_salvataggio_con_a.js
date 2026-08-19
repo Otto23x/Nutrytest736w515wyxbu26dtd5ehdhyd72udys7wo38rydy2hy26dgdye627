@@ -118,9 +118,9 @@ function sostegnoCardHTML(){
   if(!r||S.ui.sosOff)return "";
   return `<div class="card" style="border-left:4px solid var(--zaff)">
     <h2>${tr("Una cosa, con calma")}</h2>
-    <div class="hint">${tr("Guardando gli ultimi giorni ho notato questo:")}</div>
+    Guardando gli ultimi giorni ho notato questo:
     ${r.segni.map(x=>`<div class="hint" style="margin-top:8px"><b>${esc(x.t)}</b>.</div>`).join("")}
-    <div class="hint" style="margin-top:12px">${tr("Non è una diagnosi e non voglio spaventarti: sono numeri, e i numeri non sanno come stai davvero. Ma quando queste cose durano, un'app non basta — e non deve bastare. Parlarne con il tuo medico, o con uno psicologo, è la mossa più utile che puoi fare per te.")}</div>
+    ${hint2(tr("Non è una diagnosi e non voglio spaventarti:"),tr("Sono numeri, e i numeri non sanno come stai davvero. Ma quando queste cose durano, un'app non basta — e non deve bastare. Parlarne con il tuo medico, o con uno psicologo, è la mossa più utile che puoi fare per te."))}
     <div class="hint" style="margin-top:12px">${tr("In Italia esiste un numero verde gratuito e anonimo per i disturbi alimentari:")} <b>${SOS_NUMERO}</b> ${tr("(lun-ven). Rispondono psicologi e nutrizionisti, anche solo per capire se c'è qualcosa di cui parlare.")}</div>
     <div class="mtools">
       <button class="btn ghost small" onclick="sosNascondi()">${tr("Ho capito, non mostrarlo più")}</button>
@@ -169,7 +169,7 @@ function debriefCardHTML(forza){
   const fatte=debriefRisposte();
   const resto=dom.filter(d=>!fatte[d.id]);
   let h=`<div class="card" style="border-left:4px solid var(--teal)"><h2>${tr("Com'è andata la settimana")}</h2>
-    <div class="hint">${tr("Due minuti, guardando i tuoi numeri veri. Quello che scrivi finisce nel racconto: la settimana nuova ne tiene conto.")}</div>`;
+    ${hint2(tr("Due minuti, guardando i tuoi numeri veri."),tr("Quello che scrivi finisce nel racconto: la settimana nuova ne tiene conto."))}`;
   dom.forEach(d=>{h+=`<div class="hint" style="margin-top:12px">${fatte[d.id]?"✓ ":""}<b>${d.q}</b>${fatte[d.id]?"":`<div class="mtools" style="margin-top:8px"><button class="btn ghost small" onclick="debriefRispondi('${d.id}')">${tr("Rispondo")}</button></div>`}</div>`;});
   h+=`<div class="mtools" style="margin-top:12px">`;
   if(!resto.length&&aiOn())h+=`<button class="btn small" onclick="debriefMossa()">${tr("Proponimi UNA mossa per la settimana nuova")}</button>`;
@@ -216,7 +216,7 @@ function renderComeStai(){
   const di=viewIdx();   /* stesso giorno che stai guardando altrove */
   let h=`<div class="gsec">${"Oggi"}</div>`;
   h+=`<div class="card"><h2>${tr("Come stai adesso")}</h2>
-    <div class="hint">${tr("Quattro tocchi. Non è un questionario: è quello che permette a Nuvia di capire perché certe giornate vanno storte.")}</div>
+    Quattro tocchi. Non è un questionario: è quello che permette a Nuvia di capire perché certe giornate vanno storte.
     <div class="duo" style="margin-top:16px">
       <div><label>${tr("Come hai dormito")}</label>${stars(di,"sleep")}</div>
       <div><label>${tr("Come ti senti")}</label>${stars(di,"feel")}</div>
@@ -226,6 +226,11 @@ function renderComeStai(){
       <div><label>${tr("Fame nervosa")}</label>${stars(di,"emo")}</div>
     </div>
     ${emoNota(di)}</div>`;
+  /* Se stress o fame nervosa sono alti, si offre un gesto — non un
+     altro consiglio da leggere, una cosa da fare col corpo. */
+  {const d=S.week.days[di]||{};
+   if((+d.stress>=4||+d.emo>=4)&&typeof gestiBlocco==="function")
+     h+=gestiBlocco("stress",tr("Una cosa che puoi fare adesso"));}
   h+=(typeof letturaCardHTML==="function")?letturaCardHTML():"";
   /* Prima il ricontrollo (se è ora), poi una domanda nuova: mai insieme. */
   const ric=(typeof sensoRichiestaHTML==="function")?sensoRichiestaHTML():"";
@@ -238,7 +243,7 @@ function renderComeStai(){
   const sos=(typeof sostegnoCardHTML==="function")?sostegnoCardHTML():"";
   if(sos)h+=sos;
   h+=`<div class="card"><h2>${tr("Se serve più di un'app")}</h2>
-    <div class="hint">${tr("Nuvia sta accanto, non cura. Quando quello che senti dura da settimane, o quando il cibo è diventato il modo principale per gestire le emozioni, parlarne con uno psicologo o un medico è la cosa più utile che puoi fare — e non toglie nulla a quello che stai facendo qui.")}</div>
+    ${hint2(tr("Nuvia sta accanto, non cura."),tr("Quando quello che senti dura da settimane, o quando il cibo è diventato il modo principale per gestire le emozioni, parlarne con uno psicologo o un medico è la cosa più utile che puoi fare — e non toglie nulla a quello che stai facendo qui."))}
     <div class="hint" style="margin-top:12px;border-left:4px solid var(--salvia);padding-left:12px">
       ${trh("{b}<br>{n} — gratuito e anonimo, attivo dal lunedì al sabato.",{b:"<b>"+tr("Numero verde SOS Disturbi Alimentari")+"</b>",n:SOS_NUMERO})}</div></div>`;
   document.getElementById("pg-comestai").innerHTML=h;}
@@ -253,11 +258,11 @@ function schemiPagina(){
     ${vuotoDi("schemi")}
     <div class="hint" style="text-align:center">${fascia(r.n)}/${r.servono} ${tr("giorni")}</div></div>`;
   if(!r.schemi.length)return `<div class="card"><h2>${tr("I tuoi schemi")}</h2>
-    <div class="hint">${tr("Negli ultimi giorni non emergono schemi ricorrenti: quello che mangi non sembra legato a sonno, stress o fame nervosa. È una buona notizia.")}</div></div>`;
+    ${hint2(tr("Negli ultimi giorni non emergono schemi ricorrenti:"),tr("Quello che mangi non sembra legato a sonno, stress o fame nervosa. È una buona notizia."))}</div>`;
   return `<div class="card"><h2>${tr("I tuoi schemi")}</h2>
     <div class="hint">${tr("Cosa si ripete, negli ultimi {n} giorni vissuti. Sono osservazioni, non giudizi: servono a costruire proposte che funzionino nei tuoi momenti difficili.",{n:r.giorni||r.n})}</div>
     ${r.schemi.map(x=>`<div class="hint" style="margin-top:12px;border-left:4px solid ${x.priorita?"var(--zaff)":"var(--salvia)"};padding-left:12px">${esc(x.testo)}</div>`).join("")}
-    ${r.schemi.some(x=>x.t==="restrizione")?`<div class="hint" style="margin-top:12px">${tr("Se questo schema ti pesa o si ripete da mesi, parlarne con un professionista è la mossa più utile: qui trovi solo i numeri, non un aiuto clinico.")}</div>`:""}
+    ${r.schemi.some(x=>x.t==="restrizione")?`${hint2(tr("Se questo schema ti pesa o si ripete da mesi, parlarne con un professionista è la mossa più utile:"),tr("Qui trovi solo i numeri, non un aiuto clinico."))}`:""}
   </div>`;}
 /* ── L'AGENTE CHE RICORDA ────────────────────────────────────────────
    Non consigli generici: proposte che nascono da quello che è successo
@@ -363,7 +368,7 @@ function letturaCardHTML(){
   if(!d)return "";
   const ultimo=(S.ui&&S.ui.letturaAt)||"";
   return `<div class="card"><h2>${tr("Come sta andando, tutto insieme")}</h2>
-    <div class="hint">${tr("Cibo, movimento e testa nella stessa lettura: è l'unico modo per capire se il peso fermo è uno stallo o una ricomposizione, e se la fame di certe sere viene dal piatto o dalla settimana.")}</div>
+    ${hint2(tr("Cibo, movimento e testa nella stessa lettura:"),tr("È l'unico modo per capire se il peso fermo è uno stallo o una ricomposizione, e se la fame di certe sere viene dal piatto o dalla settimana."))}
     <div class="hint" style="margin-top:12px">${[
       d.sonno!=null?tr("sonno")+" "+d.sonno+"/5":"",
       d.stress!=null?tr("stress")+" "+d.stress+"/5":"",
@@ -645,15 +650,15 @@ function periodsCardHTML(forIo){
   if(ap){const st=periodStats(ap);
     h+=`<div class="hint">${tr("In corso:")} <b>${periodLabel(ap)}</b> dal ${ap.start} ${tr("· giorno")} ${st.nDays} · aspettativa ${starsTxt(ap.expStars)}${ap.expNote?` · <i>"${esc(ap.expNote)}"</i>`:""}</div>
     <div class="mtools"><button class="btn small" onclick="endPeriod(${ap.id})">${tr("Chiudi")} ${periodLabel(ap)}</button>
-    <button class="btn ghost small" onclick="editPeriod(${ap.id})">${ic("pencil",15)}</button>${forIo?`
+    <button title="${tr("Apri")}" class="btn ghost small" onclick="editPeriod(${ap.id})">${ic("pencil",15)}</button>${forIo?`
     <button class="btn ${S.ui.vacanza?"warn":"ghost"} small" onclick="toggleVacanza()">${S.ui.vacanza?"Fine vacanza":"Vacanza"}</button>`:""}</div>${forIo?`
-    <div class="hint" style="margin-top:8px">${tr("In vacanza deficit e serie sono sospesi: l'app resta un semplice diario.")}</div>`:""}`;
+    In vacanza deficit e serie sono sospesi: l'app resta un semplice diario.`:""}`;
   }else{
-    h+=`<div class="hint">${tr("Nessun periodo aperto. Aprine uno per raggruppare i dati: saprai sempre da quando è iniziato e potrai confrontare aspettativa, sensazione finale e comportamento reale.")}</div>
+    h+=`${hint2(tr("Nessun periodo aperto. Aprine uno per raggruppare i dati:"),tr("Saprai sempre da quando è iniziato e potrai confrontare aspettativa, sensazione finale e comportamento reale."))}
     <div class="mtools"><button class="btn small" onclick="startPeriod('dieta')">Dieta ${nextPeriodN("dieta")}</button>
     <button class="btn ghost small" onclick="startPeriod('libero')">Libero ${nextPeriodN("libero")}</button>${forIo?`
     <button class="btn ${S.ui.vacanza?"warn":"ghost"} small" onclick="toggleVacanza()">${S.ui.vacanza?"Fine vacanza":"Vacanza"}</button>`:""}</div>
-    ${forIo?`<div class="hint" style="margin-top:8px">${tr("In vacanza deficit e serie sono sospesi: l'app resta un semplice diario.")}</div>`:""}`;}
+    ${forIo?`In vacanza deficit e serie sono sospesi: l'app resta un semplice diario.`:""}`;}
   if(!forIo){ // in Storico: lista completa con metriche e valutazione AI
     const closed=S.periods.filter(p=>p.end).slice().reverse();
     closed.forEach(p=>{const st=periodStats(p);
@@ -667,9 +672,9 @@ function periodsCardHTML(forIo){
       <div class="mtools" style="margin-top:8px">
       <button class="btn ghost small" onclick="aiRatePeriod(${p.id})">${p.aiStars?"Rivaluta":"Valutazione AI"}</button>
       <button class="btn ghost small" onclick="analyzePeriod(${p.id})">Analizza</button>
-      <button class="btn ghost small" onclick="editPeriod(${p.id})">${ic("pencil",15)}</button>
-      <button class="btn ghost small" onclick="delPeriod(${p.id})">${ic("trash",15)}</button></div></div>`;});
-    if(!closed.length&&!ap)h+=`<div class="hint" style="margin-top:8px">${tr("Ancora nessun periodo registrato.")}</div>`;
+      <button title="${tr("Apri")}" class="btn ghost small" onclick="editPeriod(${p.id})">${ic("pencil",15)}</button>
+      <button title="${tr("Apri")}" class="btn ghost small" onclick="delPeriod(${p.id})">${ic("trash",15)}</button></div></div>`;});
+    if(!closed.length&&!ap)h+=`<div class="hint" style="margin-top:8px">${""}</div>`;
   }
   h+=`</div>`;return h;}
 
@@ -889,6 +894,8 @@ function onbSave(silent){
   if(st===2){const k=v("obKey");if(k)S.ai.key=k;}
   if(st===6){const c=v("obCid");if(c)S.drive.cid=c;}
   save();return true;
+  /* un gesto da fare col corpo, non un altro consiglio da leggere */
+
 }
 function renderBenvenuto(){
   if(!S.onboard.done&&!S.onboard.started){S.onboard.started=true;save();}
@@ -923,7 +930,7 @@ function renderBenvenuto(){
     <div class="hint" id="obBolleNota" style="margin:0 0 8px"></div>
     <textarea id="obStory" rows="4" oninput="raccontoBolle()" placeholder="${esc(tr("es. Ho 37 anni, sono alto 178 per 82 kg, lavoro seduto ma gioco a tennis due volte a settimana, vorrei arrivare a 76 kg senza soffrire. Non mangio lattosio e la sera mi viene fame quando sono stressato."))}">${esc((S.profile&&S.profile.story)||"")}</textarea>
     <div class="mtools">
-      <button class="btn ghost small" id="obMic" onclick="raccontoVoce()">${ic("mic",15)} ${tr("Detta")}</button>
+      <button title="${tr("Apri")}" class="btn ghost small" id="obMic" onclick="raccontoVoce()">${ic("mic",15)} ${tr("Detta")}</button>
       <button class="btn small" onclick="raccontoLeggi()">${tr("Leggi e compila")}</button></div>
     <div class="aibox" aria-live="polite" id="obStoryOut" style="display:none"></div>
     <div class="rbolle" id="obBolle2"></div>
@@ -1043,7 +1050,7 @@ function renderBenvenuto(){
     <label>${tr("Cosa ti piace")}</label><input type="text" id="obSi" value="${esc(D.si||"")}" placeholder="es. pesce azzurro, uova, yogurt greco">
     <div class="obwhere">${tr("Tutto modificabile in")} <b>${tr("Regole → Caratteristiche alimentari")}</b>.</div>
   <label>${tr("Cosa ti fa mangiare quando non hai fame")}</label>
-  <div class="hint" style="margin:0 0 8px">${tr("Facoltativo, e nessuno ti giudica: serve a proporti qualcosa che funzioni davvero in quei momenti, invece di ripeterti «mangia meno».")}</div>
+  Facoltativo, e nessuno ti giudica: serve a proporti qualcosa che funzioni davvero in quei momenti, invece di ripeterti «mangia meno».
   <div class="ckgrid">${["stress","stanchezza","noia","solitudine","rabbia","tristezza","abitudine serale","niente di tutto questo"]
     .map(c=>`<label class="ck"><input type="checkbox" name="obTrig" value="${c}" ${((S.diet&&S.diet.trigger)||[]).includes(c)?"checked":""}> ${tr(c)}</label>`).join("")}</div>
   <label style="margin-top:12px">${tr("Altro — dillo con parole tue")}</label>
@@ -1218,7 +1225,7 @@ function rulesCardHTML(){
   </div>
 
   <div class="card"><details class="gdet"><summary><h2>${tr("Cosa sa di te l'AI")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-  <div class="hint" style="margin-top:4px">${tr("Questo è il testo esatto che accompagna ogni richiesta all'AI, composto adesso dai tuoi dati: regole, intolleranze, divieti, stati del corpo, preferenze. Cambi qualcosa nell'app e cambia anche qui. Niente parte verso l'AI oltre a questo e alla domanda del momento.")}</div>
+  ${hint2(tr("Questo è il testo esatto che accompagna ogni richiesta all'AI, composto adesso dai tuoi dati:"),tr("Regole, intolleranze, divieti, stati del corpo, preferenze. Cambi qualcosa nell'app e cambia anche qui. Niente parte verso l'AI oltre a questo e alla domanda del momento."))}
   <div style="white-space:pre-wrap;font-size:14.5px;line-height:1.55;color:var(--grigio);border:1px solid var(--linea);border-radius:12px;padding:12px;margin-top:8px;max-height:340px;overflow:auto">${esc(rulesForAI())}</div>
   ${(function(){const h=S.aiHealth||{};const ks=Object.keys(h);if(!ks.length)return "";
     const rotti=ks.filter(k=>h[k].ko>0);
@@ -1278,7 +1285,7 @@ function rulesCardHTML(){
   </table>
   ${rateCapped()?`<table class="rules"><tr><td colspan="3" class="rfull" style="color:var(--zafft);font-weight:600;background:var(--zaffbg)"> ${trh("{v1}. Per andare più veloce serve il parere di un nutrizionista.",{v1:rateNote()})}</td></tr></table>`:""}
   <div class="mtools" style="margin:12px 0 4px"><button class="btn small" onclick="restartOnboarding()">${tr("Modifica nel percorso guidato ›")}</button></div>
-  <div class="hint">${tr("Peso obiettivo, ritmo, fasi e allenamenti si impostano lì: una fonte sola, niente doppioni.")}</div>
+  Peso obiettivo, ritmo, fasi e allenamenti si impostano lì: una fonte sola, niente doppioni.
   <details class="gdet" style="margin-top:12px"><summary><h2 style="font-size:14.5px">Regolazioni fini</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
   <table class="rules">
   ${row(tr("Come fissare il deficit"),tr("<b>Percentuale</b>: mangi una quota del fabbisogno (20% = l'80% di quello che consumi). <b>Ritmo</b>: parti dai chili a settimana desiderati."),
@@ -1362,7 +1369,7 @@ window.promptShow=()=>{
     '<div class="hint" style="margin-top:8px">Sono '+t.length+' caratteri. Questo testo viene aggiunto a <b>ogni</b> richiesta: generazione del piano, ribilanciamento, alternative, strumenti.</div>';};
 /* Segnalazione allo sviluppatore: apre il client di posta (Gmail sul telefono)
    con destinatario, oggetto e corpo già compilati. */
-const DEV_MAIL="alberto.scian@gmail.com";
+const DEV_MAIL="info@nuviahealth.app"   /* la casella del progetto, non quella personale */;
 /* ═══ PIANI PRECONFEZIONATI ═══════════════════════════════════════
    Un codice carica un piano già pronto. 00000000 è la dieta standard
    con cui è nata Nuvia (mediterranea, cinque pasti, mensa il martedì
@@ -1681,7 +1688,7 @@ function protChecksHTML(pre,D){
   const cur=String(D.protocolli||"").toLowerCase();
   let h=`<div class="ckgrid">`+PROT_LIST.map((x,i)=>
     `<label class="ck"><input type="checkbox" id="${pre}Pr${i}" ${cur.indexOf(x.k)>-1?"checked":""}> ${x.l}</label>`).join("")+`</div>`;
-    if(cur.indexOf("diana")>-1)h+=`<div class="hint" style="background:var(--menta);padding:12px 12px;border-radius:12px;margin-top:8px">${tr("<b>DIANA</b> sta per «DIeta e ANdrogeni»: è lo stile alimentare studiato dall'Istituto Nazionale dei Tumori di Milano — cereali integrali, legumi, verdura, pochissimo zucchero e poca carne. Qui è proposto come modo di mangiare, non come terapia: per qualunque uso clinico parlane con il tuo medico.")}</div>`;
+    if(cur.indexOf("diana")>-1)h+=`${hint2(tr("<b>DIANA</b> sta per «DIeta e ANdrogeni»:"),tr("È lo stile alimentare studiato dall'Istituto Nazionale dei Tumori di Milano — cereali integrali, legumi, verdura, pochissimo zucchero e poca carne. Qui è proposto come modo di mangiare, non come terapia: per qualunque uso clinico parlane con il tuo medico."))}`;
   const extra=parseSlots(D.protocolli).filter(x=>!PROT_LIST.some(p=>x.toLowerCase().indexOf(p.k)>-1)).join(", ");
   h+=`<label>Altri protocolli</label>
   <input type="text" id="${pre}Prtxt" value="${esc(extra)}" placeholder="es. dieta a rotazione, Mind, dissociata">`;
@@ -1789,7 +1796,7 @@ function vegChecksHTML(pre,tipo){const D=S.diet;
       <label class="ck"><input type="checkbox" id="${pre}VegU" ${(D.vegUova!==false)?"checked":""}> Uova ammesse</label>
       <label class="ck"><input type="checkbox" id="${pre}VegP" ${D.vegPesce?"checked":""}> Pesce ammesso</label>
     </div>
-    <div class="hint">${tr("Nella dieta vegetariana le versioni cambiano: di norma le uova sono ammesse e il pesce no. Regola qui come mangi tu.")}</div>
+    Nella dieta vegetariana le versioni cambiano: di norma le uova sono ammesse e il pesce no. Regola qui come mangi tu.
   </div>`;}
 /* Chiamata dal menù della dieta: mostra o nasconde le due precisazioni.
    Passando a «vegetariana» da un'altra dieta si parte dalla versione più
@@ -1820,7 +1827,7 @@ const DIET_TYPES=["mediterranea","onnivora","vegetariana","vegana","pescetariana
 function dietCardHTML(){const D=S.diet;
   const sel=(id,val,opts)=>`<select id="${id}">`+opts.map(o=>`<option ${val===o?"selected":""}>${o}</option>`).join("")+`</select>`;
   return `<div class="card"><h2>Caratteristiche alimentari</h2>
-  <div class="hint">${tr("Definiscono come l'AI costruisce e corregge i pasti: entrano in ogni proposta insieme alle regole numeriche qui sopra.")}</div>
+  Definiscono come l'AI costruisce e corregge i pasti: entrano in ogni proposta insieme alle regole numeriche qui sopra.
   <label>${tr("Dieta di riferimento")}</label>
   ${`<select id="dTipo" onchange="vegUI('d',this.value)">`+DIET_TYPES.map(o=>`<option ${D.tipo===o?"selected":""}>${o}</option>`).join("")+`</select>`}
   ${vegChecksHTML("d",D.tipo)}
@@ -1834,7 +1841,7 @@ function dietCardHTML(){const D=S.diet;
   ${hint2(tr("Varietà <b>bassa</b>: poche fonti proteiche e pochi contorni che tornano più volte, spesa corta e poco da cucinare."),tr("<b>Alta</b>: ogni giorno diverso, spesa più lunga."))}
   <label>${tr("Quali pasti fai davvero")}</label>
   ${slotsChecksHTML("d",D.slots||"Colazione, Metà mattina, Pranzo, Metà pomeriggio, Cena")}
-  <div class="hint">${tr("Spunta solo quelli che fai: il numero di pasti al giorno esce da qui, e il piano non proporrà quelli spenti.")}</div>
+  Spunta solo quelli che fai: il numero di pasti al giorno esce da qui, e il piano non proporrà quelli spenti.
   ${outTypeHTML("d",false)}
   <label>${tr("Giorni fuori casa")}</label>
   ${mensaChecksHTML("d",D.mensaGiorni)}
@@ -1957,7 +1964,7 @@ function genPassi(box,fatti,extra){
       k<n  ? `<div class="gday ok">✓ ${esc(nome)}</div>`
     : k===n? `<div class="gday now">◍ ${esc(nome)} — ci sto lavorando…</div>`
     :        `<div class="gday">○ ${esc(nome)}</div>`).join("")+
-    `<div class="hint" style="margin-top:12px">${tr("Un passo alla volta, per rispettare tutte le tue richieste. Può volerci qualche minuto: puoi anche mettere via il telefono, il lavoro continua.")}</div>`;}
+    `${hint2(tr("Un passo alla volta, per rispettare tutte le tue richieste."),tr("Può volerci qualche minuto: puoi anche mettere via il telefono, il lavoro continua."))}`;}
 function genBox(){
   /* L'avanzamento sta DENTRO la scheda da cui è partito il lavoro, non
      in una finestra che copre la pagina: chi ha premuto «Genera il
@@ -2392,7 +2399,7 @@ function extendedRecapHTML(){
       <td class="n">${n?avg("burn"):"–"}</td>
       <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--rosso)"}">${n?((avg("def")>=0?"−":"+")+Math.abs(avg("def"))):"–"}</td></tr>`;});
   return `<div class="card"><h2>${tr("Riepilogo esteso")}</h2>
-  <div class="hint">${tr("Il quadro completo del periodo scelto: medie, totali e scostamenti rispetto al piano.")}</div>
+  Il quadro completo del periodo scelto: medie, totali e scostamenti rispetto al piano.
   <div class="mtools">${["settimana","mese"].map(m=>`<button class="chipbtn" style="${RECAP.mode===m?"border-color:var(--salvia);color:var(--salvia);font-weight:700":""}" onclick="setRecapMode('${m}')">${m==="settimana"?"Settimanale":"Mensile"}</button>`).join("")}</div>
   <div style="max-height:320px;overflow-y:auto;border:1px solid var(--linea);border-radius:12px;margin-top:8px">
   <table><tr><th>Periodo</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>${rowsH||`<tr><td colspan="5">${tr("Ancora nessun dato.")}</td></tr>`}</table></div>
@@ -2480,7 +2487,7 @@ function renderTools(){
   
   <div class="aibox" aria-live="polite" id="volOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>${tr("Oggi voglio spiluccare")}</h2>
-  <div class="hint">${tr("I pasti che restano diventano un vassoio di bocconcini da consumare lentamente, con lo stesso totale di calorie e proteine.")}</div>
+  I pasti che restano diventano un vassoio di bocconcini da consumare lentamente, con lo stesso totale di calorie e proteine.
   ${mealSelHtml("grazTarget",di)}
   <div class="mtools"><button class="btn small" onclick="grazing(${di})">${tr("Trasforma in spuntini")}</button></div>
   
@@ -2498,7 +2505,7 @@ function renderTools(){
   
   <div class="aibox" aria-live="polite" id="caliOut" style="display:none"></div></div>`;
   h+=`<div class="card"><h2>Mi alleno tra poco e ho zero energie</h2>
-  <div class="hint">${trh("Non aggiunge calorie: l'AI {b} una quota di carboidrati dai pasti che devi ancora fare e la trasforma in uno spuntino pre-allenamento ad assorbimento rapido, lasciando intatte le proteine. Poi aggiorna da sola i pasti da cui l'ha presa.",{b:"<b>prende</b>"})}</div>
+  <div class="hint">${hint2(tr("Non aggiunge calorie: sposta, non somma."),trh("L'AI {b} una quota di carboidrati dai pasti che devi ancora fare e la trasforma in uno spuntino pre-allenamento ad assorbimento rapido, lasciando intatte le proteine. Poi aggiorna da sola i pasti da cui l'ha presa.",{b:"<b>prende</b>"}))}</div>
   <div class="mtools"><button class="btn small" onclick="fuelPre(${di})">Trova uno spuntino</button></div>
   <div class="aibox" aria-live="polite" id="fuelOut" style="display:none"></div></div>`;
   // Svuota-frigo — "⭐ I miei piatti" al posto di "Usa il testo"; "Usa il testo" sotto la casella
@@ -2522,7 +2529,7 @@ function renderTools(){
     <option value="molto pesante, ho bevuto parecchio">molto pesante</option>
   </select>
   <div class="mtools"><button class="btn small" onclick="dopoAI(${di})">${tr("Sistema oggi")}</button></div>
-  <div class="hint">${tr("Non è un consiglio medico: se ti senti male, parlane con un medico.")}</div>
+  Non è un consiglio medico: se ti senti male, parlane con un medico.
   <div class="aibox" aria-live="polite" id="dopoOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Cucino</div>`;
   h+=`<div class="card"><h2>Ho dieci minuti</h2>
@@ -2531,7 +2538,7 @@ function renderTools(){
   <div class="mtools"><button class="btn small" onclick="rapidoAI(${di})">${tr("Cosa faccio")}</button></div>
   <div class="aibox" aria-live="polite" id="rapOut" style="display:none"></div></div>`;
   h+=`<div class="card" style="margin-top:16px"><h2>${tr("Crea un piatto con quello che hai")}</h2>
-  <div class="hint">${tr("Scatta PIÙ foto (frigo, congelatore, dispensa), poi «Crea»: il piatto sarà tarato sul pasto di questo momento, compensando le calorie già accumulate oggi. In alternativa scrivi gli ingredienti qui sotto.")}</div>
+  ${hint2(tr("Scatta PIÙ foto (frigo, congelatore, dispensa), poi «Crea»:"),tr("Il piatto sarà tarato sul pasto di questo momento, compensando le calorie già accumulate oggi. In alternativa scrivi gli ingredienti qui sotto."))}
   ${mealSelHtml("frTarget",di)}
   <div class="btngrid4">
     <button class="btn small" onclick="frAdd()">Fotografa<span id="frN">${FR.length?" ("+FR.length+")":""}</span></button>
@@ -2545,7 +2552,7 @@ function renderTools(){
   <div class="aibox" aria-live="polite" id="fridgeOut" style="display:none"></div></div>`;
   // Selezionatore di menù — FOTO MULTIPLE + "Cerca" per confermare; "Usa il testo" sotto la casella
   h+=`<div class="card"><h2>Cucina intelligente</h2>
-  <div class="hint">${tr("Scegli fin dove arrivare (massimo 3 giorni): l'AI ti dice cosa cucinare <b>adesso, in una volta sola</b>, per coprire tutto.")}</div>
+  Scegli fin dove arrivare (massimo 3 giorni): l'AI ti dice cosa cucinare <b>adesso, in una volta sola</b>, per coprire tutto.
   <label>${tr("Copri il fabbisogno fino a…")}</label>
   <select id="prepUntil">${prepUntilOpts(di)}</select>
   <div class="mtools"><button class="btn small" onclick="mealPrep(${di})">${tr("Dimmi cosa cucinare")}</button></div>
@@ -2572,7 +2579,7 @@ function renderTools(){
   <div class="aibox" aria-live="polite" id="coupleOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Al supermercato</div>`;
   h+=`<div class="card"><h2>Scaffale</h2>
-  <div class="hint">${trh("Sei davanti a venti prodotti uguali e non sai quale prendere. {b2}: Nuvia legge le etichette, guarda la tua lista e le tue caratteristiche alimentari, e dice quale prendere, {b} e {b3} quello e non l'altro.",{b2:"<b>"+tr("Fotografa lo scaffale")+"</b>",b:"<b>quanto</b>",b3:"<b>"+tr("perché")+"</b>"})}</div>
+  <div class="hint">${hint2(trh("Sei davanti a venti prodotti uguali e non sai quale prendere."),trh("{b2}: Nuvia legge le etichette, guarda la tua lista e le tue caratteristiche alimentari, e dice quale prendere, {b} e {b3} quello e non l'altro.",{b2:"<b>"+tr("Fotografa lo scaffale")+"</b>",b:"<b>quanto</b>",b3:"<b>"+tr("perché")+"</b>"}))}</div>
   <div class="btngrid3">
     <button class="btn small" onclick="scafAdd()">Fotografa<span id="scafN"></span></button>
     <button class="btn ghost small" onclick="scafAdd(true)">Galleria</button>
@@ -2582,7 +2589,7 @@ function renderTools(){
   <div class="aibox" aria-live="polite" id="scafOut" style="display:none"></div></div>`;
   h+=`<div class="gsec">Mangio fuori</div>`;
   h+=`<div class="card"><h2>Ordino a domicilio</h2>
-  <div class="hint">${tr("Incolla i piatti dell'app di consegne: Nuvia sceglie la combinazione che sta nei numeri di stasera. Tiene conto che <b>le porzioni da asporto sono più abbondanti</b>, quindi stima al rialzo.")}</div>
+  ${hint2(tr("Incolla i piatti dell'app di consegne:"),tr("Nuvia sceglie la combinazione che sta nei numeri di stasera. Tiene conto che <b>le porzioni da asporto sono più abbondanti</b>, quindi stima al rialzo."))}
   ${mealSelHtml("domTarget",di)}
   <textarea id="domIn" rows="4" placeholder="${tr("Incolla qui i piatti, uno per riga")}"></textarea>
   <div class="mtools"><button class="btn small" onclick="domicilioAI(${di})">${tr("Cosa ordino")}</button></div>
@@ -2629,6 +2636,12 @@ function renderStorico(){const el=document.getElementById("pg-storico");
      PIANIFICATO del giorno, Δ proteine vs piano), faccine, Sport = solo kcal
      allenamenti, Deficit. Selettore: settimana in corso / mese in corso. */
   let h="";
+  /* Le schede: il rendering resta com'era e i confini si segnano con
+     dei marcatori, filtrati alla fine. Nessuna graffa toccata. */
+  const SK="storico";
+  h+=schedeBarra(SK,[["settimana",tr("Settimana")],["analisi",tr("Analisi")],
+                     ["peso",tr("Peso")],["archivio",tr("Archivio")]]);
+  h+=`<!--SCHEDA:settimana-->`;
   {
     let rowsH="";
     /* Una riga per giorno, leggibile senza legenda: il giorno, una barra
@@ -2659,9 +2672,9 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       </div>`;});
     h+=`<div class="gsec">${tr("Questa settimana")}</div>`;
   h+=`<div class="card"><h2>${tr("Riepilogo della settimana in corso")}</h2>
-  <div class="hint">${tr("Come sta andando la settimana, giorno per giorno, rispetto a quello che avevi pianificato.")}</div>
+  Come sta andando la settimana, giorno per giorno, rispetto a quello che avevi pianificato.
     <div class="wlist">${rowsH}</div>
-    <div class="hint">${tr("La barra è quanto hai mangiato rispetto al piano di quel giorno: verde se sei rimasto dentro, rossa se l'hai superato. Il numero a destra è il deficit.")}</div>
+    ${hint2(tr("La barra è quanto hai mangiato rispetto al piano di quel giorno:"),tr("Verde se sei rimasto dentro, rossa se l'hai superato. Il numero a destra è il deficit."))}
     <div class="stat3"><div><div class="v">${w.avgEat}</div><div class="l">kcal medie</div></div>
     <div><div class="v">${w.avgProt} g</div><div class="l">prot medie</div></div>
     <div><div class="v">−${w.avgDef}</div><div class="l">deficit medio</div></div></div>
@@ -2672,6 +2685,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
     <button class="btn ghost" onclick="printVisita()">${tr("Foglio per la visita")}</button>
     <button class="btn ghost" onclick="printReport()">Esporta report PDF</button></div>`;
   }
+  h+=`<!--SCHEDA:analisi-->`;
   h+=extendedRecapHTML();
   // Periodi (Dieta 1, Libero 1, …) con metriche e valutazione AI
 
@@ -2685,7 +2699,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
       <div class="hint">${tr("Ne ho trovati {n} negli ultimi giorni: sonno, stress e fame nervosa spiegano parte di quello che vedi qui sotto.",{n:r.schemi.length})}</div>
       <div class="mtools"><button class="btn small" onclick="show('comestai')">${tr("Vedi in Come stai")}</button></div></div>`;})();
   h+=`<div class="card"><h2>Analisi</h2>
-  <div class="hint">${tr("I tuoi numeri nel tempo: scegli il periodo e cosa mettere sul grafico.")}</div>
+  I tuoi numeri nel tempo: scegli il periodo e cosa mettere sul grafico.
   <div class="row2"><div><label>Periodo</label><select id="anMode" onchange="drawAnalysis()">
   <option value="giorno" ${AN.mode==="giorno"?"selected":""}>Giornaliero</option>
   <option value="settimana" ${AN.mode==="settimana"?"selected":""}>Settimanale</option>
@@ -2699,6 +2713,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   ${dietStartLabel()?`<div class="hint">${tr("I periodi partono dall'inizio del tuo primo periodo di dieta:")} <b>${dietStartLabel()}${tr("</b>. In «Periodo manuale» puoi comunque scegliere qualsiasi intervallo.")}</div>`:""}
   <div class="hint" id="anHint"></div>
   </div>`;
+  h+=`<!--SCHEDA:peso-->`;
   h+=`<div class="card chart"><div class="cht">${tr("Peso e massa grassa")}</div><canvas id="chAnWeight" height="160"></canvas></div>`;
   h+=`<div class="card chart"><div class="cht">${tr("Calorie e deficit")}</div><canvas id="chAnCal" height="160"></canvas></div>`;
   h+=`<div class="card chart"><div class="cht">Macronutrienti</div><canvas id="chAnMacro" height="160"></canvas></div>`;
@@ -2710,7 +2725,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   h+=`<div class="card"><h2>${tr("Obiettivo e proiezione")}</h2>
   <div class="hint" id="projText" style="margin-top:0"></div>
   <canvas id="chGoalProj" height="170"></canvas>
-  <div class="hint">${tr("Curva ideale non lineare verso l'obiettivo (dieta + passi/allenamenti obiettivo) confrontata col peso reale registrato: il delta dice se sei avanti o indietro rispetto al piano.")}</div></div>`;
+  ${hint2(tr("Curva ideale non lineare verso l'obiettivo (dieta + passi/allenamenti obiettivo) confrontata col peso reale registrato:"),tr("Il delta dice se sei avanti o indietro rispetto al piano."))}</div>`;
   //  Insight dai sensori già attivi nei prompt: ora li vedi anche tu
   h+=(function(){
     let g="";
@@ -2723,7 +2738,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
     return g;})();
   //  Correlazioni: cosa influenza i risultati
   h+=`<div class="card"><h2>${tr("Cosa influenza i tuoi risultati")}</h2>
-  <div class="hint" style="margin-top:0">${tr("Confronto tra sonno, umore e allenamento e il tuo deficit/sfori (giorni difficili esclusi).")}</div>
+  Confronto tra sonno, umore e allenamento e il tuo deficit/sfori (giorni difficili esclusi).
   ${(function(){const hs=hungerStats(),cs=crashStats();let x="";
     if(hs&&hs.avg>=3.2)x+=`<div class="card"><h2>Fame alta</h2><div class="hint">Media <b>${hs.avg}${trh("/5</b> negli ultimi {v1} giorni con pallini segnati. L'AI lo sa già: a parità di calorie sta aumentando fibre, proteine e volume nei piatti che ti propone.",{v1:hs.n})}</div></div>`;
     if(cs)x+=`<div class="card"><h2>${tr("Cali di energia")}</h2><div class="hint">${trh("<b>{v3} segnalazioni</b> recenti, per lo più dopo «{v1}» (~{v2}g di carboidrati in media). Nei ribilanci l'AI riduce i raffinati proprio lì.",{v3:cs.n,v1:cs.top,v2:cs.carbMedi})}</div></div>`;
@@ -2733,12 +2748,13 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   <div class="aibox" aria-live="polite" id="corrAI" style="display:none"></div></div>`;
   //  Chiedi all'AI: domande libere sui propri risultati/dati
   h+=`<div class="card"><h2>Chiedi all'AI</h2>
-  <div class="hint" style="margin-top:0">${tr("Domande sui tuoi risultati, alimentazione, peso e obiettivi (es. «sto mangiando in modo corretto?» oppure «in quanto tempo raggiungo l'obiettivo continuando così?»). Rispondo solo a domande inerenti ai tuoi dati.")}</div>
+  ${hint2(tr("Domande sui tuoi risultati, alimentazione, peso e obiettivi (es."),tr("«sto mangiando in modo corretto?» oppure «in quanto tempo raggiungo l'obiettivo continuando così?»). Rispondo solo a domande inerenti ai tuoi dati."))}
   <textarea id="diaryQ" rows="2" placeholder="${tr("Scrivi la tua domanda…")}" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--linea);border-radius:12px;font-size:14.5px;resize:vertical"></textarea>
   <button class="btn ghost" style="margin-top:8px" onclick="askDiaryQuestion()">Invia domanda</button>
   <div class="aibox" aria-live="polite" id="diaryQA" style="display:none"></div></div>`;
   // Storia
   //  Mesi passati: riepilogo per mese chiuso, dalle settimane archiviate
+  h+=`<!--SCHEDA:archivio-->`;
   {const ymNow=iso(new Date()).slice(0,7);
    const md=flattenDiet().filter(d=>d.eat>0&&d.date.slice(0,7)<ymNow);
    const mb={};md.forEach(d=>{(mb[d.date.slice(0,7)]=mb[d.date.slice(0,7)]||[]).push(d);});
@@ -2746,12 +2762,12 @@ function renderStorico(){const el=document.getElementById("pg-storico");
    if(mkeys.length){
      h+=`<div class="gsec">Archivio</div>`;
   h+=`<div class="card"><h2>Mesi passati</h2>
-  <div class="hint">${tr("Le medie mese per mese: servono a vedere la tendenza di fondo, al netto delle oscillazioni di una singola settimana.")}</div><table><tr><th>Mese</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>`;
+  Le medie mese per mese: servono a vedere la tendenza di fondo, al netto delle oscillazioni di una singola settimana.<table><tr><th>Mese</th><th class="n">Mangiate</th><th class="n">Prot</th><th class="n">Sport</th><th class="n">Deficit</th></tr>`;
      mkeys.forEach(k=>{const arr=mb[k];const n=arr.length;const avg=f=>Math.round(arr.reduce((a,d)=>a+(d[f]||0),0)/n);
        h+=`<tr><td>${new Date(k+"-01T12:00:00").toLocaleDateString(dataLoc(),{month:"long",year:"numeric"})} <small style="color:var(--grigio)">(${n}g)</small></td>
        <td class="n">${avg("eat")}</td><td class="n">${avg("prot")}g</td><td class="n">${avg("burn")}</td>
        <td class="n" style="color:${avg("def")>=0?"var(--salvia)":"var(--rosso)"}">${avg("def")>=0?"−":"+"}${Math.abs(avg("def"))}</td></tr>`;});
-     h+=`</table><div class="hint">${tr("Medie giornaliere dei mesi conclusi (solo giorni tracciati).")}</div></div>`;}}
+     h+=`</table>Medie giornaliere dei mesi conclusi (solo giorni tracciati).</div>`;}}
   h+=`<div class="card"><h2>${tr("Settimane passate")}</h2>`;
   if(!S.history.length)h+=vuotoDi("storico");
   S.history.slice().reverse().forEach((wk,ri)=>{const i=S.history.length-1-ri;
@@ -2775,7 +2791,7 @@ function renderStorico(){const el=document.getElementById("pg-storico");
   h+=weightsCardHTML();
   h+=notesCardHTML();
   h+=exportCardHTML();
-  h+=`</div>`;el.innerHTML=h;drawWeightsChart();drawAnalysis();drawGoalProjection();renderProgressBox();}
+  h+=`</div>`;el.innerHTML=schedeFiltra(h,schedaAttiva(SK,"settimana"));drawWeightsChart();drawAnalysis();drawGoalProjection();renderProgressBox();}
 /* ── Modifica settimane passate ──────────────────────────────────────────
    Le settimane chiuse archiviano solo dati aggregati per giorno (kcal, prot,
    carbo, grassi, sport bruciato, sonno/relax/umore, note, allenamenti come
@@ -2787,7 +2803,7 @@ window.toggleEditWeek=(i)=>{editWeekIdx=(editWeekIdx===i?null:i);render("storico
   setTimeout(()=>{const el=document.getElementById("hw"+i);if(el)el.classList.add("open");},0);};
 function renderWeekEditForm(i,wk){
   const from=safeDate((wk.from||"")+"T12:00:00")||new Date();
-  let h=`<div class="hint" style="margin-top:8px">${tr("Modifica i valori dei singoli giorni. Al salvataggio il deficit e le medie della settimana vengono ricalcolati.")}</div>`;
+  let h=`${hint2(tr("Modifica i valori dei singoli giorni."),tr("Al salvataggio il deficit e le medie della settimana vengono ricalcolati."))}`;
   wk.days.forEach((d,di)=>{
     const dateKey=iso(new Date(from.getFullYear(),from.getMonth(),from.getDate()+di,12));
     h+=`<div style="border:1px solid var(--bordo);border-radius:12px;padding:8px;margin-top:8px">
@@ -3060,7 +3076,7 @@ function correlationsSummaryHtml(){
   if(c.sonno.n_alto>=2&&c.sonno.n_basso>=2)rows.push(` Sonno buono (≥4): deficit medio <b>${c.sonno.alto_def}</b> vs <b>${c.sonno.basso_def}${trh("</b> con poco sonno · sgarri {v1} vs {v2} kcal.",{v1:c.sonno.alto_sgarri,v2:c.sonno.basso_sgarri})}`);
   if(c.allenamento.n_con>=2&&c.allenamento.n_senza>=2)rows.push(` ${tr("Con allenamento: deficit medio")} <b>${c.allenamento.con_def}</b> vs <b>${c.allenamento.senza_def}</b> ${tr("nei giorni di riposo.")}`);
   if(c.umore.n_alto>=2&&c.umore.n_basso>=2)rows.push(` Umore alto (≥4): deficit medio <b>${c.umore.alto_def}</b> vs <b>${c.umore.basso_def}</b> · sgarri ${c.umore.alto_sgarri} vs ${c.umore.basso_sgarri} kcal.`);
-  if(!rows.length)return `<div class="hint">${tr("Non ci sono ancora gruppi abbastanza numerosi da confrontare: continua a registrare sonno, umore e allenamenti.")}</div>`;
+  if(!rows.length)return `Non ci sono ancora gruppi abbastanza numerosi da confrontare: continua a registrare sonno, umore e allenamenti.`;
   return rows.map(r=>`<div style="margin-top:8px;font-size:13px">${r}</div>`).join("");}
 window.askCorrelations=async()=>{
   const box=document.getElementById("corrAI");const c=computeCorrelations();
@@ -3241,7 +3257,7 @@ function tdeeSuggCardHTML(){
   if(!S.tdeeSugg)return "";
   const g=S.tdeeSugg;
   return `<div class="card"><h2>${tr("Peso fermo da 3 settimane")}</h2>
-  <div class="hint">${trh("Deficit teorico medio ~{v1} kcal/giorno, ma il peso non scende ({v2}→{v3} kg): probabilmente il fabbisogno reale è più basso, o i passi quotidiani sono calati. Se però la <b>massa grassa</b> sta scendendo, è ricomposizione e va tutto bene.",{v1:g.avgDef,v2:g.w0,v3:g.w2})}</div>
+  <div class="hint">${hint2(trh("Il conto dice deficit, ma il peso non scende:"),trh("Probabilmente il fabbisogno reale è più basso, o i passi quotidiani sono calati. Se però la <b>massa grassa</b> sta scendendo, è ricomposizione e va tutto bene.",{v1:g.avgDef,v2:g.w0,v3:g.w2}))}</div>
   <div class="mtools" style="margin-top:8px">
     <button class="btn small" onclick="tdeeSuggApply()">${tr("Abbassa il fattore (−0.05)")}</button>
     <button class="btn ghost small" onclick="tdeeSuggRecomp()">${tr("È ricomposizione")}</button>
@@ -3386,7 +3402,7 @@ window.printVisita=()=>{
   <tr><th>${tr("Data")}</th><th>${tr("Peso")}</th><th>${tr("Grasso %")}</th><th>${tr("Pressione")}</th><th>SpO2</th></tr>
   ${bio}</table>`:""}
   <p style="margin-top:16px;font-size:11.5px">${tr("Dati raccolti dalla persona con un diario alimentare. Le energie e i macronutrienti sono STIME calcolate da tabelle e da riconoscimento automatico: vanno lette come ordini di grandezza, non come misure. Questo foglio non contiene diagnosi né indicazioni terapeutiche.")}</p>
-  <p style="font-size:10.5px;color:#666">${tr("Generato con Nuvia · nuviahealth.it")}</p>`;
+  <p style="font-size:10.5px;color:#666">${tr("Generato con Nuvia · nuviahealth.app")}</p>`;
   document.getElementById("printreport").innerHTML=h;
   setTimeout(()=>{busyOff();window.print();},120);};
 

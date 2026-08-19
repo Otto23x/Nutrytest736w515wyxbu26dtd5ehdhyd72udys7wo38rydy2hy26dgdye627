@@ -427,7 +427,7 @@ function liberaHTML(){
     <button class="btn" type="button" onclick="fotoPasto(false)">${esc(tr("Fotografa il piatto"))}</button>
     <div class="mtools">
       <button class="btn ghost small" type="button" onclick="fotoPasto(true)">${esc(tr("Scegli dalla galleria"))}</button>
-      <button class="btn ghost small" id="vocePastoMic" type="button" onclick="vocePasto()">${ic("mic",15)} ${esc(tr("Raccontalo"))}</button>
+      <button title="${tr("Apri")}" class="btn ghost small" id="vocePastoMic" type="button" onclick="vocePasto()">${ic("mic",15)} ${esc(tr("Raccontalo"))}</button>
     </div>
     <div class="hint" style="margin-top:8px">${esc(!isFinite(rim)
       ? tr("Foto senza limiti con il tuo piano.")

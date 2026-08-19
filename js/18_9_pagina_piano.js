@@ -28,7 +28,7 @@ window.editMealPerm=(d,m)=>{
   const o=templateOpt(d,m);
   sheetShow("Modifica il piano (permanente)",`
     <textarea id="empTxt" rows="5" style="width:100%">${esc(o.d)}</textarea>
-    <div class="hint">${tr("La modifica resta valida anche nelle settimane successive; kcal e macro si ristimano da sole.")}</div>
+    La modifica resta valida anche nelle settimane successive; kcal e macro si ristimano da sole.
     <div class="mtools" style="margin-top:12px">
       <button class="btn small" onclick="editMealPermGo(${d},${m})">${tr("Salva e ristima")}</button>
       <button class="btn ghost small" onclick="sheetClose()">${tr("Annulla")}</button>
@@ -79,7 +79,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     ${hint2(tr("Fotografa lo scontrino: riconosco i prodotti, ti dico com'è andata la spesa e costruisco i giorni di piano con quello che hai."),tr("Gli scontrini si <b>sommano</b>: puoi completare la settimana in più spese. Il piano non è obbligato a usare <b>tutto</b>: ciò che sfora resta in dispensa. Ciò che manca te lo dico io, e con un tocco va in lista. Lo scontrino non viene conservato: parte solo la foto a Gemini con la tua chiave."))}
     ${(function(){
       const v=spesaVoto();
-      if(!v)return `<div class="hint" style="background:var(--crema);padding:12px 16px;border-radius:12px">${tr("La dispensa è vuota. Fotografa uno scontrino per cominciare.")}</div>`;
+      if(!v)return `La dispensa è vuota. Fotografa uno scontrino per cominciare.`;
       const f=spesaFaccia(v.v);
       return `<div class="svoto">
         <div class="sfaccia">${f[0]}</div>
@@ -90,7 +90,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
         </div></div>
       ${v.piu.length?`<div class="hint" style="margin-top:12px"><b>${tr("Prendine di più:")}</b> ${v.piu.join(", ")}.</div>`:""}
       ${v.meno.length?`<div class="hint"><b>${tr("Prendine di meno:")}</b> ${v.meno.join(", ")}.</div>`:""}
-      ${(!v.piu.length&&!v.meno.length)?`<div class="hint" style="margin-top:12px">${tr("Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.")}</div>`:""}
+      ${(!v.piu.length&&!v.meno.length)?`Le proporzioni sono in linea con le raccomandazioni OMS. Continua così.`:""}
       ${(function(){const c=spesaCosto();if(!c)return "";
         return `<div class="hint" style="margin-top:12px;background:var(--menta);padding:12px 12px;border-radius:12px">
           <b>Spesa: ~${c.tot.toFixed(2).replace(".",",")} €</b> · ~${c.perGiorno.toFixed(2).replace(".",",")} ${tr("€ al giorno ·")} <b>~${c.perPasto.toFixed(2).replace(".",",")} ${tr("€ a pasto")}</b> ${trh("su {v1} pasti.",{v1:c.pastiSett})}<br>
@@ -111,13 +111,13 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
       <label>${trh("In dispensa · {v1} {v2}",{v1:pantry().items.length,v2:(pantry().items.length===1?tr("prodotto"):tr("prodotti"))})}</label>
       <div class="pantry">${pantry().items.map((i,k)=>
         `<span class="pchip"><span onclick="prezzoEdit(${k})" style="cursor:pointer">${esc(prodottoPrima(i.n))}${i.q?` <b>${i.q}${esc(i.u)}</b>`:""}${+i.e>0?` <span style="color:var(--teal2)">${(+i.e).toFixed(2).replace(".",",")}€</span>`:""}</span><button onclick="pantryDel(${k})" aria-label="${tr("Togli")}">×</button></span>`).join("")}</div>
-      <div class="hint">${tr("Tocca un prodotto per correggerne il prezzo: le stime dallo scontrino non sempre azzeccano offerte e sconti.")}</div>
+      Tocca un prodotto per correggerne il prezzo: le stime dallo scontrino non sempre azzeccano offerte e sconti.
       <div class="mtools"><button class="btn ghost small" onclick="pantrySvuota()">${tr("Svuota la dispensa")}</button></div>`:""}
     ${pantry().freezer.length?`
       <label>${trh("In freezer · {v1}",{v1:pantry().freezer.length})}</label>
       <div class="pantry">${pantry().freezer.map((x,k)=>
         `<span class="pchip" style="background:var(--menta)">${esc(prodottoPrima(x.n))}${x.q?` <b>${esc(x.q)}</b>`:""}${x.per?` <span style="color:var(--grigio)">→ ${esc(x.per)}</span>`:""}<button onclick="freezerDel(${k})" aria-label="Consumato">×</button></span>`).join("")}</div>
-      <div class="hint">${tr("Quando lo consumi, togli la spunta con ×: sparisce dalla lista e dai suggerimenti.")}</div>`:""}
+      Quando lo consumi, togli la spunta con ×: sparisce dalla lista e dai suggerimenti.`:""}
     </div>`;
 
   h+=`<div class="card" style="display:none">
@@ -125,7 +125,7 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
     <input type="text" id="planCode" placeholder="codice piano" style="max-width:150px;margin:0">
     <button class="btn ghost small" onclick="loadPlanCode(false)">${tr("Ripristina")}</button>
   </div>
-  <div class="hint">${tr("Con <b>00000000</b> ripristini il piano principale di Nuvia.")}</div>
+  Con <b>00000000</b> ripristini il piano principale di Nuvia.
 </div>`;
   if(planIsEmpty())h+=`<div class="card" style="text-align:center">
     <h2 style="margin-top:4px">${tr("Piano vuoto")}</h2>
@@ -138,7 +138,12 @@ function renderPiano(){const el=document.getElementById("pg-piano");const ti=wd(
   });
   el.innerHTML=h;}
 
-function stars(di,field){let h=`<div class="stars">`;
+function stars(di,field){
+  /* Le stelline erano cinque copie della stessa cosa: la scala vera
+     sta in 54_scelte e mostra cinque icone DIVERSE. Qui resta
+     l'aggancio, così cambiano in tutti i posti in cui appaiono. */
+  if(typeof scalaRiga==="function"&&SCALE&&SCALE[field])return scalaRiga(di,field);
+  let h=`<div class="stars">`;
   for(let i=1;i<=5;i++)h+=`<span class="${S.week.days[di][field]>=i?"on":""}" onclick="setStar(${di},'${field}',${i})">⭐</span>`;
   return h+`</div>`;}
 /* Quando la fame nervosa è alta, il numero da solo non basta: serve
@@ -246,8 +251,17 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
   const _vd=iso(VIEW);
   /* Il saluto e il riepilogo di ieri: si apre qui la mattina. */
   h+=puntoTesta(di);
-  /* La spinta parla dei numeri veri di chi legge, e dopo una giornata
-     storta non fa la predica. Se non ha nulla di vero da dire, tace. */
+  /* ── L'ORDINE (passo 4 del piano UX) ──────────────────────────
+     Principio che non ha bisogno di dati: LA COSA CHE SI FA OGNI
+     GIORNO VA PRIMA DI QUELLE CHE SUCCEDONO A VOLTE.
+     puntoTesta porta la card «Questo pasto», che è il gesto
+     quotidiano: spuntare quello che mangi. Le spinte, il sostegno e
+     il debriefing sono importanti ma occasionali — se stanno sopra,
+     ogni giorno bisogna scorrerli per arrivare alla cosa di sempre.
+     Il resto dell'ordine (dentro la giornata, fra gli strumenti) si
+     deciderà coi dati di usoClassifica(), non con le nostre
+     impressioni: chi scrive l'app è l'ultima persona da ascoltare
+     su cosa si usa di più. */
   h+=(typeof propostaCardHTML==="function")?propostaCardHTML():"";
   h+=(function(){const sp=(typeof spintaDelGiorno==="function")?spintaDelGiorno():"";
     return sp?`<div class="card" style="border-left:4px solid var(--salvia)"><div class="hint" style="font-size:14.5px">${sp}</div></div>`:"";})();
@@ -397,7 +411,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
             <button class="btn ghost small" onclick="saltaPasto(${prox.pdi},${prox.mi})">${tr("Non l'ho mangiato")}</button>
             <button class="btn ghost small" onclick="vaiPasto(${prox.pdi},${prox.mi})">${tr("Modifica")}</button>
           </div>
-          ${prox.tardi?`<div class="hint" style="margin-top:12px">${tr("L'orario è passato. Se l'hai saltato, segnalo con ✗ in Oggi: così il bilancio resta giusto.")}</div>`:""}
+          ${prox.tardi?`${hint2(tr("L'orario è passato."),tr("Se l'hai saltato, segnalo con ✗ in Oggi: così il bilancio resta giusto."))}`:""}
           </div>`:""}
       </div>`;})();
   /* «Come va» e gli altri promemoria vivono nel saluto in cima alla
@@ -458,7 +472,7 @@ function renderPunto(){const el=document.getElementById("pg-punto");const di=vie
     return g;})()}
   ${(cycleDay()&&cycleDay()<=5)?`<div class="hint" style="background:var(--zaffbg);padding:12px 12px;border-radius:12px;margin-top:12px">${trh("Nei giorni del ciclo è normale pesare {b1}: è acqua, non grasso. Non toccare il piano per questo — passa da sé.",{b1:"<b>"+tr("1-2 kg in più")+"</b>"})}</div>`:""}
   ${physDurationNote()}
-  <div class="hint" style="margin-top:16px">${tr("Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.")}</div>
+  Se hai acceso o spento qualcosa, le grammature della settimana vanno ritarate.
   <div class="mtools">
     <button class="btn ghost small" onclick="recalibrateToday()">${tr("Solo oggi")}</button>
     <button class="btn ghost small" onclick="recalibrate()">${tr("Tutta la settimana")}</button></div>
@@ -550,6 +564,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   const goal=waterGoal(di);
   const _vd=iso(VIEW);
   h+=`<div class="gsec">${tr("Acqua e movimento")}</div>`;
+  h+=(typeof pausaHTML==="function")?pausaHTML():"";
+  h+=(typeof filmInvito==="function")?filmInvito():"";
   h+=`<div class="card"><h2>${tr("Acqua")}</h2>${acquaRiga(di,tr("Bicchieri di oggi"))}`;
   h+=hint2(`Obiettivo: <b>${goal} bicchieri</b> da 200 ml (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L)${(S.week.days[di].workouts||[]).some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 bicchieri":""}.`,
    `${(+S.profile.waterGoalL>0)?"È il valore che hai scelto in Io → Obiettivi.":tr("È proposto sul tuo peso: 35 ml per kg, meno il ~22% che arriva già dal cibo.")} ${tr("Nei giorni con allenamento intenso o oltre 45 minuti si aggiungono 2 bicchieri. Puoi sempre scrivere il tuo valore in Io → Obiettivi.")}`)+`</div>`;
@@ -584,10 +600,10 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
     /* Il lunedì dopo la vacanza è il giorno in cui si molla: qui si
        dice a voce alta che il deficit è ancora ridotto, di proposito. */
     h+=`<div class="gaugecard"><h2>${tr("Rientro dolce")}</h2>
-    <div class="hint">${trh("Sei rientrato da poco: oggi il deficit è ancora ridotto di {v1} kcal e torna pieno da solo entro {v2} giorni. La bilancia di questi giorni tiene ancora l'acqua della vacanza — non è grasso, e non entra nella tendenza.",{v1:rientroBonus(),v2:GIORNI_RIENTRO})}</div></div>`;}
+    ${hint2(trh("Rientro: per {v2} giorni il deficit resta ridotto, poi torna pieno da solo.",{v2:GIORNI_RIENTRO}),trh("La bilancia di questi giorni tiene ancora l'acqua della vacanza — non è grasso, e non entra nella tendenza.",{v1:rientroBonus(),v2:GIORNI_RIENTRO}))}</div>`;}
   if(S.ui.vacanza){
   h+=`<div class="gaugecard"><h2>${tr("Modalità vacanza")}</h2>
-    <div class="hint">${tr("Si mangia a fabbisogno: il target di oggi è quello che consumi, quindi il peso resta dov'è per costruzione — non stai perdendo terreno, stai tenendo. La serie è in pausa e nessun giorno conta come mancato. Spunta e scrivi liberamente; alla chiusura riprendo il deficit un poco alla volta. Si disattiva dalla pagina Io.")}</div>
+    ${hint2(tr("Mangi a fabbisogno: il peso resta dov'è, e va bene così."),tr("Non stai perdendo terreno, stai tenendo. La serie è in pausa e nessun giorno conta come mancato: spunta e scrivi liberamente. Alla chiusura riprendo il deficit un poco alla volta. Si disattiva dalla pagina Io."))}</div>
     <div class="stat3"><div><div class="v">${eat.k}</div><div class="l">kcal segnate</div></div>
     <div><div class="v">${eat.p} g</div><div class="l">${tr("proteine")}</div></div>
     <div><div class="v">${burn}</div><div class="l">kcal sport</div></div></div>
@@ -653,6 +669,7 @@ function ariaSync(root){
     c.setAttribute("role","checkbox");
     c.setAttribute("aria-checked",c.className.indexOf("c")>-1?"true":"false");});}
 window.setWater=(d,i)=>{
+  try{usoSegna("acqua");}catch(e){}
   S.week.days[d].water=(S.week.days[d].water===i+1?i:i+1);save();
   /* i bicchieri sono in DUE pagine: ridisegnare sempre «oggi» lasciava
      il Punto immobile, e sembrava che il tocco non funzionasse */
@@ -681,6 +698,63 @@ window.scanManual=async ()=>{const n=await dlgPrompt(tr("Nome prodotto:"));if(!n
   const k=parseFloat(await dlgPrompt(tr("kcal per 100 g:"),"100"))||0,p=parseFloat(await dlgPrompt(tr("proteine per 100 g:"),"5"))||0;
   SCANQ.items.push({name:n,k100:k,p100:p,c100:0,f100:0,fib100:0,z100:0,g:100});renderScanQ();};
 window.scanMore=()=>{renderScanQ();scanOne();};
+
+/* ═══ UNA SCANSIONE ═══════════════════════════════════════════════
+   DIFETTO TROVATO IL 19/08/2026: questa funzione veniva CHIAMATA da
+   scanStart e scanMore ma non era definita da nessuna parte —
+   toccare «scansiona» lanciava un ReferenceError e la fotocamera non
+   si apriva. Nessun collaudo l'aveva visto perché tutti impostano
+   `window._noScan` (in JSDOM la fotocamera non esiste) e quindi
+   uscivano prima di arrivare qui.
+   Lezione: un collaudo che salta sempre non è un collaudo. Ora
+   t_barcode verifica almeno che la funzione ESISTA. */
+async function scanOne(){
+  const box=document.getElementById("scanLive");
+  if(box)box.style.display="block";
+  if(typeof Html5Qrcode==="undefined"){await scanChiedi();return;}
+  try{
+    if(scanner)await stopCam();
+    scanner=new Html5Qrcode("scanLive");
+    await scanner.start({facingMode:"environment"},
+      {fps:10,qrbox:{width:250,height:160}},
+      async (testo)=>{
+        await stopCam();
+        await scanAggiungi(String(testo||"").replace(/\D/g,""));
+      },()=>{});
+  }catch(e){
+    /* fotocamera negata o assente: si scrive il codice a mano invece
+       di restare davanti a un rettangolo nero */
+    await stopCam();
+    await scanChiedi();}}
+
+/* Il codice a mano: la via che funziona sempre. */
+async function scanChiedi(){
+  const c=await dlgPrompt(tr("Scrivi il codice a barre"),"");
+  if(c)await scanAggiungi(String(c).replace(/\D/g,""));}
+
+/* Dal codice alla riga in coda. Ogni esito ha la sua parola: un
+   «non trovato» detto come un errore di rete manda la persona a
+   controllare il wifi per niente. */
+async function scanAggiungi(ean){
+  if(!ean)return;
+  const r=await barcodeCerca(ean);
+  if(r.stato==="codice")   return dlgAlert(tr("Questo codice non sembra un codice a barre."));
+  if(r.stato==="offline")  return dlgAlert(tr("Serve la rete per leggere un prodotto nuovo. Quelli già letti funzionano anche offline."));
+  if(r.stato==="rete")     return dlgAlert(tr("L'archivio dei prodotti non risponde. Riprova, o scrivi il piatto a mano."));
+  if(r.stato==="sconosciuto")
+    return dlgAlert(tr("Questo prodotto non è nell'archivio. Puoi fotografarlo o scriverlo a mano: il valore lo mettiamo comunque."));
+  const p=r.p;
+  SCANQ.items.push({ean:p.ean,nome:p.nome,g:p.porzione||100,
+    k100:p.kcal,p100:p.prot,c100:p.carb,f100:p.gras,
+    fib100:p.fibre,z100:p.zuccheri});
+  /* una voce vecchia si usa, ma lo si dice: un dato di tre mesi fa è
+     meglio di nessun dato, non è la stessa cosa di uno fresco */
+  if(r.da==="cache-vecchia")
+    toast(tr("{n}: valori di {g} giorni fa, l'archivio non è raggiungibile.",{n:p.nome,g:r.giorni||90}));
+  else toast(tr("{n} in coda.",{n:p.nome}));
+  try{usoSegna("barcode");}catch(e){}
+  renderScanQ();}
+window.scanAggiungi=scanAggiungi;
 window.scanConfirm=()=>{
   if(!SCANQ.items.length)return dlgAlert(tr("Nessun prodotto in lista."));
   const t=scanTotals();

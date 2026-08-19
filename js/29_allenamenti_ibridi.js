@@ -207,7 +207,7 @@ function abitualiHTML(){
           aria-label="${esc(tr("Togli"))}">✕</button></div>`).join("")}</div>`
      :`<div class="hint" style="margin-top:8px">${esc(tr("Per ora non mi hai detto nulla: quando vuoi."))}</div>`}
     <div class="mtools">
-      <button class="btn ghost small" id="abitMic" type="button" onclick="abitualiVoce()">${ic("mic",15)} ${esc(tr("Raccontamelo"))}</button>
+      <button title="${tr("Apri")}" class="btn ghost small" id="abitMic" type="button" onclick="abitualiVoce()">${ic("mic",15)} ${esc(tr("Raccontamelo"))}</button>
     </div>
     <div class="aibox" id="abitOut" aria-live="polite" style="display:none"></div>
   </div>`;}

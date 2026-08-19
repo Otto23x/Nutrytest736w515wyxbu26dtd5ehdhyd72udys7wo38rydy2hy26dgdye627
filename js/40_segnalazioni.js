@@ -187,7 +187,7 @@ function segnalazioniHTML(){
   const storia=segLista().slice().reverse();
 
   const chips=SEG_TIPI.map(x=>
-    `<button type="button" class="chipbtn${x.k===b.tipo?" on":""}" onclick="segTipo('${x.k}')">${ic(x.e,15)} ${esc(tr(x.n))}</button>`
+    `<button title="${tr("Apri")}" type="button" class="chipbtn${x.k===b.tipo?" on":""}" onclick="segTipo('${x.k}')">${ic(x.e,15)} ${esc(tr(x.n))}</button>`
   ).join("");
 
   const gravita = b.tipo==="bug"

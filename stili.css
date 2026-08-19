@@ -13,7 +13,7 @@
      teal molto scuro: il teal pieno (#00AFA3) resta per accenti e barre,
      dove il contrasto non è un problema. */
   --bosco:#0A4E49; --azione:#0C7C74; --salvia:#00AFA3; --menta:#E4F7F4; --crema:#F5F5F5; --card:#FFFFFF;
-  --ink:#0D2422; --grigio:#5C7773; --linea:#E3EAE8;
+  --ink:#0D2422; --grigio:#5A7571; --linea:#E3EAE8;
   --zaff:#E4632F; --zafft:#BF4E1D; --zaffbg:#FFF0E9; --mensa:#5B7FE0; --mensabg:#EEF2FD;
   --rosso:#DC4444; --rossobg:#FDECEC; --ok:#16A34A; --okbg:#E9F9EE;
   --grad:#0C7C74;
@@ -30,6 +30,10 @@
   --t-lg:19px; --t-md:14.5px; --t-sm:13px; --t-xs:11.5px;
 }
 html[data-theme="dark"]{
+  /* i due gradienti mancavano: sul fondo scuro il teal pieno del tema
+     chiaro diventa una macchia, e il corallo squilla */
+  --grad:#0E5B55;
+  --gradz:#C4603A;
   /* --azione va RIDEFINITO qui, e per un motivo misurabile: nel tema
      scuro il testo dei pulsanti diventa #04211E, e sul teal profondo
      del tema chiaro (#0C7C74) il contrasto scendeva a 3,34:1 — sotto
@@ -147,6 +151,142 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
   box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
 .ag:active{transform:scale(.9)}
 .af{font-size:var(--t-xs);color:var(--grigio)}
+/* ── I BICCHIERI ──────────────────────────────────────────────
+   Il bottone non ha sfondo: il bicchiere È il bottone. Il tocco
+   lo riempie, la pressione lunga chiede cosa c'era dentro. */
+.ag2{background:none;border:0;padding:0 4px;cursor:pointer;line-height:0;
+  color:var(--linea);transition:color .25s var(--ease),transform .15s var(--ease)}
+.ag2:active{transform:scale(.88)}
+.ag2.on{color:var(--teal)}
+@media (prefers-reduced-motion:no-preference){
+  /* il liquido sale, non appare: 320 ms, come versare */
+  .ag2 rect,.ag2 ellipse{transition:y .32s cubic-bezier(.22,1,.36,1),height .32s cubic-bezier(.22,1,.36,1)}}
+/* ── IL FESTONE ───────────────────────────────────────────────
+   Sei coriandoli, 900 ms, e spariscono. La regola è la durata:
+   una festa che dura più di un secondo diventa un ostacolo fra
+   te e la cosa dopo. E si vede quando conta — il pasto spuntato,
+   non ogni tocco — o smette di significare qualcosa.
+   Niente suoni, niente vibrazione: la gente segna i pasti anche
+   in ufficio e in mensa. */
+.festone{position:fixed;left:0;right:0;top:0;height:0;pointer-events:none;z-index:150}
+.festone i{position:absolute;width:8px;height:12px;border-radius:4px;opacity:0;
+  will-change:transform,opacity}
+@media (prefers-reduced-motion:no-preference){
+  .festone i{animation:cade 900ms cubic-bezier(.25,.6,.4,1) forwards}}
+@keyframes cade{
+  0%{opacity:0;transform:translate(0,-10px) rotate(0)}
+  12%{opacity:1}
+  100%{opacity:0;transform:translate(var(--dx),58vh) rotate(var(--rot))}}
+/* ── LE SCALE A ICONE ─────────────────────────────────────────
+   Cinque icone diverse in fila. La scelta si accende e resta
+   grande; le altre restano leggibili ma quiete — se tutte fossero
+   allo stesso peso, la fila diventerebbe rumore. */
+/* ── LE SCHEDE (v13.24) ───────────────────────────────────────
+   Una fila sola, scorrevole se non ci sta: mai due righe di
+   linguette, che è il momento in cui smettono di aiutare. */
+.schede{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.schede::-webkit-scrollbar{display:none}
+.schtab{flex:0 0 auto;background:none;border:0;padding:8px 16px;border-radius:99px;
+  font:inherit;font-size:14px;color:var(--grigio);cursor:pointer;white-space:nowrap;
+  transition:background .2s var(--ease),color .2s var(--ease)}
+.schtab.on{background:var(--menta);color:var(--bosco);font-weight:600}
+/* ── QUELLO CHE USI DAVVERO (v13.25) ─────────────────────────
+   Una barra per gesto, in scala sul più toccato: la classifica si
+   legge con l'occhio, senza confrontare numeri. */
+/* ── LA MIA PAGINA ────────────────────────────────────────────
+   Il pannello di composizione sta in fondo e non somiglia ai
+   contenuti: è un attrezzo, non una card da leggere. */
+.miaelenco{display:grid;gap:8px;margin-top:12px}
+.miariga{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:8px;
+  padding:8px 12px;border:1px solid var(--linea);border-radius:12px;font-size:14px}
+.miariga .ibtn[disabled]{opacity:.3;pointer-events:none}
+.miapiu{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+/* ── LE SCHEDE PARTNER ────────────────────────────────────────
+   Discrete: nessun colore da offerta, nessun bordo che urla.
+   L'etichetta del contributo è LEGGIBILE, non nascosta in grigio
+   chiaro a 9px — se si scrive, si scrive per essere letta. */
+/* ── I GESTI ── */
+.preplista{margin-top:12px;display:grid;gap:8px}
+.preprow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;
+  padding:12px;border:1px solid var(--linea);border-radius:12px}
+.gesto{border-top:1px solid var(--linea);padding-top:16px;margin-top:16px}
+.gesto:first-of-type{border-top:0;padding-top:0;margin-top:12px}
+.gnome{font-weight:600;font-size:15px;color:var(--bosco)}
+.griga{font-size:14px;margin-top:4px}
+/* ── IL RESPIRO GUIDATO ───────────────────────────────────────
+   Il cerchio si allarga in quattro secondi e si stringe in sei.
+   La durata è l'esercizio: se l'animazione fosse più veloce non
+   servirebbe a niente, e se non finisse da sola diventerebbe un
+   altro compito da chiudere. */
+.respiro{position:fixed;inset:0;z-index:210;background:var(--bosco);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px}
+.respiro-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);
+  border:0;border-radius:50%;width:44px;height:44px;color:#EAF4F2;cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
+.rcerchio{width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#00E0C6,#0C7C74);
+  transition:transform 4s cubic-bezier(.4,0,.5,1),opacity 4s ease}
+.rcerchio.dentro{transform:scale(1.9);opacity:1}
+.rcerchio.fuori{transform:scale(1);opacity:.75;
+  transition:transform 6s cubic-bezier(.4,0,.5,1),opacity 6s ease}
+.rtesto{color:#BFE3DD;font-size:17px;font-family:'Fraunces',Georgia,serif}
+@media (prefers-reduced-motion:reduce){
+  /* niente cerchio che pulsa: restano le parole, che sono la parte
+     che conta davvero */
+  .rcerchio{transition:none;transform:none!important}}
+.pcard{border:1px solid var(--linea);border-radius:12px;padding:16px;margin-top:8px;background:var(--card)}
+.pnome{font-weight:600;font-size:15px}
+.petichetta{font-size:12px;color:var(--grigio);margin-top:8px;
+  padding-top:8px;border-top:1px dashed var(--linea)}
+.pblocco{margin-top:16px}
+.ordlista{margin-top:12px;display:grid;gap:8px}
+.ordriga{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;
+  padding:8px 12px;border:1px solid var(--linea);border-radius:12px;font-size:14px}
+.ordriga .ibtn[disabled]{opacity:.3;pointer-events:none}
+.ordsug{background:var(--menta);border-radius:12px;padding:12px 16px;margin-top:12px;font-size:14px}
+.ordsug .riga{display:flex;gap:8px;margin-top:8px}
+.usolista{margin-top:12px;display:grid;gap:8px}
+.usoriga{display:grid;grid-template-columns:1fr 96px 32px;align-items:center;gap:8px;font-size:13.5px}
+.usoriga i{height:8px;border-radius:4px;background:var(--teal);display:block;min-width:4px}
+.usoriga b{text-align:right;font-variant-numeric:tabular-nums;color:var(--grigio);font-size:12.5px}
+/* ── LE MICRO-CONFERME (v13.26) ───────────────────────────────
+   Una riga che scivola dal basso, sta 1,6 s e va via: non un
+   pannello, non un bottone da chiudere. Una cosa che non chiede
+   niente. */
+.microconf{position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);
+  display:flex;align-items:center;gap:8px;z-index:180;
+  background:var(--bosco);color:#EAF4F2;padding:12px 20px;border-radius:99px;
+  font-size:14.5px;box-shadow:0 12px 32px -12px rgba(10,78,73,.5);
+  opacity:0;pointer-events:none;max-width:88vw}
+/* Il segno di spunta si DISEGNA in 380 ms: apparire di colpo è un
+   timbro, disegnarsi è un gesto — e un gesto si nota senza pesare. */
+@media (prefers-reduced-motion:no-preference){
+  .microconf .mcpath{stroke-dasharray:24;stroke-dashoffset:24;
+    transition:stroke-dashoffset .38s cubic-bezier(.22,1,.36,1) .08s}
+  .microconf.on .mcpath{stroke-dashoffset:0}}
+.microconf.grande{font-size:17px;padding:16px 24px;font-family:'Fraunces',Georgia,serif}
+.microconf.on{opacity:1;transform:translate(-50%,0)}
+.mcsegno path{stroke-dasharray:24;stroke-dashoffset:24}
+@media (prefers-reduced-motion:no-preference){
+  .microconf{transition:opacity .34s var(--ease),transform .34s var(--ease)}
+  /* il segno si DISEGNA: un segno che appare è un'immagine, uno che
+     si disegna è un gesto. */
+  .microconf.on .mcsegno path{animation:mcdisegna .34s ease-out .1s both}
+  @keyframes mcdisegna{to{stroke-dashoffset:0}}}
+@media (prefers-reduced-motion:reduce){.mcsegno path{stroke-dashoffset:0}}
+.scala{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.scbtn{background:none;border:0;padding:4px;cursor:pointer;line-height:0;color:var(--linea);
+  border-radius:12px;transition:color .2s var(--ease),transform .2s var(--ease)}
+.scbtn:hover{color:var(--grigio)}
+.scbtn.on{transform:scale(1.12)}
+.scnome{font-size:12px;color:var(--grigio);margin-left:4px}
+.bevgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
+.bevbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;
+  border:1.5px solid var(--linea);border-radius:12px;background:var(--card);cursor:pointer}
+.bevbtn.on{border-color:var(--teal);background:var(--menta)}
+.bevbtn b{font-size:12.5px;color:var(--ink)}
+.bevbtn small{font-size:11px;color:var(--grigio)}
 /* ══ AVANZAMENTO DELLA GENERAZIONE ══ */
 .gday{font-size:13px;padding:8px 0;color:var(--grigio);font-variant-numeric:tabular-nums}
 .gday.ok{color:var(--bosco);font-weight:600}
@@ -629,6 +769,47 @@ html[data-theme="dark"] .btn{color:#04211E}
 .ins-card h2{font-size:16px}
 .ins-storia{font-size:14.5px;line-height:1.6}
 .ins-reaz{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+/* ═══ IL FILM DEL MESE ═══════════════════════════════════════
+   A schermo pieno, una scena per schermata. Lo scorrimento con
+   aggancio (scroll-snap) fa il montaggio: ogni scena si ferma dove
+   deve, e chi legge decide il ritmo. Un carosello automatico
+   scapperebbe, e un racconto che scappa non si ricorda. */
+.film{position:fixed;inset:0;z-index:200;overflow-y:auto;overscroll-behavior:contain;
+  scroll-snap-type:y mandatory;background:var(--bosco);color:#EAF4F2}
+.film-s{min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  padding:0 32px;scroll-snap-align:start;position:relative}
+.film-t{font-family:'Fraunces',Georgia,serif;font-size:clamp(34px,9vw,64px);
+  line-height:1.06;letter-spacing:-.02em;color:#fff;max-width:12em}
+.film-p{font-size:clamp(16px,4.2vw,21px);color:#BFE3DD;margin-top:16px;max-width:20em;line-height:1.5}
+.film-x{position:fixed;top:16px;right:16px;z-index:2;background:rgba(255,255,255,.12);
+  border:0;border-radius:50%;width:44px;height:44px;color:#EAF4F2;cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
+/* ogni scena ha la sua luce: il colore racconta quanto le parole */
+.film-apre{background:radial-gradient(70vw 70vw at 80% 10%,rgba(0,175,163,.22),transparent 60%)}
+.film-tiene{background:radial-gradient(70vw 70vw at 15% 80%,rgba(0,175,163,.18),transparent 60%)}
+.film-sera{background:radial-gradient(75vw 75vw at 85% 85%,rgba(228,99,47,.20),transparent 62%)}
+.film-riprende{background:radial-gradient(70vw 70vw at 20% 20%,rgba(0,224,198,.20),transparent 60%)}
+.film-chiude,.film-fine{background:radial-gradient(80vw 80vw at 50% 50%,rgba(0,175,163,.16),transparent 65%)}
+.film-azioni{display:flex;gap:12px;margin-top:32px;flex-wrap:wrap}
+.film-invito{cursor:pointer}
+@media (prefers-reduced-motion:no-preference){
+  /* le parole entrano, non appaiono: 700 ms, la sottotitolo un
+     soffio dopo. È quel ritardo a farlo sembrare raccontato. */
+  .film-t,.film-p{opacity:0;transform:translateY(18px);
+    transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+  .film-s.on .film-t{opacity:1;transform:none}
+  .film-s.on .film-p{opacity:1;transform:none;transition-delay:.18s}
+  .film-s.on .film-azioni{animation:filmSu .7s cubic-bezier(.22,1,.36,1) .3s both}
+  @keyframes filmSu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+}
+.istr{margin-top:8px}
+.istr>summary{font-size:12.5px;color:var(--teal);cursor:pointer;list-style:none}
+.istr>summary::after{content:" ▾"}
+.istr[open]>summary::after{content:" ▴"}
+.pausa{border:1px dashed var(--linea)}
+.turni{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ins-frasi{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.ins-frasi .chipbtn{font-size:11px}
 .cucnota{margin-top:12px;padding:12px;border-radius:12px;background:var(--mensabg);
   font-size:13.5px;color:var(--ink)}
 .ibtn:hover{transform:translateY(-1px) scale(1.06);border-color:var(--salvia)}

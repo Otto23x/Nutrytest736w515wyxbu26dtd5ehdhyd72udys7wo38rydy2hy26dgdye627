@@ -34,6 +34,17 @@
 const OFF_URL="https://world.openfoodfacts.org/api/v2/product/";
 const OFF_CAMPI="product_name,brands,quantity,nutriments,serving_quantity";
 const OFF_MAX=200;          /* prodotti tenuti in cache */
+/* ── LA SCADENZA ─────────────────────────────────────────────────
+   Prima la cache non scadeva mai: un prodotto letto una volta
+   restava quello per sempre. Nella pratica conta poco — le etichette
+   cambiano raramente e sono i TUOI prodotti abituali — ma quando
+   un'azienda riformula la ricetta, il telefono continua a usare i
+   valori vecchi senza dirlo. Novanta giorni: abbastanza perché la
+   spesa di ogni settimana non tocchi la rete, poco abbastanza perché
+   una riformulazione arrivi entro un trimestre.
+   REGOLA: se sei offline si usa comunque la voce scaduta. Un dato
+   vecchio è meglio di nessun dato, e va detto invece che nascosto. */
+const OFF_GIORNI=90;
 const PIATTI_MAX=300;       /* voci personali            */
 
 /* ── L'archivio locale ─────────────────────────────────────────── */
@@ -52,9 +63,17 @@ async function barcodeCerca(cod){
   const ean=eanValido(cod);
   if(!ean)return {stato:"codice"};
   const cache=offCache();
-  if(cache[ean]){cache[ean].visto=Date.now();save();return {stato:"ok",p:cache[ean],da:"cache"};}
-  if(typeof navigator!=="undefined"&&navigator.onLine===false)
-    return {stato:"offline"};
+  const vecchia=cache[ean];
+  const scaduta=vecchia&&(Date.now()-(vecchia.preso||vecchia.visto||0)>OFF_GIORNI*86400000);
+  if(vecchia&&!scaduta){
+    vecchia.visto=Date.now();save();
+    return {stato:"ok",p:vecchia,da:"cache"};}
+  if(typeof navigator!=="undefined"&&navigator.onLine===false){
+    /* offline con una voce scaduta in mano: si usa, e si dice */
+    if(vecchia){vecchia.visto=Date.now();save();
+      return {stato:"ok",p:vecchia,da:"cache-vecchia",
+              giorni:Math.round((Date.now()-(vecchia.preso||vecchia.visto))/86400000)};}
+    return {stato:"offline"};}
   let j=null;
   try{
     const r=await fetch(OFF_URL+encodeURIComponent(ean)+".json?fields="+OFF_CAMPI,
@@ -98,7 +117,7 @@ function offNormalizza(ean,j){
     gras:num(n["fat_100g"])||0,
     fibre:num(n["fiber_100g"])||0,
     zuccheri:num(n["sugars_100g"])||0,
-    visto:Date.now()};}
+    visto:Date.now(),preso:Date.now()};}
 
 /* Dal prodotto alla riga del diario: si moltiplica per i grammi
    davvero mangiati, non per la confezione. */

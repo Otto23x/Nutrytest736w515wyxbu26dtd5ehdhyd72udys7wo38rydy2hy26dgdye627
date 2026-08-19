@@ -345,7 +345,7 @@ function trainerCardHTML(){
     if(prog.length){
       h+=`<div style="margin-top:12px">${prog.map((x,i)=>sedutaHTML(x,i)).join("")}</div>`;
       if(t.notaPiano)h+=`<div class="hint" style="margin-top:12px">${esc(t.notaPiano)}</div>`;}
-    else h+=`<div class="hint" style="margin-top:8px">${tr("Nessun programma ancora. Te lo costruisco in un tocco, e lo puoi rifare quando cambia la settimana.")}</div>`;
+    else h+=`<div class="hint" style="margin-top:8px">${tr("Te lo costruisco in un tocco.")}</div>`;
     if(aiOn())h+=`<div class="mtools"><button class="btn small" onclick="trainerAI()">${prog.length?tr("Rifai il programma"):tr("Costruisci il programma")}</button></div>
       <div class="aibox" aria-live="polite" id="trainerOut" style="display:none"></div>`;
     else h+=`<div class="hint" style="margin-top:8px">${tr("Serve la chiave AI per costruirlo.")}</div>`;}

@@ -70,6 +70,15 @@ window.tgl=(d,m)=>{const st=S.week.days[d].meals[m];
   const wasComplete=dayCompleted(d);
   freezeDay(d); // fissa il fabbisogno del giorno alla prima spunta
   if(!st.done&&!st.skip){st.done=true;
+    try{usoSegna("pasto_spunta");}catch(e){}
+    /* l'ora della spunta, con il suo grado di attendibilità: serve a
+       capire se la fame di adesso è di stomaco o arriva da altrove */
+    try{if(typeof orarioSegna==="function")orarioSegna(d,m);}catch(e){}
+    /* il festone solo qui: si spunta, si festeggia. Togliere la
+       spunta non è un errore da sottolineare. */
+    try{if(typeof festone==="function"){
+      const b=event&&event.target&&event.target.getBoundingClientRect&&event.target.getBoundingClientRect();
+      festone(b?b.left+b.width/2:null,b?b.top:null);}}catch(e){}
     /* Il gesto più ripetuto dell'app merita una risposta: micro-rimbalzo
        sulla card + colpetto. `conferma` fa entrambi e riavvia
        l'animazione, così la seconda spunta si vede come la prima. */
@@ -275,7 +284,7 @@ window.recModal=(di)=>{
   if(!m){m=document.createElement("div");m.id="recM";m.className="modal";document.body.appendChild(m);}
   let inner=`<div class="mcard"><h2 style="color:var(--bosco);font-size:16px">${trh("⭐ I miei piatti ({v1})",{v1:S.recipes.length})}</h2>
   ${hint2(tr("I tuoi piatti salvati: scegli il pasto e riusali quando vuoi, senza consumare AI."),tr("Ci finiscono i piatti creati da te o con l'AI (Crea, alternativa, sostituzione, modifica). <b>Tocca il titolo</b> per la ricetta completa con le grammature. L'AI li tiene presenti anche nelle proposte future."))}
-  ${mealSelHtml("recTarget",di)||`<div class="hint">${tr("Nessun pasto disponibile in questo giorno: puoi comunque aggiungerli come extra.")}</div>`}`;
+  ${mealSelHtml("recTarget",di)||`<div class="hint">${tr("Aggiungili come extra.")}</div>`}`;
   if(!S.recipes.length)inner+=`<div class="hint">${trh("Ancora nessun piatto salvato. Quando l'AI te ne propone uno che ti piace — o quando lo crei col frigo — premi {b} e lo ritrovi qui.",{b:"<b>⭐ Salva</b>"})}</div>`;
   /* i più recenti in cima */
   S.recipes.map((r,i)=>({r,i})).reverse().forEach(({r,i})=>{
@@ -350,12 +359,22 @@ window.addExtra=(d)=>{ // v5.1: crea un extra VUOTO da compilare come preferisci
    separate da virgole" e i campi fibre/zuccheri. opts: fuori (mensa/
    ristorante) · riscrivi (descrizione riscritta con le grammature) ·
    campo (nome del campo descrizione nel JSON: "piatto", "desc", assente). */
+/* ═══ PERCHÉ QUI NON SI IMPARA PIÙ ════════════════════════════════
+   Fino al 19/08/2026 una correzione delle calorie diventava la
+   verità per quel piatto, e veniva riusata. Era sbagliato:
+   NESSUNO SA CONTARE LE CALORIE DI UN PIATTO A OCCHIO. Chi corregge
+   una carbonara da 700 a 450 non ha misurato niente — ha espresso un
+   desiderio, o ha confrontato con un numero letto da qualche parte.
+   Prendere quel numero per buono significa costruire un bilancio
+   falso su richiesta di chi poi lo subirà.
+   Quello che la persona SA è cosa ha messo nel piatto: «80 g di
+   pasta, un tuorlo, 20 g di pecorino». Quella è la strada — la
+   descrizione, non il risultato — e per le cose che rifà sempre
+   uguali ci sono le PREPARAZIONI (modulo 63).
+   La funzione resta, vuota, perché è chiamata in più punti: togliere
+   la chiamata da tutti i rami era il modo di dimenticarne uno. */
 function recCorrection(txt,da,a){
-  /* si impara solo dalle correzioni vere: almeno 30 kcal di scarto */
-  if(!(da>0&&a>0)||Math.abs(da-a)<30)return;
-  S.corrections=(S.corrections||[]).filter(c=>c.t!==String(txt).slice(0,60));
-  S.corrections.push({t:String(txt).slice(0,60),da:Math.round(da),a:Math.round(a)});
-  if(S.corrections.length>15)S.corrections=S.corrections.slice(-15);}
+  /* volutamente non fa niente: vedi sopra */}
 /* ── 6.5 · Salute del motore: quando un prompt inizia a degradare
    (Google cambia modello, risposte sporche) lo dice il contatore,
    non i reclami. ok = risposte parsate; ko = risposte malformate. */
@@ -378,6 +397,88 @@ function aiHealth(tag,ok){
 /* La tavola degli alimenti vive in 07_alimenti.js: dati e codice
    separati, così il database cresce senza toccare la logica. */
 
+/* ═══ QUANDO LA TAVOLA NON BASTA ═══════════════════════════════
+   Il calcolo locale è preciso su quello che sa: «120 g di riso» è
+   aritmetica. Ma su «4 pezzi di nigiri» o «una porzione di lasagne
+   della nonna» sommare ingredienti singoli produce un numero
+   PLAUSIBILE E SBAGLIATO — e un numero sbagliato con l'aria di
+   essere certo è peggio di nessun numero, perché nessuno lo mette
+   in dubbio.
+
+   Quindi prima di rispondere ci si chiede: questa cosa la sappiamo
+   davvero? Tre casi in cui la risposta è no e serve l'AI:
+
+   1. PIATTI COMPOSTI E PRONTI — sushi, lasagne, paella, poke, kebab,
+      piadina, pizza farcita: il nome nasconde una ricetta, e la
+      ricetta cambia le calorie del doppio.
+   2. UNITÀ CHE NON SONO GRAMMI — «4 pezzi», «una teglia», «un
+      trancio», «due mestoli»: quanto pesa un pezzo lo sa chi
+      conosce il piatto, non una tabella di ingredienti.
+   3. TROPPI COMPONENTI PERSI — se metà di quello che hai scritto
+      non è nel database, il totale è una mezza risposta spacciata
+      per intera.
+
+   In tutti e tre i casi localEstimate torna null con un motivo, e
+   il chiamante passa all'AI. Se l'AI non c'è (offline, o piano
+   senza AI) si mostra la stima locale DICHIARANDO che è approssimata:
+   meglio un numero con l'etichetta «circa» che un numero muto. */
+const AI_PIATTI=[
+  "sushi","nigiri","sashimi","maki","uramaki","temaki","onigiri","poke",
+  "lasagn","cannellon","parmigiana","moussaka","paella","risotto","paniss",
+  "kebab","piadin","panzerott","calzon","arancin","suppl","crocch","polpett",
+  "hamburger","cheeseburger","hot dog","toast","club sandwich","wrap","burrito",
+  "taco","quesadilla","nachos",
+  "carbonara","amatrician","cacio e pepe","gricia","genovese","ragu","ragù",
+  "bolognese","pesto","norma","puttanesca","alfredo","tikka","curry","tandoori",
+  "ramen","pad thai","noodles saltat","involtin",
+  "tortin","frittat","omelette","crepe","crêpe","strudel","tiramis",
+  "cheesecake","panna cotta","gelato","cornetto","brioche farcit","maritozz",
+  "pizza","focacc","torta salat","quiche","vol au vent","tramezzin","piade",
+  "insalata di riso","insalata russa","vitello tonnato","cotoletta","milanese",
+  "saltimbocca","spezzatino","stufato","brasato","goulash","zuppa","minestrone",
+  "vellutata","passato di verdur","pasta al forno","gnocchi","ravioli","tortellin",
+  "agnolott","pierogi","empanada","samosa","spring roll","dim sum","bao"];
+
+/* Le unità che una tabella di ingredienti non sa convertire. */
+const AI_UNITA=/\b(\d+\s*)?(pezz[oi]|fett[ae]|trancio|tranci|teglia|teglie|mestol[oi]|cucchiaiat[ae]|porzion[ei]|piatt[oi]|scodell[ae]|ciotol[ae]|vassoi?|vasett[oi]|barattol[oi]|confezion[ei]|sacchett[oi]|panin[oi]|rotolin[oi]|involtin[oi]|spiedin[oi]|bocconcin[oi])\b/i;
+
+/* Una voce già CURATA non ha bisogno dell'AI: se «hummus» sta in
+   tavola con le sue calorie misurate, sommarla è aritmetica.
+   ATTENZIONE al modo in cui si controlla: bisogna cercare IL NOME DEL
+   PIATTO in tavola, non un ingrediente qualsiasi del testo. La prima
+   versione guardava tutto il testo e su «4 pezzi di nigiri» trovava
+   un ingrediente scollegato, concludendo che il sushi fosse pesato.
+   Un controllo troppo generoso è peggio di nessun controllo: fa
+   passare per certo quello che è indovinato. */
+function piattoInTavola(nomePiatto){
+  const p=String(nomePiatto||"");
+  if(p.length<4)return false;
+  try{
+    for(const row of FOOD_DB)
+      for(const stem of row[0].split("|"))
+        /* SEVERO: il gambo deve COMINCIARE col nome del piatto (o
+           coincidere). «hummus» ↔ «hummus di ceci» sì; «nigiri» ↔
+           un gambo qualsiasi che gli somiglia dentro, NO — con la
+           versione larga «nigiri» risultava pesato e il sushi non
+           arrivava mai all'AI. */
+        if(stem===p||stem.indexOf(p)===0)return true;
+  }catch(e){}
+  return false;}
+
+function serveAI(txt){
+  const t=String(txt||"").toLowerCase()
+    .replace(/[àá]/g,"a").replace(/[èé]/g,"e").replace(/[ìí]/g,"i")
+    .replace(/[òó]/g,"o").replace(/[ùú]/g,"u");
+  const piatto=AI_PIATTI.find(p=>t.indexOf(p.replace(/[àù]/g,m=>m==="à"?"a":"u"))>-1);
+  /* il piatto va all'AI solo se non è già pesato in tavola */
+  if(piatto&&!piattoInTavola(piatto))return {si:true,perche:"piatto",dettaglio:piatto};
+  /* i grammi espliciti battono l'unità vaga: «4 fette, 80 g» si sa
+     calcolare, «4 fette» no */
+  if(AI_UNITA.test(t)&&!/\b\d+(?:[.,]\d+)?\s*(?:g|gr|grammi|ml|l)\b/.test(t))
+    return {si:true,perche:"unita"};
+  return {si:false};}
+window.serveAI=serveAI;
+
 function localEstimate(txt){
   /* I TUOI PIATTI VINCONO. Se questa persona ha già salvato (o
      corretto) questo piatto, la sua versione è più vera di qualunque
@@ -393,6 +494,13 @@ function localEstimate(txt){
               carb:Math.round(mio.carb*q),gras:Math.round(mio.gras*q),
               fibre:Math.round((mio.fibre||0)*q),zuccheri:Math.round((mio.zuccheri||0)*q),
               trovati:[mio.nome],persi:[],mio:true};}}
+  /* Se è un piatto composto o un'unità che non sappiamo pesare, la
+     tavola tace e lascia parlare l'AI: sommare ingredienti su «4
+     pezzi di nigiri» darebbe un numero sbagliato con l'aria di essere
+     giusto. I TUOI piatti (sopra) restano l'eccezione: se l'hai già
+     corretto tu, quella è la verità e vale anche per il sushi. */
+  const g=serveAI(txt);
+  if(g.si)return null;
   const norm=x=>String(x||"").toLowerCase()
     .replace(/[àá]/g,"a").replace(/[èé]/g,"e").replace(/[ìí]/g,"i").replace(/[òó]/g,"o").replace(/[ùú]/g,"u");
   const comps=norm(txt).split(/,| e |\+|;/).map(c=>c.trim()).filter(Boolean);
@@ -403,9 +511,16 @@ function localEstimate(txt){
     for(const row of FOOD_DB){
       for(const stem of row[0].split("|")){
         if(comp.indexOf(stem)>-1&&stem.length>best){best=stem.length;food=row;}}}
-    /* SECONDA LINEA: il registro USDA (6.609 voci). Risponde solo se
-       la tavola curata tace, e solo su gambi lunghi (≥5): con seimila
-       nomi inglesi, i gambi corti aggancerebbero di tutto. */
+    /* SECONDA LINEA — la porta è aperta, ma non c'è nessuno.
+       Fino a v13.27 qui rispondeva un registro USDA di 6.032 voci.
+       MISURATO su 60 modi realistici di scrivere un pasto italiano:
+       i curati coprivano il 98%, l'USDA lo 0% — non agganciava MAI,
+       perché i suoi nomi sono in inglese e iper-specifici («pork,
+       fresh, loin, center loin (chops), bone-in, separable lean
+       only»). 452 KB per zero risposte: rimosso.
+       Il meccanismo resta: se `FOOD_DB_EXT` esiste (una tavola
+       migliore, un giorno) viene usata. Quello che nessuna tavola sa,
+       va all'AI — che è la strada giusta per i casi rari. */
     if(!food&&typeof FOOD_DB_EXT!=="undefined"){
       for(const row of FOOD_DB_EXT){
         for(const stem of row[0].split("|")){
@@ -421,7 +536,10 @@ function localEstimate(txt){
     const q=peso/100;
     tot.k+=food[1]*q;tot.p+=food[2]*q;tot.c+=food[3]*q;tot.f+=food[4]*q;tot.fib+=food[5]*q;tot.z+=food[6]*q;
     trovati.push(comp);}
-  if(!trovati.length||trovati.length/comps.length<0.6)return null;
+  /* Ottanta per cento, non sessanta: con un componente su tre perso il
+     totale è una mezza risposta spacciata per intera. Alzare questa
+     soglia manda più roba all'AI, che è il punto. */
+  if(!trovati.length||trovati.length/comps.length<0.8)return null;
   return {kcal:Math.round(tot.k),prot:Math.round(tot.p),carb:Math.round(tot.c),gras:Math.round(tot.f),
           fibre:Math.round(tot.fib),zuccheri:Math.round(tot.z),trovati,persi};}
 /* ── 6.2 · Cache delle stime: stesso piatto, stessa taratura (le
@@ -448,8 +566,16 @@ async function estimaCached(txt,o){
 function estimaPrompt(txt,o){
   o=o||{};
   const t=String(txt==null?"":txt).replace(/"/g,"'");
-  const corr=(S.corrections||[]).slice(-5);
-  const memo=corr.length?' L\'utente in passato ha corretto stime simili — adegua la taratura: '+corr.map(c=>'«'+c.t+'» da '+c.da+' a '+c.a+' kcal').join("; ")+'.':'';
+  /* ── QUI STAVA L'ERRORE PIÙ GRAVE ──────────────────────────────
+     Le correzioni di calorie fatte dalla persona finivano DENTRO IL
+     PROMPT: «adegua la taratura, da 700 a 450». Cioè si chiedeva
+     all'AI di abbassare le stime perché qualcuno lo aveva chiesto.
+     Un bilancio così è falso, e la persona che lo usa non lo sa.
+     Al suo posto: le PREPARAZIONI DI CASA. Se nel piatto compare
+     «la mia maionese», all'AI si allega la RICETTA che la persona
+     ha descritto — un'informazione vera, che solo lei poteva dare —
+     e si lascia a lei il mestiere di stimare quanta se ne usa. */
+  const memo=(typeof prepPerAI==="function")?prepPerAI(t):"";
   const corpo=o.fuori
     ?'Il pasto è fuori casa (mensa/ristorante): riscrivi la descrizione in forma INDICATIVA e sintetica, massimo 12 parole, componenti separate da virgole, SENZA grammature precise. '
     :('Se nel testo sono indicate grammature, usale ESATTAMENTE come scritte (sono state corrette a mano dall\'utente); per gli elementi senza peso assumi porzioni tipiche italiane'+(o.riscrivi?' e RISCRIVI la descrizione includendole, sintetica, componenti separate da virgole':'')+'. ');
@@ -474,7 +600,7 @@ window.rebalance=async(di)=>{
   const remPlanned=remaining.reduce((a,it)=>a+mealOpt(it.pdi,it.mi).k,0);
   const budget=dayPlan-eaten;
   const excess=Math.round(remPlanned-budget);
-  if(!remaining.length)return dlgAlert(tr("Non ci sono pasti normali ancora da consumare da ribilanciare."));
+  if(!remaining.length)return dlgAlert(tr("Non c'è più niente da spostare oggi."));
   if(excess<=50)return dlgAlert(tr("Sei in linea con la giornata: pasti rimanenti ~{a} kcal, budget residuo ~{b} kcal (su {c} pianificate). Nessun ribilanciamento necessario.",{a:remPlanned,b:Math.max(0,budget),c:dayPlan}));
   if(!aiOn())return aiFail(new Error("nokey"));
   const list=remaining.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
@@ -504,7 +630,7 @@ window.rebalanceNextDay=async(fromDi,toDi)=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   const mains=dayItems(toDi).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];
     return !st.done&&!st.skip&&PLAN[it.pdi].meals[it.mi].type==="norm";});
-  if(!mains.length)return dlgAlert(tr("Non ci sono pasti ancora da consumare da alleggerire."));
+  if(!mains.length)return dlgAlert(tr("Non c'è più niente da alleggerire oggi."));
   const list=mains.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
   const remPlanned=list.reduce((a,x)=>a+x.kcal,0);
   const targetRem=Math.max(mains.length*minMealKcal(),remPlanned-sg);
@@ -585,7 +711,7 @@ window.rgpRun=async(toDi)=>{
   if(!aiOn())return aiFail(new Error("nokey"));
   const mains=dayItems(toDi).filter(it=>{const st=S.week.days[it.pdi].meals[it.mi];
     return !st.done&&!st.skip&&PLAN[it.pdi].meals[it.mi].type==="norm";});
-  if(!mains.length)return dlgAlert(tr("Non ci sono pasti di oggi ancora da consumare da alleggerire."));
+  if(!mains.length)return dlgAlert(tr("Non c'è più niente da alleggerire oggi."));
   const list=mains.map(it=>{const o=mealOpt(it.pdi,it.mi);return {slot:it.slot,desc:o.d,kcal:o.k,prot:o.p};});
   const remPlanned=list.reduce((a,x)=>a+x.kcal,0);
   // tetto giornaliero: mai più di X% del pianificato, e mai sotto ~250 kcal a pasto
@@ -852,6 +978,7 @@ window.energyStats=energyStats;
    prossimo, senza passare dal Piano. Annullabile come tutto il resto:
    un tocco per sbaglio non deve costare un pasto. */
 window.saltaPasto=(pdi,mi)=>{
+  try{usoSegna("pasto_salta");}catch(e){}
   const st=S.week.days[pdi].meals[mi];
   st.done=false;st.skip=true;
   save();render(cur);   /* save() registra da solo lo stato di prima:
@@ -1083,17 +1210,12 @@ function attrezziPasto(pdi,mi){
     `<button class="ibtn apic" title="${ti}" aria-label="${ti}" onclick="${fn}">${ic(icn,19)}</button>`).join("")}</div>`;}
 
 function acquaRiga(di,titolo){
+  /* Il disegno vero sta in 53_bicchieri: qui resta l'aggancio, così
+     i bicchieri cambiano in tutti i posti in cui la riga appare. */
+  if(typeof acquaRiga2==="function")return acquaRiga2(di,titolo);
   const g=waterGoal(di),b=(S.week.days[di]||{}).water||0;
-  const pct=Math.min(100,Math.round(b/Math.max(1,g)*100));
-  const frase=b>=g?"Obiettivo raggiunto.":
-              (pct>=60?"Ci sei quasi.":
-              (b===0?tr("Non hai ancora bevuto nulla."):"Ne mancano "+(g-b)+"."));
-  return `<div class="acqriga">
-    <div class="ah"><span>${titolo||"Stai bevendo abbastanza?"}</span><b>${b} / ${g}</b></div>
-    <div class="agl">${Array.from({length:g},(_,i)=>
-      `<button class="ag ${i<b?"on":""}" onclick="setWater(${di},${i})" aria-label="Bicchiere ${i+1}"></button>`).join("")}</div>
-    <div class="af">${trh("{v1} Un bicchiere è 200 ml.",{v1:frase})}</div>
-  </div>`;}
+  return `<div class="acqriga"><div class="ah"><span>${titolo||tr("Stai bevendo abbastanza?")}</span><b>${b} / ${g}</b></div></div>`;}
+
 function prossimoPasto(di){
   const p=pendingMeals(di);
   if(!p.length)return null;
@@ -1110,6 +1232,12 @@ const CRAVE=[["croccante","Croccante"],["dolce","Dolce"],["caldo","Caldo"],
 let CRAVESEL=[];
 window.craveTog=(k)=>{const i=CRAVESEL.indexOf(k);if(i<0)CRAVESEL.push(k);else CRAVESEL.splice(i,1);
   const el=document.getElementById("craveBox");if(el)el.innerHTML=craveRows();};
+/* Prima della ricetta, un gesto: una voglia sale e scende, e a volte
+   dieci minuti bastano. Non «non mangiare» — solo, poi decidi tu. */
+function craveGesti(){
+  return (typeof gestiBlocco==="function")?gestiBlocco("voglia",tr("Prima, se vuoi")):"";}
+window.craveGesti=craveGesti;
+
 function craveRows(){return `<div class="ckgrid crave3">`+CRAVE.map(([k,l])=>
   `<label class="ck"><input type="checkbox" ${CRAVESEL.indexOf(k)>-1?"checked":""} onchange="craveTog('${k}')"> ${l}</label>`).join("")+`</div>`;}
 window.craveHack=(di)=>{
@@ -1366,7 +1494,7 @@ function stealthDraw(){
   const k=pronto?STEALTH_K[STE.q][STE.t]:0, p=pronto?STEALTH_P[STE.q]:0;
   let h=`<div class="modal" id="steM"><div class="mcard">
     <h2 style="color:var(--bosco);font-size:16px">${tr("Sono ospite")}</h2>
-    <div class="hint">${tr("Nessuno pesa il cibo a casa d'altri. Due domande e il pasto è registrato con una stima statistica: il recupero degli sfori penserà al resto.")}</div>
+    ${hint2(tr("Nessuno pesa il cibo a casa d'altri."),tr("Due domande e il pasto è registrato con una stima statistica: il recupero degli sfori penserà al resto."))}
     <label>${tr("Quanto hai mangiato?")}</label><div class="ckgrid">`+
     q.map(([k2,l])=>`<label class="ck" style="font-size:14.5px;padding:12px 16px"><input type="radio" name="steq" ${STE.q===k2?"checked":""} onchange="STE.q='${k2}';stealthDraw()"> ${l}</label>`).join("")+
     `</div><label>${tr("Cosa c'era nel piatto?")}</label><div class="ckgrid">`+

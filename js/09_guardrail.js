@@ -144,6 +144,9 @@ if(typeof module==="object"&&module.exports){module.exports=GUARDRAIL;}
 else{
   /* nel pacchetto dell'app le funzioni diventano globali, come tutto
      il resto dei moduli */
+  /* `this` in un modulo può essere qualunque cosa: si dichiara, e il
+     controllo dei tipi del backend (che importa questo file) resta pulito. */
+  /** @type {any} */
   var _radice=(typeof globalThis!=="undefined")?globalThis:this;
   Object.keys(GUARDRAIL).forEach(function(k){_radice[k]=GUARDRAIL[k];});
 }

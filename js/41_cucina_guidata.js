@@ -50,6 +50,7 @@ function commensaliTesto(c){
   return p.join(" · ");}
 
 window.commensali=(pdi,mi,poi)=>{
+  try{usoSegna("commensali");}catch(e){}
   const c=commensaliOggi()||{a:1,b:0};
   sheetShow(tr("Chi mangia oggi"),
    `<div class="hint">${esc(tr("Vale per tutta la giornata: la spesa e le dosi si moltiplicano, la TUA porzione resta quella del piano."))}</div>
@@ -82,6 +83,7 @@ window.cucConferma=(pdi,mi,proseguire)=>{
 
 /* ── la pentola: l'AI spiega QUESTO piatto, per QUELLE persone ── */
 window.comeCucino=async(pdi,mi)=>{
+  try{usoSegna("cucina");}catch(e){}
   const c=commensaliOggi();
   /* mai due domande per una risposta: se non sa per quanti, lo chiede
      e poi prosegue da solo verso la ricetta. */

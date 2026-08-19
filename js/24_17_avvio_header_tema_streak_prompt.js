@@ -97,7 +97,7 @@ function errorCardHTML(where,e){
 window.reportCrash=(where,msg)=>{
   const body="Errore nella sezione: "+where+"\n\n"+msg+"\n\n---\nNuvia v"+APP_VER+
     "\n"+new Date().toLocaleString(dataLoc())+"\n"+navigator.userAgent;
-  location.href="mailto:alberto.scian@gmail.com?subject="+encodeURIComponent("[Nuvia "+APP_VER+"] Errore in "+where)+
+  location.href="mailto:info@nuviahealth.app?subject="+encodeURIComponent("[Nuvia "+APP_VER+"] Errore in "+where)+
     "&body="+encodeURIComponent(body);};
 function safeRender(p,fn){
   try{fn();}
@@ -256,9 +256,32 @@ function render(p){
      sottofondo continua anche se cambi scheda o torni all'app dopo. */
   setTimeout(()=>{const e=document.getElementById("aiSpin");
     if(e)e.classList.toggle("on",AIBUSY>0);},0);
-  const M={punto:renderPunto,oggi:renderOggi,piano:renderPiano,spesa:renderSpesa,sport:renderSport,
-  comestai:renderComeStai,storico:renderStorico,insieme:renderInsieme,io:renderIo,sistema:renderSistema,regole:renderRegole,tools:renderTools,benvenuto:renderBenvenuto,onb2:renderOnb2,piani:renderPiani,guida:renderGuida,nuvia:renderNuvia,setup:renderSetup};
-  const fn=M[p];if(!fn)return;
+  /* ═══ PERCHÉ QUI SI CERCA PER NOME ═══════════════════════════════
+     DIFETTO TROVATO IN PRODUZIONE il 19/08/2026, sul telefono del
+     founder: «renderInsieme is not defined», e l'app non partiva
+     PIÙ SU NESSUNA PAGINA.
+
+     La causa: questa mappa scritta con gli identificatori diretti
+     (`insieme:renderInsieme`) li valuta TUTTI nel momento in cui
+     l'oggetto viene creato. Basta che UNO dei moduli non sia ancora
+     stato caricato — e l'avvio parte prima che finiscano tutti — e
+     l'errore fa saltare qualunque pagina, anche quelle che non
+     c'entrano niente. Nel monolite l'ordine di caricamento era
+     fortunato; nella consegna a file separati no.
+
+     Con la ricerca per nome su window, una funzione mancante rende
+     vuota una sola pagina invece di rompere tutta l'app: un guasto
+     che resta piccolo invece di allargarsi. */
+  const NOMI={punto:"renderPunto",oggi:"renderOggi",piano:"renderPiano",
+    spesa:"renderSpesa",sport:"renderSport",comestai:"renderComeStai",
+    storico:"renderStorico",mia:"renderMia",insieme:"renderInsieme",
+    io:"renderIo",sistema:"renderSistema",regole:"renderRegole",
+    tools:"renderTools",benvenuto:"renderBenvenuto",onb2:"renderOnb2",
+    piani:"renderPiani",guida:"renderGuida",nuvia:"renderNuvia",
+    setup:"renderSetup"};
+  const nome=NOMI[p];
+  const fn=nome?window[nome]:null;
+  if(typeof fn!=="function")return;
   safeRender(p,fn);
   setTimeout(()=>{try{faroApply(p);tipApply(p);a11yLega(p);
     if(typeof filaIconeSegna==="function")filaIconeSegna();}catch(e){}},90);}
@@ -331,6 +354,9 @@ setTimeout(()=>{try{qPlanPrecompute();
    volta sola, e solo se ha davvero imparato il ritmo. Mai all'apertura
    secca: la prima cosa che vedi aprendo l'app non può essere una
    domanda sul tuo corpo. */
+/* La pausa si controlla all'avvio: se sono passati tre giorni muti
+   si apre da sola, e se la persona è tornata si chiude. */
+setTimeout(()=>{try{if(typeof pausaControlla==="function")pausaControlla();}catch(e){}},1800);
 setTimeout(()=>{try{if(typeof cicloProponi==="function")cicloProponi();}catch(e){}},4200);}catch(e){}},4000);
 let _rvObs=null;
 /* v5.1: header fisso (niente listener di scroll che ridisegna l'intestazione) */
@@ -536,7 +562,15 @@ window.addEventListener("error",function(ev){
   let start="oggi";
   try{/* Si apre SEMPRE sul Punto: è la pagina che dice come stai e cosa ti
        aspetta. Da lì si passa a Oggi con un tocco. */
-    start=S.onboard.done?(S.profile.dob?"punto":"io"):(onb2Attivo()?"onb2":"benvenuto");}catch(e){}
+    start=S.onboard.done?(S.profile.dob?"punto":"io"):(onb2Attivo()?"onb2":"benvenuto");
+    /* L'UNICA eccezione: chi si è composto la sua pagina E ha chiesto
+       di aprirla per prima. Due condizioni esplicite, non una
+       preferenza dedotta: cambiare il punto di partenza di un'app è
+       la cosa che più disorienta, e si fa solo se richiesto. */
+    if(start==="punto"&&typeof mia==="function"){
+      const d=mia();
+      if(d&&d.attiva&&d.prima&&d.pezzi.length)start="mia";}
+  }catch(e){}
   try{show(start);}
   catch(e){
     try{

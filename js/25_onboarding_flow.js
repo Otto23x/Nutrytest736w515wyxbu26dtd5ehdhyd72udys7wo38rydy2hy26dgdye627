@@ -346,7 +346,11 @@ window.onb2Rispondi=(k,v)=>{
   const o=onb2Stato();
   const sc=ONB2c().find(x=>x.k===k);
   if(sc&&sc.sensibile&&o.sensibili!==true)return;   /* niente consenso, niente risposta */
-  o.ris[k]=v;onb2Salva();onb2Avanti();};
+  o.ris[k]=v;onb2Salva();
+  /* la conferma prima di cambiare schermata: si vede sopra la
+     risposta appena data, non sopra la domanda dopo */
+  try{if(typeof confermaPasso==="function")confermaPasso(k);}catch(e){}
+  onb2Avanti();};
 
 window.onb2Bio=()=>{
   const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
@@ -354,7 +358,9 @@ window.onb2Bio=()=>{
   if(!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
     return dlgAlert(tr("Mi servono età, altezza e peso per calcolare qualcosa di vero. Sono gli unici numeri obbligatori."));
   const o=onb2Stato();
-  o.ris.bio={gen:g("o2gen")||"m",eta,h,w};onb2Salva();onb2Avanti();};
+  o.ris.bio={gen:g("o2gen")||"m",eta,h,w};onb2Salva();
+  try{if(typeof confermaPasso==="function")confermaPasso("bio");}catch(e){}
+  onb2Avanti();};
 
 window.onb2Goal=()=>{
   const e=document.getElementById("o2goal"),v=parseFloat(e?e.value:"");
@@ -576,6 +582,9 @@ window.onb2Chiudi=async(modo)=>{
   onb2Travasa();
   if(modo==="libera"){
     o.done=true;S.onboard.done=true;onb2Salva();
+    /* dieci schermate sono un investimento: arrivare in fondo merita
+       più di un cambio di pagina */
+    try{if(typeof confermaFine==="function")confermaFine();}catch(e){}
     toast(tr("Fatto. Le linee guida del giorno arrivano prestissimo: intanto il diario è tuo."));
     return show("oggi");}
   /* Piano: si genera davvero. La barra racconta quello che succede,
@@ -587,6 +596,7 @@ window.onb2Chiudi=async(modo)=>{
     if(txt)txt.textContent=tr("Sto componendo il tuo piano: {g}…",{g:nome});};
   if(typeof aiOn!=="function"||!aiOn()){
     o.done=true;S.onboard.done=true;onb2Salva();
+    try{if(typeof confermaFine==="function")confermaFine();}catch(e){}
     if(txt)txt.textContent=tr("Il piano lo generiamo appena c'è connessione: intanto il diario è già pronto.");
     return setTimeout(()=>show("oggi"),900);}
   try{

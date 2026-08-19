@@ -986,7 +986,9 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
   try{h+=dispensaHTML();}catch(e){}
   try{h+=budgetHTML();}catch(e){}
   h+=`<div class="card"><h2>${tr("I tuoi supermercati")}</h2>
-  ${hint2(tr("Aggiungi i negozi dove fai la spesa: da lì i link ↗ della lista aprono la ricerca del prodotto."),tr("Non ci sono catene predefinite, e non è una dimenticanza: gli indirizzi dei siti cambiano spesso e l'app non può verificarli. Li insegni tu una volta sola, incollando l'indirizzo di una ricerca vera — così ogni link è già stato provato sul campo, e in lista c'è solo quello che usi."))}
+  ${markets().length
+    ?`<div class="hint">${tr("I link della lista cercheranno qui.")}</div>`
+    :`<div class="hint">${tr("Aggiungi il tuo negozio: i link della lista cercheranno lì.")}</div>`}
   ${markets().length?markets().map((m,k)=>`
     <div class="ctlrow" style="align-items:flex-start">
       <input type="radio" name="mkt" ${m.on?"checked":""} onchange="marketPick(${k})" style="margin:4px 0 0" aria-label="Usa ${esc(cap(fascia(m.n)))}">
@@ -998,11 +1000,9 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
       ${m.p?`<button class="ibtn" title="${tr("Togli le offerte")}" onclick="marketPromoDel(${k})">${ic("tag",16)}</button>`
            :`<button class="ibtn" title="${tr("Insegna le offerte")}" onclick="marketPromo(${k})" style="color:var(--grigio)">${ic("tag",16)}</button>`}
       <button class="ibtn" title="${tr("Togli")}" onclick="marketDel(${k})">${ic("x",15)}</button>
-    </div>`).join(""):`<div class="hint" style="background:var(--menta);padding:8px 12px;border-radius:12px"><b>${tr("Nessun supermercato ancora.")}</b> ${tr("Serve per cercare un prodotto con un tocco, invece di digitarlo ogni volta.")}</div>`}
-  <div class="hint" style="margin-top:8px"><b>${trh("Si fa una volta sola</b>: 1. sul sito del tuo supermercato cerca «pollo» · 2. {b1} dalla barra · 3. incollalo qui con «+ Aggiungi». Da lì in poi ogni ↗ della lista cerca direttamente nel tuo negozio.",{b1:"<b>"+tr("copia l'indirizzo")+"</b>"})}</div>
+    </div>`).join(""):""}
   <div class="mtools"><button class="btn small" onclick="marketAdd()">${tr("+ Aggiungi supermercato")}</button></div>
-  ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:12px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)">  ${trh("Mostra prima i prodotti in {b}",{b:"<b>offerta</b>"})}</label>`:""}
-  ${markets().length&&!markets().some(m=>m.p)?`<div class="hint" style="margin-top:8px">${trh("Vuoi vedere prima le {b}? Tocca  accanto al negozio: ti guido in due passaggi.",{b:"<b>offerte</b>"})}</div>`:""}</div>
+  ${marketOn()&&marketOn().p?`<label class="ck" style="margin-top:12px"><input type="checkbox" ${promoOn()?"checked":""} onchange="shopPromoSet(this.checked)">  ${trh("Mostra prima i prodotti in {b}",{b:"<b>offerta</b>"})}</label>`:""}</div>
   <div class="card"><h2>${tr("Lista della spesa")}</h2>
   ${hint2(tr("La lista si costruisce <b>da sola</b> dagli ingredienti del piano e si aggiorna quando lo modifichi: non c'è niente da rigenerare."),tr("Vale anche per quello che aggiungi tu: cambia un pasto dal Piano e il prodotto entra in lista da sé. Per una cosa fuori piano c'è la sezione <b>Extra</b> in fondo, che sopravvive anche quando la lista si rigenera. Copre i 7 giorni da oggi e i pasti fuori casa non vengono comprati."))}
   ${(function(){
@@ -1040,7 +1040,7 @@ function renderSpesa(){const el=document.getElementById("pg-spesa");
                 ${shopTplNow()?`<a class="ibtn" target="_blank" rel="noopener" href="${shopLink(it)}" title="${tr("Cerca nel tuo supermercato")}">${ic("link",16)}</a>`:`<button class="ibtn" title="${tr("Imposta il link del tuo supermercato in cima alla pagina")}" onclick="dlgAlert(tr('Imposta prima il link di ricerca del tuo supermercato, in cima alla pagina Spesa.'))">${ic("link",16)}</button>`}
         <button class="ibtn" title="Alternativa AI" onclick="subAI('${it.replace(/'/g,"\\'")}'${ci!=null?","+ci+","+ii:""})">${ic("ai",16)}</button>
         <button class="ibtn" title="${tr("Rimuovi dalla lista")}" onclick="${delFn}">${ic("x",15)}</button></div>`;};
-  SHOPCUR().forEach(([cat,items],ci)=>{h+=`<div class="shopcat">${esc(cat)}</div><div class="shopitems">`;
+  SHOPCUR().forEach(([cat,items],ci)=>{h+=`<div class="shopcat">${(typeof icoPrefisso==="function")?icoPrefisso(cat,16):""}${esc(cat)}</div><div class="shopitems">`;
     items.forEach((it,ii)=>{h+=rigaShop(ci+"_"+ii,it,`removeShopItem(${ci},${ii})`,ci,ii);});
     h+=`</div>`;});
   /* ── EXTRA: gli acquisti fuori dal piano ──────────────────────────

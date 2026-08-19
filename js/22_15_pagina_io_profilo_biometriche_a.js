@@ -866,7 +866,7 @@ window.wizConfirm=async ()=>{
   dlgAlert(tr("Piano confermato! Vai in Spesa per generare la lista della spesa dal nuovo piano."));
   show("piano");};
 function renderSetup(){const el=document.getElementById("pg-setup");let h="";
-  const disc=`<div class="card nota grave"><div class="hint" style="color:var(--rosso)">${tr("<b> Avvertenza importante:</b> questo piano è generato da un'intelligenza artificiale su dati auto-dichiarati. NON sostituisce un professionista: prima di seguirlo, fallo validare da un nutrizionista o un medico, soprattutto in presenza di patologie, intolleranze o gravidanza.")}</div></div>`;
+  const disc=`<div class="card nota grave">${hint2(tr("<b> Avvertenza importante:</b> questo piano è generato da un'intelligenza artificiale su dati auto-dichiarati."),tr("NON sostituisce un professionista: prima di seguirlo, fallo validare da un nutrizionista o un medico, soprattutto in presenza di patologie, intolleranze o gravidanza."))}</div>`;
   if(WIZ.step===1){h=disc+`<div class="card"><h2>${tr("Passo 1 di 3 — Chi sei")}</h2>
     <div class="row2"><div><label>Nome</label><input type="text" id="wzNome" value="${esc(WIZ.d.nome||S.profile.name||"")}"></div>
     <div><label>Genere</label><select id="wzGen"><option value="m">Uomo</option><option value="f" ${WIZ.d.gen==="f"?"selected":""}>Donna</option></select></div></div>
@@ -906,7 +906,7 @@ function renderSetup(){const el=document.getElementById("pg-setup");let h="";
     <div class="aibox" aria-live="polite" id="wzOut" style="display:none"></div></div>`;}
   else if(WIZ.step===4&&WIZ.plan){
     h=(WIZ.editOnly?`<button class="btn ghost small" style="margin-bottom:12px" onclick="show('piano')">${tr("‹ Torna al piano (senza salvare)")}</button>`:disc)+`<div class="card"><h2>${WIZ.editOnly?"Modifica il piano":" Il tuo piano — controlla e modifica"}</h2>
-    <div class="hint">${tr("Tocca i campi per correggere descrizioni, kcal e proteine. Poi conferma: diventerà la tua base settimanale.")}</div></div>`;
+    Tocca i campi per correggere descrizioni, kcal e proteine. Poi conferma: diventerà la tua base settimanale.</div>`;
     WIZ.plan.forEach((d,di)=>{
       h+=`<div class="dayname">${esc(giorno(d.day))}</div><div class="dayctx">${esc(d.ctx)}</div>`;
       (d.meals||[]).forEach((m,mi)=>{const o=m.o[0];
@@ -1010,7 +1010,7 @@ window.NUVIA_FUNZIONI_EN=`<div class="card guida-sec"><details class="gdet"><sum
 <tr><td colspan="2"><b>I've got ten minutes</b> (in Tools) — the constraint is time: two suggestions that <b>genuinely</b> fit into ten minutes including preparation and cooking, four ingredients at most, no oven, using what you have in the cupboard and freezer. If a recipe doesn't fit, it isn't offered.</td></tr>
 <tr><td colspan="2"><b>Shelf</b> (in Tools) — faced with twenty similar products, you photograph the shelf: Nuvia reads the labels, cross-checks them against <b>your list</b> and your dietary details, and says <b>which to take, how much and why</b> that one and not the other (protein, sugar, salt, additives, price per kilo if legible). If a product is one to avoid for you, it flags it. If the labels can't be read, it says so instead of inventing.</td></tr>
 <tr><td colspan="2"><b>What the shop costs</b> — from your receipt Nuvia also reads the prices: total, cost per day, <b>average cost per meal</b> and the breakdown by category. Prices are estimates (offers and discounts confuse the reading): tap a product in the cupboard to correct it. Cost also feeds the suggestions: at equal nutritional value, the AI points out where you'd spend less.</td></tr>
-<tr><td colspan="2"><b>Estimates without an AI key</b> — a local table of <b>684 foods from every tradition</b>, named in both Italian and English, estimates calories and macros for common dishes ("rice 90g, chicken 150g, courgettes", "naan, dal, paneer") right on your phone, with no network and no key. It covers only what it recognises: if it understands less than 60% of the dish, it prefers to ask you for the numbers rather than invent them.</td></tr>
+<tr><td colspan="2"><b>Estimates without an AI key</b> — a local table of <b>695 foods from every tradition</b>, named in both Italian and English, estimates calories and macros for common dishes ("rice 90g, chicken 150g, courgettes", "naan, dal, paneer") right on your phone, with no network and no key. It covers only what it recognises: if it understands less than 60% of the dish, it prefers to ask you for the numbers rather than invent them.</td></tr>
 <tr><td colspan="2"><b>The AI learns your corrections</b> — after every estimate you can answer <b>I'll correct it</b>: the pair (dish, right value) stays in memory and is attached to later estimates. "My carbonara is 650, not 520", said once, holds for good: your pan, your oil, your portions.</td></tr>
 <tr><td colspan="2"><b>Shopping alternatives that update the plan</b> — the AI icon on a product offers three <b>selectable</b> substitutes: the one you choose goes onto the list and, if you accept, rewrites the plan's meals that used it, adjusting the amounts to stay close to the original calories and protein.</td></tr>
 <tr><td colspan="2"><b>What the AI knows about you</b> (Rules → AI rules) — the <b>exact</b> text that accompanies every request, composed live from your data: rules, intolerances, prohibitions, body states, corrections. At the bottom there's the <b>engine's health</b>: how many answers came back in the right format. You don't have to trust it: read it.</td></tr>
@@ -1032,7 +1032,7 @@ function nuviaFunzioni(){
   return (en&&window.NUVIA_FUNZIONI_EN)||NUVIA_FUNZIONI;}
 window.nuviaFunzioni=nuviaFunzioni;
 const NUVIA_FUNZIONI=`<div class="card guida-sec"><details class="gdet"><summary><h2>${tr("Tutto quello che Nuvia sa fare")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-<div class="hint">${tr("La mappa completa, funzione per funzione. Ogni voce è poi spiegata in dettaglio nella Guida.")}</div>
+${hint2(tr("La mappa completa, funzione per funzione."),tr("Ogni voce è poi spiegata in dettaglio nella Guida."))}
 <table class="gtable">
 <tr><td colspan="2"><b>Percorso guidato</b> ${trh("— otto passi guidati: privacy, chiave AI, chi sei, obiettivo, come mangi, backup, piano. La {b1}, così tutti i passi successivi possono già usare l'AI.",{b1:"<b>chiave Gemini si aggancia subito al passo 3</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Obiettivo su misura")}</b> ${trh("— il ritmo (kg/settimana) cambia opzioni in base all'obiettivo scelto e {b2}; gli {b1} (sport · minuti · volte) e l'{b3} entrano nel fabbisogno già dal percorso iniziale.",{b2:"<b>"+tr("guida davvero il deficit")+"</b>",b1:"<b>allenamenti previsti</b>",b3:"<b>"+tr("obiettivo acqua")+"</b>"})}</td></tr>
@@ -1093,7 +1093,7 @@ const NUVIA_FUNZIONI=`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td colspan="2"><b>Ho dieci minuti</b> ${trh("(in Strumenti) — il vincolo è il tempo: due proposte che stanno {b} in dieci minuti fra preparazione e cottura, massimo quattro ingredienti, niente forno, usando quello che hai in dispensa e nel freezer. Se una ricetta non ci sta, non te la propone.",{b:"<b>davvero</b>"})}</td></tr>
 <tr><td colspan="2"><b>Scaffale</b> ${trh("(in Strumenti) — davanti a venti prodotti simili, fotografi lo scaffale: Nuvia legge le etichette, incrocia la {b} e le tue caratteristiche alimentari e dice <b>quale prendere, quanto e perché</b> quello e non l'altro (proteine, zuccheri, sale, additivi, prezzo al chilo se leggibile). Se un prodotto è da evitare per te, lo segnala. Se le etichette non si leggono, lo dice invece di inventare.",{b:"<b>"+tr("tua lista")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Quanto costa la spesa")}</b> ${trh("— dallo scontrino Nuvia legge anche i prezzi: totale, costo al giorno, {b} e la ripartizione per categoria. I prezzi sono stime (offerte e sconti ingannano la lettura): tocca un prodotto in dispensa per correggerlo. Il costo entra anche nei suggerimenti: a parità di valori nutrizionali, l'AI segnala dove si spenderebbe meno.",{b:"<b>costo medio a pasto</b>"})}</td></tr>
-<tr><td colspan="2"><b>${tr("Stime senza chiave AI")}</b> ${trh("— una tabella locale di {b1}, con i nomi in italiano e in inglese più 7.083 voci dal registro pubblico USDA come seconda linea, stima calorie e macro dei piatti comuni («riso 90g, pollo 150g, zucchine», «naan, dal, paneer») direttamente sul telefono, senza rete e senza chiave. Copre solo ciò che riconosce: se capisce meno del 60% del piatto, preferisce chiederti i numeri piuttosto che inventarli.",{b1:"<b>"+tr("684 alimenti di tutte le tradizioni")+"</b>"})}</td></tr>
+<tr><td colspan="2"><b>${tr("Stime senza chiave AI")}</b> ${trh("— una tabella locale di {b1}, con i nomi in italiano e in inglese, stima calorie e macro dei piatti comuni («riso 90g, pollo 150g, zucchine», «naan, dal, paneer») direttamente sul telefono, senza rete e senza chiave. Copre solo ciò che riconosce: se capisce meno del 60% del piatto, preferisce chiederti i numeri piuttosto che inventarli.",{b1:"<b>"+tr("695 alimenti di tutte le tradizioni")+"</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("L'AI impara le tue correzioni")}</b> ${trh("— dopo ogni stima puoi rispondere {b}: la coppia (piatto, valore giusto) resta in memoria e viene allegata alle stime successive. «La mia carbonara è 650, non 520» detto una volta vale per sempre: la tua padella, il tuo olio, le tue porzioni.",{b:"<b>Correggo io</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Alternative della spesa che aggiornano il piano")}</b> ${trh("— l'icona AI su un prodotto propone tre sostituti {b}: quello che scegli entra in lista e, se accetti, riscrive i pasti del piano che lo usavano adattando le grammature per restare vicino a kcal e proteine originali.",{b:"<b>selezionabili</b>"})}</td></tr>
 <tr><td colspan="2"><b>${tr("Cosa sa di te l'AI")}</b> ${trh("(Regole → Regole AI) — il testo {b} che accompagna ogni richiesta, composto dal vivo dai tuoi dati: regole, intolleranze, divieti, stati del corpo, correzioni. In fondo c'è la {b2}: quante risposte sono arrivate in formato corretto. Non devi fidarti: leggi.",{b:"<b>esatto</b>",b2:"<b>"+tr("salute del motore")+"</b>"})}</td></tr>
@@ -1189,7 +1189,7 @@ function avvisoLingua(){
 const GUIDA_SEZIONI=["sistema","pagine","simboli","backup","api"];
 const GUIDA_IT={};const GUIDA_EN={};
 GUIDA_IT.sistema=()=>`<div class="card guida-sec"><details class="gdet" open><summary><h2>${tr("Come funziona il sistema")}</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-<div class="hint">${tr("Se leggi una cosa sola, leggi questa: spiega il modello su cui è costruita tutta l'app.")}</div>
+Se leggi una cosa sola, leggi questa: spiega il modello su cui è costruita tutta l'app.
 
 <div class="gsec">${tr("1 · Due numeri, non uno")}</div>
 <p class="gp">${tr("Ogni giorno Nuvia tiene separati")} <b>${tr("quello che era previsto")}</b> e <b>${tr("quello che hai davvero mangiato")}</b>.
@@ -1278,13 +1278,13 @@ GUIDA_IT.simboli=()=>`<div class="card guida-sec"><details class="gdet"><summary
 <tr><td colspan="2"><b>${tr("Prodotti in lista")}</b> ${tr("(in Spesa): arrivano tutti dal piano, compresi gli ingredienti dei pasti che modifichi o aggiungi tu — la lista si riallinea da sola. Per una cosa fuori piano usa il ＋ accanto alla categoria.")}</td></tr>
 </table></div></details></div>`;
 GUIDA_IT.backup=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>Backup & aggiornamenti</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
-<div class="hint">${tr("<b>Dove sono i dati:</b> nel browser di questo dispositivo (non nel file). Per questo <b>aggiornare l'app non li tocca</b>: quando pubblichi una nuova versione su Git, riapri e ritrovi tutto (la versione in uso è scritta in Io).")}<br><br>
+<div class="hint">${hint2(tr("I dati stanno nel browser di questo dispositivo."),tr("Per questo <b>aggiornare l'app non li tocca</b>: quando pubblichi una nuova versione su Git, riapri e ritrovi tutto (la versione in uso è scritta in Io)."))}<br><br>
 <b>Drive</b> ${trh("(Io → Sincronizzazione): dopo {b9} telefono e PC condividono gli stessi dati automaticamente (l'app carica e scarica da sola). {b2} = stacca solo questo dispositivo · {b} = elimina il backup remoto. I dati vivono in una cartella privata riservata a quest'app (non tra i tuoi file visibili di Drive): è una scelta di sicurezza, così nessun'altra app o cartella tua può leggerli o mescolarsi.",{b9:'<b>"Connetti e sincronizza"</b>',b2:"<b>Disconnetti e desincronizza</b>",b:"<b>Elimina backup</b>"})}<br><br>
 ${tr("<b>In locale</b>: Esporta/Importa = file .json sul dispositivo · Cancella = azzera tutto e ricomincia.")}<br><br>
 <b>${tr("Se cambi indirizzo del sito</b>: i dati non seguono da soli — Esporta su Drive dal vecchio, Importa dal nuovo.")}</div></div></details></div>`;
 GUIDA_IT.api=()=>`<div class="card guida-sec"><details class="gdet"><summary><h2>Configurazione API: Google Drive e Gemini</h2><span class="gdet-arrow">▾</span></summary><div class="gdet-body">
 <div class="gsec">Parte 1 — Google Drive</div>
-<div class="hint">
+<details class="istr"><summary>${tr("Come si crea la chiave, passo per passo")}</summary><div class="hint" style="margin-top:8px">
 <b>A) Progetto e API</b><br>
 1. Vai su <b>console.cloud.google.com</b><br>
 2. Crea un progetto (in alto a sinistra → "Nuovo progetto") o apri quello dell'app<br>
@@ -1309,13 +1309,13 @@ ${trh("2. Incolla il Client ID nel campo {b1} (non serve nessun'altra chiave)",{
 3. "Connetti e sincronizza" → autorizzi col tuo account (ora sbloccato)
 </div>
 <div class="gsec">Parte 2 — Google Gemini</div>
-<div class="hint">
+<details class="istr"><summary>${tr("Come si prende la chiave")}</summary><div class="hint">
 1. Vai su <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a><br>
 2. Clicca "Crea chiave"<br>
 ${tr("3. Scegli o crea un progetto")}<br>
 ${tr("4. Copia la chiave e incollala in")} <b>⋯ → Sistema → Motore AI (Gemini)</b>
-</div>
-<div class="hint" style="margin-top:8px;color:var(--rosso)"> ${tr("Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.")}</div></div></details></div>
+</div></details>
+<div class="hint" style="margin-top:8px;color:var(--rosso)"> ${tr("Non condividere né pubblicare mai queste chiavi (Client ID incluso è meglio tenerlo privato); se il repository è pubblico, evita di scrivere email o chiavi reali nei commit.")}</div></details></div></details></div>
 
 <div class="card"><div class="hint"> ${trh("Le stime di calorie, proteine e consumi sono {b}: l'app è un diario, non un medico. Il piano va validato col tuo professionista.",{b:"<b>indicative</b>"})}</div>
 </div>`;
@@ -1352,12 +1352,12 @@ While the app is in "Testing", Google blocks any email that isn't authorised:<br
 3. "Connect and sync" → authorise with your account, now unblocked
 </div>
 <div class="gsec">Part 2 — Google Gemini</div>
-<div class="hint">
+<details class="istr"><summary>${tr("Come si prende la chiave")}</summary><div class="hint">
 1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="lnk">aistudio.google.com/app/apikey ↗</a><br>
 2. Press "Create key"<br>
 3. Pick or create a project<br>
 4. Copy the key and paste it under <b>⋯ → System → AI engine (Gemini)</b>
-</div>
+</div></details>
 <div class="hint" style="margin-top:8px;color:var(--rosso)"> Never share or publish these keys — the Client ID included is better kept private. If your repository is public, keep real emails and keys out of your commits.</div></div></details></div>
 
 <div class="card"><div class="hint"> Calorie, protein and energy figures are <b>indicative</b>: this is a diary, not a doctor. Have your plan validated by your own professional.</div>
@@ -1500,10 +1500,17 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
      l'app, e stava in fondo alla pagina. La scheda completa (massa grassa,
      pressione, circonferenze) resta subito sotto per chi la usa. */
   let h=pesoHeroHTML();
+  /* Quattro schede, stesso metodo della pagina Numeri: marcatori
+     filtrati alla fine, nessuna graffa toccata. */
+  const SKio="io";
+  h+=schedeBarra(SKio,[["tu",tr("Tu")],["corpo",tr("Corpo")],
+                       ["studio",tr("Studio")],["altro",tr("Altro")]]);
+  h+=`<!--SCHEDA:tu-->`;
   h+=traguardiHTML();
   /* Il conto sta qui e non in Regole: riguarda la persona, non la
      configurazione. E chi entra per la prima volta lo trova senza
      doverlo cercare fra le impostazioni avanzate. */
+  h+=`<!--SCHEDA:studio-->`;
   h+=contoHTML();
   h+=prescrizioneHTML();
   h+=cobrandNotaHTML();
@@ -1511,6 +1518,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
      della stessa domanda («chi sono e chi mi guarda»). Se non c'è uno
      studio collegato, non compare nulla. */
   h+=consensiHTML();
+  h+=`<!--SCHEDA:corpo-->`;
   h+=`<div class="gsec">${tr("Chi sei")}</div>`;
   h+=`<div class="card pesata"><h2>Nuova pesata</h2>
   <div class="hint">${trh("I valori che cambiano nel tempo. Ogni salvataggio {b} allo storico, con la data di oggi: è così che nascono i grafici e le proiezioni.",{b:"<b>"+tr("aggiunge una riga")+"</b>"})}</div>
@@ -1520,7 +1528,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   ${compLine(p)}
   <div class="row2"><div><label>Pressione</label><input type="text" id="pPa" placeholder="120/80"></div>
   <div><label>SpO2 %</label><input type="number" id="pSpo2" placeholder="98"></div></div>
-  <div class="hint">${tr("Percentuali, pressione e SpO2 sono facoltative: se le lasci vuote, la riga registra solo il peso.")}</div>
+  Percentuali, pressione e SpO2 sono facoltative: se le lasci vuote, la riga registra solo il peso.
   <!-- Il pulsante in evidenza è quello in cima («Aggiungi una pesata»), che
        fa la cosa più frequente in due tocchi. Questo salva la scheda COMPLETA
        (massa grassa, pressione, circonferenze) e resta a contorno: serve a chi
@@ -1529,7 +1537,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   h+=studioCardHTML();
 
   h+=`<div class="card"><h2>${tr("Obiettivi")}</h2>
-  <div class="hint">${tr("Dove vuoi arrivare e con che ritmo. Da qui l'app calcola il deficit e la proiezione del peso.")}</div>
+  ${hint2(tr("Dove vuoi arrivare e con che ritmo."),tr("Da qui l'app calcola il deficit e la proiezione del peso."))}
   <div class="row2"><div><label>${tr("Obiettivo peso (kg)")}</label><input type="number" step="0.1" id="pGoal" value="${goalWeightSet()||""}" placeholder="facoltativo"></div>
   <div><label>${tr("Obiettivo acqua (L al giorno)")}</label><input type="number" step="0.25" id="pWater" value="${p.waterGoalL||""}" placeholder="proposto: ${waterSuggestL()}"></div></div>
   ${(()=>{if(!p.goalW||!p.h)return"";const b=bmiFor(p.goalW),cl=bmiClass(b);
@@ -1546,19 +1554,19 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   <div class="hint"><b>Minuti</b> ${trh("= durata di una sessione · {b} = quante a settimana.",{b:"<b>Volte</b>"})}</div>
   <button class="btn ghost small" onclick="addGoalWk()">${tr("+ Aggiungi allenamento")}</button>
   ${(()=>{const sim=simulateWeightDescent(p.w,new Date());if(!sim)return"";
-    if(sim.stalled)return `<div class="hint" style="color:var(--rosso)">${tr("Con questi obiettivi il deficit si annulla prima di arrivare al traguardo.")}</div>`;
+    if(sim.stalled)return `Con questi obiettivi il deficit si annulla prima di arrivare al traguardo.`;
     return `<div class="hint" style="color:var(--bosco)">${tr("Al ritmo pianificato l'obiettivo arriva intorno al")} <b>${sim.etaDate?new Date(sim.etaDate).toLocaleDateString(dataLoc(),{day:"numeric",month:"long",year:"numeric"}):"—"}</b> ${trh("(deficit iniziale ~{v1} kcal al giorno).",{v1:sim.dailyDeficitStart})}</div>`;})()}
   <button class="btn ghost" onclick="saveObiettivi()">${tr("Salva obiettivi")}</button></div>`;
 
   h+=`<div class="card"><h2>${tr("Il tuo motore")}</h2>
-  <div class="hint">${tr("I numeri che l'app usa per tutto il resto: si aggiornano da soli quando cambi peso, attività o obiettivo.")}</div><div class="stat3">
+  I numeri che l'app usa per tutto il resto: si aggiornano da soli quando cambi peso, attività o obiettivo.<div class="stat3">
   <div><div class="v">${age()||"—"}</div><div class="l">anni</div></div>
   <div><div class="v">${bmr()}</div><div class="l">BMR</div></div>
   <div><div class="v">${tdee()}</div><div class="l">TDEE base</div></div></div>
   <div class="hint">${parseFloat(S.profile.fatp)>0?tr("BMR con Katch-McArdle sulla magra derivata dalla tua % di grasso: il metodo più preciso."):tr("BMR con formula Mifflin-St Jeor. Inserisci la % di massa grassa per un calcolo più preciso.")} ${tr("Gli allenamenti si sommano giorno per giorno.")}${goalProj()?"<br><br> "+goalProj():""}</div></div>`;
   // Vacanza
   h+=`<div class="card"><h2>${tr("Attività di base")}</h2>
-  <div class="hint">${tr("Quanto ti muovi <b>al di fuori</b> degli allenamenti: da qui e dal basale nasce il fabbisogno.")}</div>
+  Quanto ti muovi <b>al di fuori</b> degli allenamenti: da qui e dal basale nasce il fabbisogno.
   <label>${tr("Attività di base")}</label>
     <div class="hint" style="margin:0 0 8px">Lavoro e vita quotidiana, sport escluso.</div>
   <select id="pAct"><option value="1.2" ${p.act==1.2?"selected":""}>Molto sedentario</option>
@@ -1574,7 +1582,7 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
 
   // Gestione periodi (inizio/fine dieta o periodo libero)
   h+=`<div class="card"><h2>Anagrafica</h2>
-  <div class="hint">${tr("Dati che non cambiano (o cambiano di rado). Servono a calcolare il metabolismo basale.")}</div>
+  Dati che non cambiano (o cambiano di rado). Servono a calcolare il metabolismo basale.
   <div class="row2"><div><label>Nome</label><input type="text" id="pName" value="${esc(p.name||"")}"></div>
   <div><label>Genere</label><select id="pGen"><option value="m" ${p.gender==="m"?"selected":""}>Uomo</option><option value="f" ${p.gender==="f"?"selected":""}>Donna</option></select></div></div>
   <div class="row2"><div><label>${tr("Data di nascita")}</label><input type="date" id="pDob" value="${p.dob||""}"></div>
@@ -1596,20 +1604,20 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
     <div><label class="ru">dalle ore</label><input type="number" id="nfAlle" min="18" max="24" value="${notifCfg().alle}" onchange="notifOre()"></div>
     <div><label class="ru">alle ore</label><input type="number" id="nfDalle" min="4" max="11" value="${notifCfg().dalle}" onchange="notifOre()"></div>
   </div></div>`;
+  h+=`<!--SCHEDA:altro-->`;
   h+=`<div class="gsec">Situazioni</div>`;
   h+=periodsCardHTML(true);
   h+=`<div class="card"><h2>${tr("Rifai il percorso guidato")}</h2>
   ${hint2(tr("Ripercorri i nove passi con i dati che hai già inserito."),tr("Serve quando cambia qualcosa di grosso: obiettivo, abitudini, allenamenti. Nulla viene cancellato — trovi tutti i campi già compilati e cambi solo ciò che serve."))}
   <div class="mtools"><button class="btn ghost small" onclick="restartOnboarding()">${tr("Ricomincia il percorso")}</button></div></div>`;
-
-  el.innerHTML=h;}
+  el.innerHTML=schedeFiltra(h,schedaAttiva(SKio,"tu"));}
 /* ═══ PAGINA SISTEMA ═════════════════════════════════════════════════
    Il profilo parlava di te e, in mezzo, di chiavi API, backup e
    telemetria. Ora il tecnico vive qui: Io resta corpo e obiettivi. */
 function renderSistema(){const el=document.getElementById("pg-sistema");const p=S.profile;
   let h=`<div class="gsec">Interfaccia</div>`;
   h+=`<div class="card"><h2>${tr("Lingua")}</h2>
-  <div class="hint">${tr("Interfaccia tradotta in inglese. Restano in italiano i dati (nomi dei cibi, giorni, fasce dei pasti) e le regole nutrizionali che vanno all'AI: sono valori, non etichette. Nulla resta mai vuoto.")}</div>
+  ${hint2(tr("Interfaccia tradotta in inglese."),tr("Restano in italiano i dati (nomi dei cibi, giorni, fasce dei pasti) e le regole nutrizionali che vanno all'AI: sono valori, non etichette. Nulla resta mai vuoto."))}
   <div class="ckgrid">
     ${[["it","Italiano"],["en","English"]].map(([k,l])=>`<label class="ck"><input type="radio" name="lang" ${LANG===k?"checked":""} onchange="langSet('${k}')"> ${l}</label>`).join("")}
   </div></div>`;
@@ -1627,7 +1635,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
     ${DENS_COSA.full.map(x=>`<div class="dline ${densMin("full")?"on":""}">${esc(x)}${densMin("full")?"":` <span class="dtag2">Completo</span>`}</div>`).join("")}
     ${DENS_COSA.expert.map(x=>`<div class="dline ${densMin("expert")?"on":""}">${esc(x)}${densMin("expert")?"":` <span class="dtag2">Esperto</span>`}</div>`).join("")}
   </div>
-  <div class="hint">${tr("Le voci in grigio non sono state tolte: compaiono passando al livello indicato, e tutto resta comunque raggiungibile dall'assistente.")}</div></div>`;
+  Le voci in grigio non sono state tolte: compaiono passando al livello indicato, e tutto resta comunque raggiungibile dall'assistente.</div>`;
   h+=`<div class="gsec">${tr("Impostazioni")}</div>`;
   h+=`<div class="card${aiOn()?"":" nota"}"><h2>Motore AI (Gemini)</h2>
   ${aiOn()?"":`${hint2(tr(" <b>Senza chiave l'app è fortemente limitata.</b> È gratuita e si crea in un minuto."),tr("Restano spenti: generazione e bilanciamento del piano, stima di calorie e macro dai piatti scritti, analisi delle foto, selezionatore di menù, svuota-frigo, ribilanciamento della giornata, recupero degli sfori, alternative ai pasti, analisi dei pattern e report."))}`}
@@ -1671,7 +1679,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   // Backup
   h+=`<div class="gsec">${tr("I tuoi dati")}</div>`;
   h+=`<div class="card"><h2>${tr("Dati & backup in locale")}</h2>
-  <div class="hint">${tr("I tuoi dati stanno sul telefono. Esporta ogni tanto un backup: se cambi dispositivo o svuoti il browser, è l'unico modo per ritrovarli.")}</div>
+  ${hint2(tr("I tuoi dati stanno sul telefono."),tr("Esporta ogni tanto un backup: se cambi dispositivo o svuoti il browser, è l'unico modo per ritrovarli."))}
   <button class="btn ghost" onclick="exportData()">Esporta</button>
   <button class="btn ghost" onclick="importData()">Importa</button>
   <button class="btn ghost warn" onclick="wipeAll()">Cancella</button>
@@ -1679,7 +1687,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
     {const sn=snapshots();
    h+=`<div class="card"><h2>${tr("Ripristino di emergenza")}</h2>
    <div class="hint">${trh("Nuvia conserva una {b} a ogni avvio giornaliero e prima di ogni operazione che li sovrascrive. Se qualcosa va storto, torni indietro da qui. Tutto resta su questo dispositivo.",{b:"<b>"+tr("copia completa dei tuoi dati")+"</b>"})}</div>`;
-   if(!sn.length)h+=`<div class="hint">${tr("Nessuna copia disponibile per ora: la prima viene creata al prossimo avvio.")}</div>`;
+   if(!sn.length)h+=`<div class="hint">${tr("La prima copia si crea al prossimo avvio.")}</div>`;
    else sn.forEach((x,i)=>{
      h+=`<div class="wline"><span>${new Date(x.at).toLocaleString(dataLoc())}<br>
        <small style="color:var(--grigio)">v${esc(x.v||"?")}${x.w?" · "+x.w+" kg":""}</small></span>
@@ -1690,7 +1698,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
    ${sn.length?`<button class="btn ghost small" onclick="delAllSnaps()">${tr("Elimina tutte le copie")}</button>`:""}</div></div>`;}
   {const st=S.streak||{},ws=(S.profile.weights||[]).length,pr=(S.periods||[]).length;
    h+=`<div class="card"><h2>Pulizia selettiva</h2>
-   <div class="hint">${tr("Azzera <b>solo</b> quello che scegli, tenendo intatto tutto il resto: profilo, piano, regole e caratteristiche non vengono toccati. Prima di procedere viene creata un'istantanea, quindi si può tornare indietro dal <b>Ripristino di emergenza</b>.")}</div>
+   ${hint2(tr("Azzera <b>solo</b> quello che scegli, tenendo intatto tutto il resto:"),tr("Profilo, piano, regole e caratteristiche non vengono toccati. Prima di procedere viene creata un'istantanea, quindi si può tornare indietro dal <b>Ripristino di emergenza</b>."))}
    <label>${tr("Cosa vuoi azzerare")}</label>
    <label class="ckline"><input type="checkbox" id="clStreak"> ${tr("Serie di giorni in target")} <small>(ora: ${st.count||0})</small></label>
    <label class="ckline"><input type="checkbox" id="clPeriods"> Periodi dieta/libero <small>(ora: ${pr})</small></label>
@@ -1701,7 +1709,7 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
    <label class="ckline"><input type="checkbox" id="clShop"> ${tr("Lista della spesa")}</label>
    <label class="ckline"><input type="checkbox" id="clRecipes"> ${ic("star",16)} Piatti salvati <small>(ora: ${(S.recipes||[]).length})</small></label>
    <label>Periodo</label>
-   <div class="hint" style="margin:0 0 8px">${tr("Vale per pesate, settimane archiviate ed eventi.")}</div>
+   Vale per pesate, settimane archiviate ed eventi.
    <div class="mtools" style="margin-top:0">
      <button class="chipbtn clchip on" data-k="tutto" onclick="cleanupRange('tutto')">${tr("Tutto")}</button>
      <button class="chipbtn clchip" data-k="oggi" onclick="cleanupRange('oggi')">Oggi</button>
@@ -1728,14 +1736,18 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   ${hint2(tr("Senza indirizzo non parte niente da solo: resta il pulsante «Mandali», che apre la tua posta."),tr("Con un indirizzo di raccolta l'invio diventa automatico, una volta al giorno e in sottofondo, e l'invito ogni 30 giorni non compare più. Serve uno script su Google Apps Script: chiedilo allo sviluppatore, sono cinque minuti di configurazione."))}
   <label>${tr("Cosa esce, esattamente")}</label>
   <div class="aibox" aria-live="polite" style="display:block;font-family:ui-monospace,monospace;font-size:11.5px;white-space:pre-wrap">${esc(JSON.stringify(telPayload(),null,2))}</div>
-  <div class="hint">${tr("Questo è il pacchetto reale, generato adesso con i tuoi dati. Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo.")}</div>
+  ${hint2(tr("Questo è il pacchetto reale, generato adesso con i tuoi dati."),tr("Se ci trovi qualcosa che non dovrebbe esserci, è un difetto: segnalalo."))}
   <div class="mtools"><button class="btn ghost small" onclick="telMail()">Mandalo a mano ora</button></div>
   ${hint2(((S.tel.url||TEL_URL)?"Con «Sì, invia» parte da solo una volta al giorno: non devi fare nulla.":tr("L'invio automatico non è ancora attivo: per ora puoi mandarlo a mano con il pulsante qui sopra.")),
    tr("Il pulsante Email apre la tua app di posta con il pacchetto già scritto: parte solo se premi invia. Serve se vuoi segnalare qualcosa e allegare i numeri d'uso."))}
   </div>`;
   /* i messaggi dello studio stanno PRIMA dell'aiuto: se qualcuno ti
      ha scritto, è la cosa più importante di questa pagina */
+  h+=(typeof turnoHTML==="function")?turnoHTML():"";
   h+=(typeof studioMsgHTML==="function")?studioMsgHTML():"";
+  h+=(typeof prepHTML==="function")?prepHTML():"";
+  h+=(typeof ordineHTML==="function")?ordineHTML():"";
+  h+=(typeof usoHTML==="function")?usoHTML():"";
   h+=`<div class="gsec">Aiuto</div>`;
   /* Bug e proposte vivono nella stessa scheda (modulo 40): sono lo
      stesso gesto — una persona che si ferma e ti scrive — e due
@@ -1884,7 +1896,7 @@ function studioCardHTML(){
     <input type="number" inputmode="decimal" step="0.1" id="${id}" value="${val!=null?val:""}" placeholder="${unita}"></div>`;
   const u=v.length?v[v.length-1]:{};
   let h=`<div class="card"><h2>${tr("Misure dello studio")}</h2>
-  <div class="hint">${tr("Le misure che prende un professionista — nutrizionista, centro dimagrimento, palestra — e le sue note. Entrano nell'analisi insieme al piano, agli allenamenti e a come stai.")}</div>
+  ${hint2(tr("Le misure che prende un professionista — nutrizionista, centro dimagrimento, palestra — e le sue note."),tr("Entrano nell'analisi insieme al piano, agli allenamenti e a come stai."))}
   <label class="ckline"><input type="checkbox" ${modo==="pro"?"checked":""} onchange="S.ui.studioPro=this.checked;save();render(cur)"> ${tr("Sto usando gli strumenti dello studio (pliche, impedenziometro)")}</label>
   <div class="grid2" style="margin-top:12px">
     ${num("stFat","Massa grassa","%",u.fat)}
@@ -1904,7 +1916,7 @@ function studioCardHTML(){
     <label>${tr("Note della visita")}</label>
     <textarea id="stNote" rows="3" placeholder="${esc(tr("es. ridurre il sale, aumentare le proteine a colazione, rivedere fra 4 settimane"))}">${esc(u.note||"")}</textarea>`;
   }else{
-    h+=`<div class="hint">${tr("Le pliche e le note della visita compaiono attivando la spunta qui sopra: da soli non si prendono, servono le pinze e una mano esperta.")}</div>`;}
+    h+=`${hint2(tr("Le pliche e le note della visita compaiono attivando la spunta qui sopra:"),tr("Da soli non si prendono, servono le pinze e una mano esperta."))}`;}
   h+=`<div class="mtools"><button class="btn ghost small" onclick="studioSalva()">${tr("Registra la visita")}</button></div>`;
   const d=studioDelta();
   if(d)h+=`<div class="hint" style="margin-top:12px;border-left:4px solid var(--salvia);padding-left:12px">
@@ -1978,7 +1990,12 @@ window.saveWeighIn=()=>{const p=S.profile;
   let notaCiclo=null;
   try{
     const prec=p.weights.filter(x=>x.d<today).slice(-1)[0];
-    if(prec&&typeof cicloNotaPeso==="function")notaCiclo=cicloNotaPeso(nw-(+prec.w||0));
+    const delta=prec?(nw-(+prec.w||0)):0;
+    /* prima si guarda se si torna da una pausa: quel numero ha
+       bisogno di contesto più di ogni altro */
+    if(typeof rientroNotaPeso==="function")notaCiclo=rientroNotaPeso(
+      (typeof rientroDelta==="function"&&rientroDelta())||delta);
+    if(!notaCiclo&&prec&&typeof cicloNotaPeso==="function")notaCiclo=cicloNotaPeso(delta);
   }catch(e){}
   save();render("io");
   toast(tr("Pesata registrata ✓ {n} kg",{n:nw}));

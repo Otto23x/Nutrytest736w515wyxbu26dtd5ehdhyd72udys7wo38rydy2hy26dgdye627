@@ -81,7 +81,12 @@ function eatenOfDay(di){let k=0,p=0,c=0,f=0,fib=0,z=0;
     if(st.done&&!st.skip){const o=mealOpt(it.pdi,it.mi);k+=o.k;p+=o.p;c+=o.c||0;f+=o.f||0;fib+=o.fib||0;z+=o.z||0;}});
   (S.week.days[di].extras||[]).forEach(e=>{if(e.st==="skip")return; // extra saltato: non conta
     k+=e.k;p+=e.p||0;c+=e.c||0;f+=e.f||0;fib+=e.fib||0;z+=e.z||0;});return{k,p,c,f,fib,z};}
-function extrasKcal(di){return (S.week.days[di].extras||[]).reduce((a,e)=>a+(e.st==="skip"?0:e.k),0);}
+/* I bicchieri che non sono acqua portano calorie: entrano negli
+   extra come tutto il resto, senza una categoria a parte. */
+function bevandeDelGiorno(di){
+  try{return (typeof bevandeKcal==="function")?bevandeKcal(di):0;}catch(e){return 0;}}
+
+function extrasKcal(di){return (S.week.days[di].extras||[]).reduce((a,e)=>a+(e.st==="skip"?0:e.k),0)+bevandeDelGiorno(di)}
 function skippedOfDay(di){return dayItems(di).filter(it=>S.week.days[it.pdi].meals[it.mi].skip).length;}
 /* Opzione di PIANO di un pasto: quella prevista dal piano (o l'override
    permanente), MAI la modifica temporanea della settimana (ribilancio, foto,

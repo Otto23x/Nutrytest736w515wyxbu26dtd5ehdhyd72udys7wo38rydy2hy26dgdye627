@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    7. NAVIGAZIONE
    ═══════════════════════════════════════════════════════════════ */
-const pages=["punto","oggi","piano","spesa","sport","comestai","storico","insieme","io","sistema","regole","tools","guida","nuvia","setup","benvenuto","onb2","piani"];let cur="oggi";
+const pages=["punto","oggi","piano","spesa","sport","comestai","storico","mia","insieme","io","sistema","regole","tools","guida","nuvia","setup","benvenuto","onb2","piani"];let cur="oggi";
 /* L'intestazione è sticky: sta sempre in cima e copre i primi ~90 px.
    scrollIntoView non lo sa e infila il titolo della card sotto la barra.
    Qui si calcola l'altezza VERA dell'intestazione e si scorre di conseguenza,
@@ -42,7 +42,7 @@ const TABS=[["punto","Punto"],
    per ciascuna, così la lista si legge in un colpo d'occhio. */
 const ALTRE=[["piano","Piano","piano"],["comestai","Come stai","heart"],["storico","Numeri","progressi"],
              ["tools","Strumenti","tools"],["regole","Regole","regole"],
-             ["insieme","Insieme","persone"],["io","Profilo","io"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
+             ["mia","La mia","star"],["insieme","Insieme","persone"],["io","Profilo","io"],["sistema","Sistema","gear"],["guida","Guida","guida"],["nuvia","Nuvia","nuvia"]];
 /* ═══ L'ASSISTENTE ══════════════════════════════════════════════════
    Diciassette strumenti non si cercano: si chiedono. Qui la domanda viene
    riconosciuta e porta dove serve. Quando la domanda non è una richiesta
@@ -592,7 +592,7 @@ window.moreOpen=()=>{
   const w=document.getElementById("moreSheet"),l=document.getElementById("moreList");
   if(!w||!l)return;
   l.innerHTML='<div class="sheethd">Altre sezioni</div>'+
-    ALTRE.map(([p,lab,icn])=>`<button class="sheetrow" onclick="moreGo('${p}')">${ic(icn,20)}<span>${lab}</span><em>›</em></button>`).join("");
+    ALTRE.map(([p,lab,icn])=>`<button title="${tr("Apri")}" class="sheetrow" onclick="moreGo('${p}')">${ic(icn,20)}<span>${lab}</span><em>›</em></button>`).join("");
   w.hidden=false;requestAnimationFrame(()=>w.classList.add("on"));};
 window.moreClose=()=>{
   const w=document.getElementById("moreSheet");if(!w)return;

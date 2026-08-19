@@ -1050,6 +1050,8 @@ function hint2(breve,esteso,cls,lbl){
    dove sono CONTENUTO (il cibo, gli stati d'animo); spariscono da
    navigazione, titoli e pulsanti, dove facevano sembrare l'app una chat. */
 const ICONS={
+ su:'<path d="M12 19V6"/><path d="M6.5 11.5 12 6l5.5 5.5"/>',
+ giu:'<path d="M12 5v13"/><path d="M6.5 12.5 12 18l5.5-5.5"/>',
  primavera:'<circle cx="12" cy="12" r="3"/><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3M6.5 6.5 4.5 4.5M19.5 19.5l-2-2M6.5 17.5l-2 2M19.5 4.5l-2 2"/>',
  estate:'<circle cx="12" cy="12" r="4.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
  autunno:'<path d="M6 15C6 9 10 4 19 4c0 9-5 13-11 13"/><path d="M5 20c3-3 6-6 10-9"/>',

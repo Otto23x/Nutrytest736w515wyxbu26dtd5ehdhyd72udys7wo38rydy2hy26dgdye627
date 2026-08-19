@@ -738,5 +738,16 @@ const FOOD_DB=[
  ["albicocche secche|dried apricots",240,3.5,55,0.5,7.5,48],
  ["frutta secca mista|trail mix",520,15,30,38,7,20],
 
+ ["macedonia|macedonia di frutta",55,0.7,13,0.2,2,11],
+ ["pasta al ragu",175,8,24,5,2,3],
+ ["pasta al forno|pasta gratinata",210,9,24,8,2,3],
+ ["riso e piselli|risi e bisi",130,4,24,2,3,2],
+ ["panino con prosciutto|panino prosciutto",260,13,32,8,2,2],
+ ["bruschetta|fettunta",200,5,28,8,2,2],
+ ["tartare|tartare di manzo",170,21,0.5,9,0,0],
+ ["scaloppina|scaloppine al limone",175,22,4,8,0.2,0.5],
+ ["farina|farina 00|flour",364,10,76,1,2.7,0.3],
+ ["farina integrale|wholemeal flour",340,13,72,2,10,0.4],
+ ["cacao amaro|cacao in polvere|cocoa powder",230,20,25,11,33,2],
 ];
 window.FOOD_DB=FOOD_DB;

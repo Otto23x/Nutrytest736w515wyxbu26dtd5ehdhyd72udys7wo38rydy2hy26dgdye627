@@ -12,7 +12,7 @@ const APP_VER="12.65.0";        // aggiorna a ogni release: visibile in Io per v
 const PHYS_TEST_UNLOCK=false;
 /* Dove arrivano i dati d'uso anonimi.
    ATTENZIONE: un browser NON può spedire email da solo. Per riceverli in
-   automatico su alberto.scian@gmail.com serve un piccolo script di
+   automatico su info@nuviahealth.app serve un piccolo script di
    raccolta che poi inoltri (istruzioni nella guida, voce «Dati d'uso»):
    si crea una volta in cinque minuti e si incolla qui il suo indirizzo.
    Finché resta vuoto, all'utente compare solo l'invio manuale. */
@@ -30,7 +30,7 @@ function defaultState(){return {
   profile:{name:"",gender:"m",dob:"",h:"",w:"",lbm:"",act:1.3,weights:[]},
   customSports:[],shop:{},links:[],permMeals:{},week:freshWeek(),history:[],
   ai:{key:""},drive:{cid:"",on:false},
-  ui:{theme:"light",vacanza:false,lastOpen:"",lastMorning:""},
+  ui:{theme:"auto",vacanza:false,lastOpen:"",lastMorning:""},
   streak:{count:0,last:""},meta:{updated:new Date().toISOString()}};}
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||null;}catch(e){S=null;}
@@ -42,7 +42,7 @@ if(!S){ // migrazione dalla v1 se presente
 }
 if(!S)S=defaultState();
 // retro-compatibilità morbida su tutti i rami
-S.ui=Object.assign({theme:"light",vacanza:false,lastOpen:"",lastMorning:""},S.ui||{});
+S.ui=Object.assign({theme:"auto",vacanza:false,lastOpen:"",lastMorning:""},S.ui||{});
 S.drive=Object.assign({cid:"",on:false},S.drive||{});
 S.ai=Object.assign({key:"",model:"auto"},S.ai||{});
 S.usage=Object.assign({day:"",calls:0,tokens:0,errors:0,last:""},S.usage||{});
@@ -332,9 +332,41 @@ function driveSyncSoon(){
   driveTimer=setTimeout(()=>driveUpload(true),wait);}
 function driveFlush(){ // caricamento immediato: chiusura app o richiesta esplicita
   if(drivePending&&DTOKEN&&S.drive.on){clearTimeout(driveTimer);driveUpload(true);}}
+/* ═══ IL TEMA ═════════════════════════════════════════════════════
+   Riattivato il 19/08/2026. Era bloccato su chiaro «finché il tema
+   scuro non torna disponibile»: ma il CSS scuro c'era già, con i
+   contrasti tarati uno per uno. Mancavano due gradienti, ora ci sono.
+
+   Perché conta per QUESTA app più che per altre: il momento in cui
+   Nuvia serve davvero sono le 19:20 — la sera. Un'app che a quell'ora
+   spara un fondo bianco in faccia viene chiusa, e chi la chiude non
+   segna il pasto.
+
+   Tre scelte, e «auto» è il default: segue il telefono, che è la cosa
+   che la persona ha già deciso una volta per tutte. */
+function temaVoluto(){
+  const t=(S.ui&&S.ui.theme)||"auto";
+  if(t==="light"||t==="dark")return t;
+  try{
+    if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)return "dark";
+  }catch(e){}
+  return "light";}
+window.temaVoluto=temaVoluto;
+
+window.temaSet=(t)=>{
+  S.ui.theme=(t==="dark"||t==="light")?t:"auto";
+  save();applyTheme();render(cur);};
+
 function applyTheme(){
-  S.ui.theme="light";
-  document.documentElement.dataset.theme="light";
+  const t=temaVoluto();
+  document.documentElement.dataset.theme=t;
+  /* la barra del telefono segue il tema: se resta verde chiaro sul
+     fondo scuro si vede la cucitura */
+  try{
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta)meta.setAttribute("content",t==="dark"?"#0A1211":"#0C7C74");
+    if(typeof tingiBarra==="function")tingiBarra();
+  }catch(e){}
   /* Il colore dello studio dipende dal modo: quello leggibile su fondo
      chiaro non lo è su fondo scuro. Si riapplica a ogni cambio, così il
      giorno in cui il tema scuro torna disponibile non serve ricordarsi

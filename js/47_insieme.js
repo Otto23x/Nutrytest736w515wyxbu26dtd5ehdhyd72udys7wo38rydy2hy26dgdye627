@@ -37,6 +37,36 @@ const INSIEME_KEY="nuvia_insieme";
 const REAZIONI=["applausi","forza","cuore"];      /* set CHIUSO, per sempre */
 window.REAZIONI=REAZIONI;
 
+/* ── LE FRASI ─────────────────────────────────────────────────────
+   Le icone dicono «ti ho letto». Le parole dicono «ci sono». Ma un
+   campo di testo libero è la bestia che abbiamo deciso di non far
+   entrare: quindi frasi PRESTAMPATE, un set chiuso come le icone.
+
+   Tutte di sostegno, nessuna valutativa: niente «bravo, quanto hai
+   perso» né «che fisico» — appena si valuta il risultato di un
+   altro, la piazza diventa il posto che volevamo evitare. Si tifa
+   per la persona, non per il numero.
+
+   Una sola frase per storia: chi ne manda cinque non sta
+   sostenendo, sta occupando. */
+/* Le chiavi stanno qui, i TESTI si scelgono a mano dentro
+   frasiTesto(): `tr(variabile)` è invisibile al collaudo delle
+   traduzioni e lascia chiavi orfane nel dizionario. È la terza volta
+   che ci casco (ciclo, agende, frasi): la regola è una sola —
+   OGNI tr() ha una stringa letterale dentro, sempre. */
+const FRASI=["coraggio","continua","con te","anchio","forte","bello","grazie"];
+window.FRASI=FRASI;
+function frasiTesto(k){
+  return k==="coraggio"?tr("Coraggio!")
+       :k==="continua" ?tr("Continua così")
+       :k==="con te"   ?tr("Sono con te")
+       :k==="anchio"   ?tr("Ci sono passato anch'io")
+       :k==="forte"    ?tr("Sei più forte di quel giorno")
+       :k==="bello"    ?tr("Bello leggerti")
+       :k==="grazie"   ?tr("Grazie di averlo scritto")
+       :"";}
+window.frasiTesto=frasiTesto;
+
 function insieme(){
   let d=null;
   try{d=JSON.parse(localStorage.getItem(INSIEME_KEY)||"null");}catch(e){}
@@ -100,6 +130,18 @@ window.storiaManda=async(testo,foto)=>{
 
 /* Le reazioni sono un set chiuso e si contano sul telefono: nessuno
    deve poter scrivere una riga di testo verso un'altra persona. */
+window.storiaFrase=(id,quale)=>{
+  if(FRASI.indexOf(quale)<0)return false;
+  const d=insieme();
+  const k="f"+String(id);
+  /* una sola per storia: la seconda sostituisce, non si somma */
+  d.reazioni[k]=(d.reazioni[k]===quale)?null:quale;
+  insiemeSalva(d);
+  try{fetch(contoUrl()+"/insieme/reazione",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id,frase:d.reazioni[k]})});}catch(e){}
+  return true;};
+
 window.storiaReagisci=(id,quale)=>{
   if(REAZIONI.indexOf(quale)<0)return false;
   const d=insieme();
@@ -160,7 +202,10 @@ function renderInsieme(){
       h+=`<div class="card ins-storia">
         <div>${esc(s.t||"")}</div>
         <div class="ins-reaz">${REAZIONI.map(r=>
-          `<button class="chipbtn${mia===r?" on":""}" onclick="storiaReagisci('${esc(String(s.id))}','${r}')">${ic(reazIcona(r),16)} ${esc(reazNome(r))}</button>`).join("")}</div>
+          `<button title="${tr("Apri")}" class="chipbtn${mia===r?" on":""}" onclick="storiaReagisci('${esc(String(s.id))}','${r}')">${ic(reazIcona(r),16)} ${esc(reazNome(r))}</button>`).join("")}</div>
+        <div class="ins-frasi">${FRASI.map(k=>{
+          const scelta=d.reazioni["f"+String(s.id)]===k;
+          return `<button class="chipbtn${scelta?" on":""}" onclick="storiaFrase('${esc(String(s.id))}','${k}')">${esc(frasiTesto(k))}</button>`;}).join("")}</div>
       </div>`;});}
 
   /* la propria coda */

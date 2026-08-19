@@ -191,9 +191,19 @@ function notificaSiPuo(tipo,quando){
   if(NOTIFICA_REGOLE.maiSu[tipo])
     return {ok:false,perche:"tipo-vietato",motivo:NOTIFICA_REGOLE.maiSu[tipo]};
 
-  const ora=t.getHours();
-  if(ora>=NOTIFICA_REGOLE.silenzioDa||ora<NOTIFICA_REGOLE.silenzioA)
-    return {ok:false,perche:"silenzio"};
+  /* Le ore di silenzio seguono il TURNO di oggi: chi smonta alle 6
+     dorme di giorno, e la nostra gentilezza diventerebbe una sveglia. */
+  try{
+    if(typeof turnoSiDorme==="function"&&turnoOggi&&turnoOggi()){
+      if(turnoSiDorme(t))return {ok:false,perche:"silenzio"};
+    }else{
+      const ora=t.getHours();
+      if(ora>=NOTIFICA_REGOLE.silenzioDa||ora<NOTIFICA_REGOLE.silenzioA)
+        return {ok:false,perche:"silenzio"};}
+  }catch(_){
+    const ora=t.getHours();
+    if(ora>=NOTIFICA_REGOLE.silenzioDa||ora<NOTIFICA_REGOLE.silenzioA)
+      return {ok:false,perche:"silenzio"};}
 
   /* mai vendere o insistere in una giornata dichiarata difficile */
   try{if(typeof isHard==="function"&&isHard(iso(t)))return {ok:false,perche:"giornata-difficile"};}catch(e){}

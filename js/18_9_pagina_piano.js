@@ -565,6 +565,8 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
   const _vd=iso(VIEW);
   h+=`<div class="gsec">${tr("Acqua e movimento")}</div>`;
   h+=(typeof pausaHTML==="function")?pausaHTML():"";
+  /* l'invito del momento: lo strumento giusto per oggi, uno solo */
+  h+=(typeof invitoHTML==="function")?invitoHTML():"";
   h+=(typeof filmInvito==="function")?filmInvito():"";
   h+=`<div class="card"><h2>${tr("Acqua")}</h2>${acquaRiga(di,tr("Bicchieri di oggi"))}`;
   h+=hint2(`Obiettivo: <b>${goal} bicchieri</b> da 200 ml (~${(goal*ML_BICCHIERE/1000).toFixed(1)} L)${(S.week.days[di].workouts||[]).some(w=>w.int==="alta"||w.min>45)?" · allenamento intenso: +2 bicchieri":""}.`,

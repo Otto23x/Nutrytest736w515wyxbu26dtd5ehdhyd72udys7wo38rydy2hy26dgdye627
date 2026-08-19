@@ -1621,6 +1621,17 @@ function renderSistema(){const el=document.getElementById("pg-sistema");const p=
   <div class="ckgrid">
     ${[["it","Italiano"],["en","English"]].map(([k,l])=>`<label class="ck"><input type="radio" name="lang" ${LANG===k?"checked":""} onchange="langSet('${k}')"> ${l}</label>`).join("")}
   </div></div>`;
+  /* Il tema: riattivato in v13.34, ma il comando per sceglierlo era
+     rimasto fuori — una funzione senza bottone è una funzione che non
+     esiste. Trovata cercando le funzioni pubbliche mai chiamate. */
+  h+=`<div class="card"><h2>${tr("Chiaro o scuro")}</h2>
+  ${hint2(tr("Automatico segue il telefono."),
+    tr("Se il tuo telefono passa al tema scuro la sera, l'app lo segue. Puoi anche fissarne uno: resta quello, sempre."))}
+  <div class="ckgrid">
+    ${[["auto",tr("Automatico")],["light",tr("Chiaro")],["dark",tr("Scuro")]].map(([k,l])=>
+      `<label class="ck"><input type="radio" name="tema" ${((S.ui&&S.ui.theme)||"auto")===k?"checked":""}
+        onchange="temaSet('${k}')"> ${esc(l)}</label>`).join("")}
+  </div></div>`;
   h+=`<div class="card"><h2>Quanto vuoi vedere</h2>
   <label class="ck" style="margin-bottom:8px"><input type="checkbox" ${S.ui.guidaOff?"":"checked"} onchange="S.ui.guidaOff=!this.checked;save();toast(this.checked?tr('Suggerimenti di guida attivi'):tr('Suggerimenti di guida spenti'))"> ${tr("Suggerimenti di guida (primi passi, faro e consigli)")}</label>
   ${hint2(tr("Tre livelli di dettaglio. <b>Nessuna funzione viene tolta</b>: cambia solo cosa è in vista."),tr("Con «Essenziale» restano pasti, spesa e peso, e il bilancio mostra i quattro numeri che contano. Con «Completo» tornano macro, fibre e fasi della dieta. Con «Esperto» compaiono anche tutte le formule di calcolo. Tutto il resto resta comunque raggiungibile dall'assistente e dal pulsante ⋯."))}
@@ -2056,5 +2067,29 @@ window.wipeAll=async()=>{if(!(await dlgConfirm(tr("Cancellare DAVVERO tutto su Q
   // Se NON elimino il backup remoto, scollego questo dispositivo così, ricominciando
   // da zero, non ricarico né sovrascrivo i dati che vivono su Drive (e sugli altri dispositivi).
   if(!alsoDrive){driveClearToken();try{localStorage.removeItem(SYNCED_ONCE_KEY);}catch(e){}}
-  localStorage.removeItem(KEY);location.reload();};
+  /* ═══ CANCELLARE TUTTO VUOL DIRE TUTTO ═════════════════════════
+     DIFETTO TROVATO IL 19/08/2026: qui si cancellavano DUE chiavi su
+     diciannove. Restavano sul telefono le preparazioni, l'ordine
+     delle schede, i turni, il contatore dei gesti, le schede partner,
+     le storie della piazza, i commensali della cucina.
+     Chi chiede di cancellare tutto ha diritto a tutto — e a maggior
+     ragione qui, dove il posizionamento è «i tuoi dati restano tuoi».
+     Un «cancella tutto» che lascia in giro dei resti è la promessa
+     più facile da smentire.
+
+     Si cancella per PREFISSO invece che per elenco: un elenco va
+     aggiornato ogni volta che si aggiunge una chiave, e quello è
+     esattamente il passaggio che si dimentica (l'ho dimenticato sei
+     volte in questa sessione). Il prefisso non si dimentica. */
+  try{
+    const nostre=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&(k.indexOf("nuvia_")===0||k.indexOf("diarioDieta")===0||
+             k.indexOf("diario_")===0||k.indexOf("nutri_")===0))nostre.push(k);}
+    nostre.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  }catch(e){
+    /* se qualcosa va storto, almeno lo stato principale se ne va */
+    try{localStorage.removeItem(KEY);}catch(_){}}
+  location.reload();};
 

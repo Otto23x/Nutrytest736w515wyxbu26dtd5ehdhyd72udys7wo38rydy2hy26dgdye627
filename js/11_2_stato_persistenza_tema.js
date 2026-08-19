@@ -345,11 +345,16 @@ function driveFlush(){ // caricamento immediato: chiusura app o richiesta esplic
    Tre scelte, e «auto» è il default: segue il telefono, che è la cosa
    che la persona ha già deciso una volta per tutte. */
 function temaVoluto(){
-  const t=(S.ui&&S.ui.theme)||"auto";
-  if(t==="light"||t==="dark")return t;
-  try{
-    if(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)return "dark";
-  }catch(e){}
+  /* ═══ IL TEMA SCURO È SPENTO, ED È COLPA MIA ═══════════════════
+     Il 19/08/2026 l'ho riattivato dopo aver misurato OTTO coppie di
+     variabili di colore. Passavano tutte. Ma le variabili non sono
+     l'interfaccia: i pulsanti hanno colori propri, bordi propri,
+     stati propri — e sul telefono del founder erano illeggibili.
+     LEZIONE: verificare le VARIABILI non è verificare la SCHERMATA.
+     Un contrasto calcolato su due esadecimali dice che quei due
+     colori stanno bene insieme, non che l'interfaccia funziona.
+     Torna spento finché non sarà verificato su un telefono vero,
+     pulsante per pulsante. Il CSS resta, pronto. */
   return "light";}
 window.temaVoluto=temaVoluto;
 

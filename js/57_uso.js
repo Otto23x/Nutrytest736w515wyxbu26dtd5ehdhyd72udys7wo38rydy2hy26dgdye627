@@ -86,6 +86,12 @@ function usoNome(g){
        :g==="commensali"      ?tr("Dire per quanti cucini")
        :g==="film"            ?tr("Guardare il film del mese")
        :g==="scheda"          ?tr("Cambiare scheda")
+       :g==="respiro"         ?tr("Fare i respiri lenti")
+       :g==="preparazione"    ?tr("Salvare una preparazione")
+       :g==="ordine"          ?tr("Riordinare la pagina")
+       :g==="partner"         ?tr("Aprire una scheda partner")
+       :g==="invito"          ?tr("Invitare qualcuno")
+       :g==="mia_componi"     ?tr("Comporre la tua pagina")
        :g;}
 window.usoNome=usoNome;
 

@@ -4,6 +4,26 @@
    scroll, dock di navigazione flottante, zoom sui grafici.
    Tutti i selettori originali sono preservati.
    ══════════════════════════════════════════════════════════════ */
+/* ═══ I FONT DEL MARCHIO, IN CASA ═════════════════════════════════
+   Fino a v13.34 il CSS chiedeva 'Fraunces' e 'Inter' ma nessuno li
+   caricava: l'app usava Georgia e il font di sistema. Il sito aveva
+   il marchio giusto, l'app no — e sono la stessa cosa.
+   Ora stanno QUI, non su un CDN: 65 KB in tutto, serviti dal nostro
+   dominio e messi in cache dal service worker. Dalla seconda apertura
+   costano zero, e non c'è nessun dominio esterno da interrogare —
+   che è la stessa ragione per cui abbiamo tolto tutti gli altri.
+
+   `font-display:swap` è la scelta che conta per la velocità: il testo
+   si vede SUBITO col font di sistema e viene sostituito quando il
+   nostro è pronto. Senza, si guarda un rettangolo vuoto per mezzo
+   secondo — e mezzo secondo di niente, all'apertura, sembra un'app
+   rotta. */
+@font-face{font-family:'Fraunces';src:url('assets/font/fraunces-600.woff2') format('woff2');
+  font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'Inter';src:url('assets/font/inter-400.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Inter';src:url('assets/font/inter-600.woff2') format('woff2');
+  font-weight:600;font-style:normal;font-display:swap}
 :root{
   /* Chiaro come impostazione: dà l'idea di leggerezza, che è il punto.
      Superfici più fredde e meno sature del verde precedente, linee più
@@ -187,8 +207,8 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .schede{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;
   -webkit-overflow-scrolling:touch;scrollbar-width:none}
 .schede::-webkit-scrollbar{display:none}
-.schtab{flex:0 0 auto;background:none;border:0;padding:8px 16px;border-radius:99px;
-  font:inherit;font-size:14px;color:var(--grigio);cursor:pointer;white-space:nowrap;
+.schtab{flex:0 0 auto;background:none;border:0;border-radius:99px;
+  font:inherit;color:var(--grigio);cursor:pointer;white-space:nowrap;
   transition:background .2s var(--ease),color .2s var(--ease)}
 .schtab.on{background:var(--menta);color:var(--bosco);font-weight:600}
 /* ── QUELLO CHE USI DAVVERO (v13.25) ─────────────────────────
@@ -219,6 +239,7 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
    La durata è l'esercizio: se l'animazione fosse più veloce non
    servirebbe a niente, e se non finisse da sola diventerebbe un
    altro compito da chiudere. */
+@keyframes bsIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
 .respiro{position:fixed;inset:0;z-index:210;background:var(--bosco);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px}
 .respiro-x{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);
@@ -282,8 +303,8 @@ header h1{font-size:18px;font-weight:700;letter-spacing:.2px}
 .scbtn.on{transform:scale(1.12)}
 .scnome{font-size:12px;color:var(--grigio);margin-left:4px}
 .bevgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
-.bevbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;
-  border:1.5px solid var(--linea);border-radius:12px;background:var(--card);cursor:pointer}
+.bevbtn{display:flex;flex-direction:column;align-items:center;gap:4px
+  border:1.5px solid var(--linea);background:var(--card);cursor:pointer}
 .bevbtn.on{border-color:var(--teal);background:var(--menta)}
 .bevbtn b{font-size:12.5px;color:var(--ink)}
 .bevbtn small{font-size:11px;color:var(--grigio)}
@@ -648,7 +669,38 @@ body.onb .fab{display:none}
 .mdesc{font-size:14.5px;line-height:1.5}   /* la descrizione del piatto è testo di lettura */
 .mkcal{font-size:13px;font-weight:700;color:var(--salvia);margin-top:4px}
 .mopts{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
-.mopts button,.chipbtn{border:1.5px solid var(--linea);background:var(--card);border-radius:20px;padding:4px 12px;font-size:11.5px;cursor:pointer;color:var(--grigio);transition:all .2s var(--ease)}
+.mopts button,
+/* ═══ I PULSANTI: UNA SCALA SOLA ═══════════════════════════════
+   DIFETTO TROVATO DAL FOUNDER, 19/08/2026: «pulsanti sfasati, non
+   allineati, non sulla stessa riga, grandi e piccoli, colori che non
+   c'entrano nulla».
+   Aveva ragione: c'erano SETTE classi di pulsante nate in momenti
+   diversi, ognuna con padding, testo, altezza e raggio propri —
+   chipbtn 11,5px raggio 20, schtab 14px raggio 99, ibtn 14,5px
+   altezza 44. Messe nella stessa riga NON POSSONO allinearsi.
+   Qui c'è la base comune. Le varianti cambiano il COLORE e poco
+   altro; misure e allineamento vengono da qui, per tutti. */
+.chipbtn,.schtab,.bevbtn,.ibtn,.btn.small,.dnav{
+  min-height:44px;   /* la soglia del dito: sotto, si sbaglia bersaglio.
+                        È anche ciò che allinea tutto sulla stessa riga. */
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:inherit;font-size:13.5px;line-height:1;
+  padding:8px 16px;border-radius:20px;
+  box-sizing:border-box;cursor:pointer;
+  transition:background .2s var(--ease),color .2s var(--ease),
+             box-shadow .2s var(--ease);
+}
+/* i contenitori di pulsanti allineano al centro e vanno a capo bene */
+.riga,.mtools,.ins-reaz,.ins-frasi,.turni,.scala,.film-azioni,.ordsug .riga{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+/* il pulsante con la sola icona resta quadrato, ma alto uguale */
+/* il pulsante con la sola icona: quadrato, e mai sotto la soglia del
+   dito (44px). Dichiarato QUI, nella prima regola che il foglio
+   incontra: è la promessa, non un ritocco successivo. */
+.ibtn{min-width:44px;min-height:44px;width:44px;padding:0;border-radius:12px}
+
+.chipbtn{border:1.5px solid var(--linea);background:var(--card);cursor:pointer;color:var(--grigio);transition:all .2s var(--ease)}
 .mopts button:hover,.chipbtn:hover{border-color:var(--salvia);color:var(--salvia);transform:translateY(-1px)}
 .chipbtn.on{border-color:var(--salvia);background:var(--salvia);color:#fff}
 .mopts button.sel{border-color:var(--zafft);color:var(--zafft);font-weight:700;background:var(--zaffbg)}

@@ -223,8 +223,14 @@ function onb2Modulo(sc){
       <select id="o2gen"><option value="m"${b.gen!=="f"?" selected":""}>${esc(tr("Uomo"))}</option>
         <option value="f"${b.gen==="f"?" selected":""}>${esc(tr("Donna"))}</option></select>
       <div class="grid2">
-        <div><label>${esc(tr("Età"))}</label>
-          <input type="number" id="o2eta" inputmode="numeric" min="14" max="100" value="${b.eta||""}" placeholder="42"></div>
+        <div><label>${esc(tr("Data di nascita"))}</label>
+          <!-- La DATA, non l'età: con l'età si costruiva una data finta
+               (1° gennaio di N anni fa) e il metabolismo si calcolava su
+               quella. Un campo data si compila in un gesto sul telefono,
+               e il numero che ne esce è vero. -->
+          <input type="date" id="o2dob" max="${new Date(Date.now()-14*365.25*864e5).toISOString().slice(0,10)}"
+                 min="${new Date(Date.now()-100*365.25*864e5).toISOString().slice(0,10)}"
+                 value="${b.dob||""}"></div>
         <div><label>${esc(tr("Altezza (cm)"))}</label>
           <input type="number" id="o2h" inputmode="numeric" min="120" max="230" value="${b.h||""}" placeholder="175"></div>
       </div>
@@ -258,7 +264,10 @@ function onb2Targets(){
   const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
   const salva=(typeof WIZ!=="undefined"&&WIZ)?WIZ.d:null;
   try{
-    const nascita=new Date();nascita.setFullYear(nascita.getFullYear()-(+b.eta||30));
+    /* la data vera se c'è; l'età resta solo come ripiego per chi ha
+       già compilato il percorso con la versione vecchia */
+    const nascita=b.dob?new Date(b.dob)
+      :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
     WIZ.d={gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
            act:attMap[o.ris.attivita]||1.375,goal:goalMap[o.ris.obiettivo]||"moderato"};
     return wizTargets();
@@ -354,11 +363,13 @@ window.onb2Rispondi=(k,v)=>{
 
 window.onb2Bio=()=>{
   const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
-  const eta=+g("o2eta"),h=+g("o2h"),w=parseFloat(g("o2w"));
-  if(!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
+  const dob=g("o2dob");
+  const eta=dob?Math.floor((Date.now()-Date.parse(dob))/(365.25*864e5)):0;
+  const h=+g("o2h"),w=parseFloat(g("o2w"));
+  if(!dob||!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
     return dlgAlert(tr("Mi servono età, altezza e peso per calcolare qualcosa di vero. Sono gli unici numeri obbligatori."));
   const o=onb2Stato();
-  o.ris.bio={gen:g("o2gen")||"m",eta,h,w};onb2Salva();
+  o.ris.bio={gen:g("o2gen")||"m",dob,eta,h,w};onb2Salva();
   try{if(typeof confermaPasso==="function")confermaPasso("bio");}catch(e){}
   onb2Avanti();};
 
@@ -605,7 +616,10 @@ window.onb2Chiudi=async(modo)=>{
     const attMap={fermo:1.25,leggero:1.375,regolare:1.55,intenso:1.725};
     const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
     const b=o.ris.bio||{};
-    const nascita=new Date();nascita.setFullYear(nascita.getFullYear()-(+b.eta||30));
+    /* la data vera se c'è; l'età resta solo come ripiego per chi ha
+       già compilato il percorso con la versione vecchia */
+    const nascita=b.dob?new Date(b.dob)
+      :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
     const d={gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
       act:attMap[o.ris.attivita]||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
       vita:o.ris.ritmi||"",sport:o.ris.attivita||"",intol:"",no:"",si:"",

@@ -85,7 +85,14 @@ window.tlmAccendi=tlmAccendi;
         '<h3>'+tr("Statistiche anonime d'uso")+'</h3>'+
         '<p class="hint">'+tr("Se le accendi, ci dici quali funzioni usi — mai cosa mangi, quanto pesi o come stai: solo «funzione usata», contata in forma anonima. Non esiste un tuo profilo da nessuna parte: per questo non c'è niente da cancellare.")+'</p>'+
         '<label class="ckline riga-toggle"><input type="checkbox" id="tlm-int" '+(on?"checked":"")+'> '+
-        on?tr("Accese — grazie: ci aiuti a capire dove lavorare"):tr("Spente — l'app funziona identica")+'</label>';
+        /* LE PARENTESI SERVONO: `+` lega più forte di `? :`, quindi
+           senza di esse tutta la stringa costruita finora finiva nella
+           CONDIZIONE del ternario (ed è sempre vera), e la card si
+           riduceva alla sola frase «Accese — grazie…».
+           È il difetto che il founder ha visto al posto della sua
+           schermata: una riga di testo e nient'altro. */
+        (on?tr("Accese — grazie: ci aiuti a capire dove lavorare")
+           :tr("Spente — l'app funziona identica"))+'</label>';
       el.appendChild(box);
       const ck=box.querySelector("#tlm-int");
       ck.addEventListener("change",function(){tlmAccendi(ck.checked);renderIo();});

@@ -171,16 +171,47 @@ function onb2Barra(){
 
 /* ── Il pulsante del microfono: c'è su ogni schermata, non chiede mai
    il permesso da solo e non promette nulla che non possa mantenere. */
-function onb2Mic(campo){
+/* ── IL MICROFONO, UNO SOLO ───────────────────────────────────────
+   Prima ce n'erano DUE: «Preferisci dirlo a voce?» in mezzo alla
+   schermata e «Raccontami tutto a voce» in fondo. Facevano cose
+   diverse (una risposta sola contro tutto il percorso), ma da fuori
+   sembravano la stessa e uno dei due era di troppo.
+   Ne resta uno, nella barra dei comandi: l'icona dice cosa fa, e la
+   parola che l'accompagna cambia solo alla prima schermata, dove
+   raccontare TUTTO ha senso. */
+function onb2Mic(campo){return "";}   /* non più in mezzo alla pagina */
+
+function onb2MicBarra(campo,passo){
   const ok=(typeof vocePossibile==="function")&&vocePossibile();
   if(!ok)return "";
+  /* IL RACCONTO INTERO ha bisogno dell'AI per essere capito; la
+     dettatura di UNA risposta no — quella la fa il telefono.
+     Alla prima schermata quindi si offre il racconto SOLO se l'AI
+     c'è: offrire un comando che non può funzionare, e poi spiegare
+     perché non ha funzionato, è il modo più rapido di far pensare
+     che l'app sia rotta. (Trovato dal founder il 19/08: toccava il
+     microfono e si sentiva rispondere «mi serve la connessione».) */
+  const conAI=(typeof aiOn==="function")&&aiOn();
+  const tutto=(passo===0)&&conAI;
+  if(passo===0&&!conAI)return "";
   return `<button class="btn ghost small o2mic" id="o2mic_${esc(campo)}" type="button"
-    onclick="onb2Voce('${esc(campo)}')" aria-label="${esc(tr("Rispondi a voce"))}">
-    ${ic("mic",15)} ${esc(tr("Preferisci dirlo a voce?"))}</button>`;}
+    onclick="${tutto?"onb2Racconto()":"onb2Voce('"+esc(campo)+"')"}"
+    aria-label="${esc(tutto?tr("Raccontami tutto a voce"):tr("Rispondi a voce"))}">
+    ${ic("mic",15)} ${esc(tutto?tr("A voce"):tr("A voce"))}</button>`;}
 
 /* ── Render ─────────────────────────────────────────────────────── */
 function renderOnb2(){
   const el=document.getElementById("pg-onb2");if(!el)return;
+  /* PRIMA DI TUTTO: l'account. È la schermata che decide se una
+     persona resta, e va prima delle domande — non dopo, quando
+     ha già investito dieci minuti e scopre che serviva un
+     collegamento. */
+  try{
+    if(typeof primoServe==="function"&&primoServe()){
+      el.innerHTML=primoHTML();
+      try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}
+      return;}
+  }catch(e){}
   const o=onb2Stato(),i=o.step,sc=ONB2c()[i];
   let c="";
   if(sc.tipo==="scelta")c=onb2Scelta(sc);
@@ -196,7 +227,9 @@ function renderOnb2(){
       <div class="o2nav">
         <button class="btn ghost small o2back" type="button" onclick="onb2Indietro()"
           aria-label="${esc(tr("Torna indietro"))}">${esc(tr("Indietro"))}</button>
-        ${i===0?`<button class="btn ghost small" type="button" onclick="onb2Racconto()">${esc(tr("Raccontami tutto a voce"))}</button>`:""}
+        ${(i>0&&typeof onb2Rivedi==="function")?`<button class="btn ghost small o2rivedi" type="button"
+          onclick="onb2Rivedi()">${esc(tr("Rivedi le risposte"))}</button>`:""}
+        ${onb2MicBarra(sc.k,i)}
       </div>
     </div>`;
   try{if(typeof a11yLega==="function")a11yLega("onb2");}catch(e){}}
@@ -228,9 +261,16 @@ function onb2Modulo(sc){
                (1° gennaio di N anni fa) e il metabolismo si calcolava su
                quella. Un campo data si compila in un gesto sul telefono,
                e il numero che ne esce è vero. -->
-          <input type="date" id="o2dob" max="${new Date(Date.now()-14*365.25*864e5).toISOString().slice(0,10)}"
-                 min="${new Date(Date.now()-100*365.25*864e5).toISOString().slice(0,10)}"
-                 value="${b.dob||""}"></div>
+          <!-- SI SCRIVE, non si sfoglia un calendario. Chiesto dal
+               founder il 19/08 provando il percorso: con il campo
+               type=date il telefono apriva il calendario ad AGOSTO
+               2012 e per arrivare al 1985 servivano decine di tocchi.
+               Chi conosce la propria data la scrive in tre secondi;
+               le barrette le mette l'app mentre digiti. -->
+          <input type="text" id="o2dob" inputmode="numeric" maxlength="10"
+                 placeholder="${esc(tr("gg/mm/aaaa"))}"
+                 oninput="dateMask(this)"
+                 value="${b.dob?dobPretty(b.dob):""}"></div>
         <div><label>${esc(tr("Altezza (cm)"))}</label>
           <input type="number" id="o2h" inputmode="numeric" min="120" max="230" value="${b.h||""}" placeholder="175"></div>
       </div>
@@ -363,7 +403,13 @@ window.onb2Rispondi=(k,v)=>{
 
 window.onb2Bio=()=>{
   const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
-  const dob=g("o2dob");
+  /* il campo ora è testo «gg/mm/aaaa»: si converte in data vera, e se
+     la scrittura è incompleta si dice cosa manca invece di dare un
+     errore generico */
+  const dobTxt=g("o2dob");
+  const dob=(typeof dobParse==="function")?dobParse(dobTxt):dobTxt;
+  if(dobTxt&&!dob)
+    return dlgAlert(tr("La data va scritta come giorno/mese/anno, per esempio 14/03/1985."));
   const eta=dob?Math.floor((Date.now()-Date.parse(dob))/(365.25*864e5)):0;
   const h=+g("o2h"),w=parseFloat(g("o2w"));
   if(!dob||!(eta>=14&&eta<=100)||!(h>=120&&h<=230)||!(w>=30&&w<=300))
@@ -395,6 +441,54 @@ function onb2Avanti(){
   if(o.step>o.maxVisto)o.maxVisto=o.step;
   onb2Salva();renderOnb2();try{window.scrollTo(0,0);}catch(e){}}
 window.onb2Avanti=onb2Avanti;
+
+/* ═══ RIVEDI LE RISPOSTE ═══════════════════════════════════════════
+   Chiesto dal founder il 19/08/2026, provando il percorso: «non posso
+   tornare all'inizio, non ricordo cosa ho messo prima e voglio
+   controllare».
+   Ha ragione, ed è una mancanza seria: dieci schermate sono tante, e
+   chi si ferma a metà (o riprende il giorno dopo) non ha modo di
+   sapere cosa ha già detto. «Indietro» va di un passo per volta, che
+   alla settima schermata vuol dire sei tocchi per rivedere la prima.
+   Qui si vede TUTTO in una schermata, e da ogni riga si torna a quel
+   punto per cambiare. */
+window.onb2Rivedi=()=>{
+  const o=onb2Stato(),L=ONB2c();
+  const righe=L.map((sc,i)=>{
+    if(i>=o.step&&o.ris[sc.k]==null)return "";   /* non ancora chieste */
+    const v=o.ris[sc.k];
+    return `<div class="o2riga" onclick="onb2VaiA(${i})">
+      <div><b>${esc(sc.q)}</b>
+        <div class="hint">${esc(onb2Leggibile(sc,v))}</div></div>
+      ${ic("pencil",15)}
+    </div>`;}).filter(Boolean).join("");
+  sheetShow(tr("Quello che hai detto finora"),
+    (righe||`<div class="hint">${esc(tr("Non hai ancora risposto a niente."))}</div>`)+
+    `<div class="hint" style="margin-top:12px">${esc(tr("Tocca una riga per cambiarla."))}</div>`);};
+
+/* La risposta in parole: un oggetto o un elenco, letto da una persona. */
+function onb2Leggibile(sc,v){
+  if(v==null||v==="")return tr("— saltata");
+  if(Array.isArray(v))return v.length?v.join(", "):tr("— niente");
+  if(typeof v==="object"){
+    const p=[];
+    if(v.gen)p.push(v.gen==="m"?tr("Uomo"):tr("Donna"));
+    if(v.eta)p.push(v.eta+" "+tr("anni"));
+    if(v.h)p.push(v.h+" cm");
+    if(v.w)p.push(v.w+" kg");
+    return p.join(" · ")||tr("— compilata");}
+  /* se è una scelta, si mostra l'etichetta e non la chiave */
+  if(sc.op){
+    const t=sc.op.find(x=>x[0]===v);
+    if(t)return t[1];}
+  return String(v).slice(0,80);}
+
+window.onb2VaiA=(i)=>{
+  const o=onb2Stato();
+  o.step=Math.max(0,Math.min(i,ONB2c().length-1));
+  onb2Salva();
+  try{sheetClose();}catch(e){}
+  render("onb2");};
 
 window.onb2Indietro=()=>{
   const o=onb2Stato();
@@ -519,7 +613,9 @@ async function onb2Leggi(testo,tutto){
   const sc=document.getElementById("o2scritto");if(sc)sc.remove();
   if(!t)return toast(tr("Non ho sentito nulla. Rispondi pure toccando: è identico."));
   if(typeof aiOn!=="function"||!aiOn())
-    return toast(tr("Per leggere il racconto mi serve la connessione. Nessun problema: rispondi toccando, ci mettiamo un attimo."));
+    /* la causa non è la rete: è che l'AI non è ancora attiva. Dirlo
+       storto manda la persona a controllare il wifi per niente. */
+    return toast(tr("Per capire un racconto intero serve l'AI, che si attiva col conto. Intanto rispondi toccando: è identico, e ci mettiamo un attimo."));
   toast(tr("Leggo…"));
   try{
     const j=await onb2Chiedi(t);

@@ -598,6 +598,20 @@ function renderOggi(){const el=document.getElementById("pg-oggi");const di=viewI
 
   // Acqua con obiettivo dinamico
   h+=`<div class="gsec">${tr("Il bilancio della giornata")}</div>`;
+  /* ═══ SENZA I NUMERI, SI CHIEDONO ═══════════════════════════════
+     Non si disegna un bilancio di cui non si sa niente. Prima qui
+     compariva «1200 kcal · Obiettivo di oggi» a chi non aveva dato
+     peso, altezza ed età: un numero inventato, e per giunta quello
+     sotto cui si parla di dieta molto ipocalorica.
+     Chiedere è più onesto che riempire il vuoto, e costa un tocco. */
+  if(typeof profiloUtile==="function"&&!profiloUtile()){
+    h+=`<div class="card"><h2>${tr("Mi mancano tre numeri")}</h2>
+      <div class="hint">${esc(tr("Peso, altezza e data di nascita: senza, qualunque obiettivo calorico sarebbe inventato. Un minuto e non te li chiedo più."))}</div>
+      <div class="mtools"><button class="btn" onclick="show('io')">${esc(tr("Completa il profilo"))}</button></div>
+    </div>`;
+    el.innerHTML=h;
+    return;
+  }
   if(rientroOn()&&typeof rientroBonus==="function"&&rientroBonus()>0){
     /* Il lunedì dopo la vacanza è il giorno in cui si molla: qui si
        dice a voce alta che il deficit è ancora ridotto, di proposito. */

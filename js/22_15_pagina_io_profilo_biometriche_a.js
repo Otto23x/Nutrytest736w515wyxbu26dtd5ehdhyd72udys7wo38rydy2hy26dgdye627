@@ -525,6 +525,23 @@ function famCardHTML(pre){
    una donna alta e muscolosa consuma più di un uomo minuto. Qui il minimo è
    l'85% del metabolismo basale, con una soglia di sicurezza assoluta a
    1200 kcal sotto la quale non si scende comunque. */
+/* ═══ SENZA I NUMERI NON C'È UN OBIETTIVO ══════════════════════════
+   DIFETTO TROVATO IL 19/08/2026 simulando un percorso saltato: a chi
+   non aveva dato peso, altezza ed età l'app mostrava lo stesso
+   «1200 kcal · Obiettivo di oggi».
+   1200 non è un numero neutro: è la soglia sotto cui si parla di
+   dieta molto ipocalorica, e a un uomo di 113 kg sarebbe un consiglio
+   sbagliato e pericoloso. Ma soprattutto è INVENTATO: non sappiamo
+   niente di quella persona.
+   Ora `profiloUtile()` dice se abbiamo abbastanza per calcolare, e
+   chi disegna un obiettivo chiede prima i numeri invece di riempire
+   il vuoto con una cifra. Un numero sbagliato con l'aria di essere
+   giusto è peggio di nessun numero: nessuno lo mette in dubbio. */
+function profiloUtile(){
+  const p=S.profile||{};
+  return +p.w>0&&+p.h>0&&(typeof age==="function"?age()>0:!!p.dob);}
+window.profiloUtile=profiloUtile;
+
 function kcalFloorMin(){
   if(+S.profile.kcalMin>0)return +S.profile.kcalMin;   /* valore scritto a mano */
   const b=bmr();
@@ -546,6 +563,9 @@ function wkForecastBurn(){
   try{return plannedActivityBurnFor(+S.profile.w||70)||0;}catch(e){return 0;}}
 function dayTargetKBase(){return Math.max(kcalFloor(),Math.round(tdeeTarget()+physBonus()-deficitTarget()));}
 function dayTargetK(){
+  /* zero vuol dire «non lo so», e chi disegna lo sa gestire: mostra
+     l'invito a completare il profilo invece di una cifra qualsiasi */
+  if(!profiloUtile())return 0;
   /* VACANZA = MANTENIMENTO, non assenza di numeri. Prima la vacanza
      spegneva il deficit smettendo di mostrare un target: chi rientrava
      trovava una settimana senza riferimenti e un buco nello storico.

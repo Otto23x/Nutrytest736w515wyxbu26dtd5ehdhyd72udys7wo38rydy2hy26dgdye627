@@ -1274,7 +1274,38 @@ body.onb{padding-bottom:0}
 .o2chipx{background:transparent;border:0;color:var(--bosco);cursor:pointer;font-size:14px;
   line-height:1;padding:4px 4px;border-radius:99px;opacity:.65}
 .o2chipx:hover{opacity:1;background:rgba(0,0,0,.06)}
-.o2nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+/* ── LA BARRA DEI COMANDI DEL PERCORSO ────────────────────────
+   Indietro a SINISTRA, il resto a destra, tutti della STESSA
+   altezza. Prima i bottoni andavano a capo e cambiavano misura fra
+   una schermata e l'altra: il founder l'ha detto guardandola —
+   «i bordi e i testi non sono stabili». Un comando che si sposta
+   fra una schermata e la successiva costringe a ricercarlo ogni
+   volta, e dà fastidio anche a chi non saprebbe dire perché. */
+/* ── IL PRIMO AVVIO ───────────────────────────────────────────
+   Poche cose, grandi, con l'avviso sui dati BEN VISIBILE: una
+   cosa scomoda scritta in grigio piccolo è una cosa nascosta. */
+.primo{padding:16px 0 32px;max-width:520px;margin:0 auto}
+.primo-logo{text-align:center;margin-bottom:16px}
+.primo-t{font-family:'Fraunces',Georgia,serif;font-size:28px;color:var(--bosco);
+  text-align:center;line-height:1.15}
+.primo-s{text-align:center;color:var(--grigio);margin:8px 0 24px;font-size:15px}
+.primo-perche{display:grid;gap:16px;margin:16px 0}
+.primo-perche .pp b{display:block;font-size:15px;color:var(--bosco);margin-bottom:4px}
+.primo-perche .pp span{font-size:14px;line-height:1.55;color:var(--ink)}
+.primo-avviso{display:flex;gap:12px;align-items:flex-start;background:var(--zaffbg);
+  border-radius:12px;padding:16px;margin:16px 0;font-size:14px;line-height:1.5}
+.primo-avviso svg{flex:0 0 auto;color:var(--zaff);margin-top:4px}
+.primo-ok{display:flex;gap:8px;align-items:center;color:var(--bosco);font-weight:600;margin-top:16px}
+.primo-tec{margin-top:24px;border:1px dashed var(--linea);border-radius:12px;padding:16px}
+.primo-tec summary{cursor:pointer;font-size:13.5px;color:var(--grigio)}
+.o2nav{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:nowrap}
+.o2nav .o2back{margin-right:auto}
+.o2nav .btn{min-height:44px;padding:12px 16px;font-size:14px;white-space:nowrap;flex:0 0 auto}
+@media (max-width:380px){
+  /* su schermi stretti si accorcia il testo, ma i bottoni NON vanno
+     a capo: una barra su due righe è la cosa che sembrava instabile */
+  .o2nav .btn{padding:12px}
+  .o2nav .o2rivedi{display:none}}
 .o2gen{margin-top:16px}
 .o2genbar{height:7px;background:var(--linea);border-radius:99px;overflow:hidden}
 .o2genbar i{display:block;height:100%;width:0;background:var(--azione);border-radius:99px;

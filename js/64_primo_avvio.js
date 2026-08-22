@@ -82,9 +82,16 @@ window.primoHTML=()=>{
 
       ${collegato
         ? `<div class="primo-ok">${ic("star",18)} ${esc(tr("Collegato."))}</div>
-           <div class="mtools"><button class="btn" onclick="primoSalta()">${esc(tr("Avanti"))}</button></div>`
-        : `<div class="mtools"><button class="btn" onclick="primoCollega()">${esc(tr("Entra con Google"))}</button></div>
-           <button class="btn ghost small" onclick="primoSenza()">${esc(tr("Più tardi"))}</button>`}
+           <div class="mtools"><button class="btn" onclick="primoSalta()">${esc(tr("Prosegui"))}</button></div>`
+        : `<label style="margin-top:12px">${esc(tr("La tua email"))}</label>
+           <input type="email" id="primoMail" inputmode="email" autocomplete="email"
+             value="${esc((S.conto&&S.conto.email)||"")}" placeholder="${esc(tr("nome@esempio.it"))}">
+           <div class="hint">${esc(tr("Serve a ritrovare l'abbonamento se cambi telefono. Resta qui: non la usiamo per scriverti."))}</div>
+           <div class="mtools primo-az">
+             <button class="btn" onclick="primoCollega()">${esc(tr("Entra con Google"))}</button>
+             <button class="btn ghost" onclick="primoProsegui()">${esc(tr("Prosegui"))}</button>
+             <button class="btn ghost small" onclick="primoSenza()">${esc(tr("Più tardi"))}</button>
+           </div>`}
     </div>
 
     <details class="primo-tec">
@@ -92,11 +99,21 @@ window.primoHTML=()=>{
       <div class="hint">${esc(tr("Servono solo finché l'app non è pubblicata: dopo, la chiave arriva dal nostro server e il collegamento è già configurato. Un utente non vedrà mai questa parte."))}</div>
       <label style="margin-top:12px">CLIENT_ID (Google Cloud)</label>
       <input type="text" id="primoCid" value="${esc(cid)}" placeholder="…apps.googleusercontent.com">
-      <label style="margin-top:12px">${esc(tr("Chiave Gemini"))}</label>
-      <input type="password" id="primoKey" value="${esc(key)}" placeholder="AIza…">
+      <label style="margin-top:12px">${esc(tr("Chiave AI"))}</label>
+      <input type="password" id="primoKey" value="${esc(key)}" placeholder="${esc(tr("la tua chiave AI"))}">
       <div class="mtools"><button class="btn ghost small" onclick="primoTecSalva()">${esc(tr("Salva le impostazioni"))}</button></div>
     </details>
   </div>`;};
+
+/* «Prosegui» con l'email scritta a mano: chi non vuole passare da
+   Google lascia comunque il modo di ritrovare l'abbonamento. Non è
+   un accesso: è un promemoria, e lo diciamo. */
+window.primoProsegui=()=>{
+  const e=((document.getElementById("primoMail")||{}).value||"").trim();
+  if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(e))
+    return dlgAlert(tr("Quell'indirizzo non sembra completo. Controllalo, oppure vai avanti con «Più tardi»."));
+  if(e){S.conto=S.conto||{};S.conto.email=e;save();}
+  primoSalta();};
 
 window.primoTecSalva=()=>{
   const cid=(document.getElementById("primoCid")||{}).value||"";

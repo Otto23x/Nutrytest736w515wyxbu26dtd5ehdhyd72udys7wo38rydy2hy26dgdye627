@@ -65,13 +65,17 @@ function ONB2t(){return [
       ["massa",tr("Mettere massa"),tr("Crescere, non solo pesare di più")]]},
 
  {k:"bio",sez:"profilo",tipo:"modulo",
-  q:tr("Quattro numeri e non te li chiedo più"),
-  sub:tr("Servono a calcolare quanto consumi in un giorno. È il numero su cui poggia tutto.")},
+  q:tr("Partiamo da te"),
+  sub:tr("Servono a calcolare quanto consumi in un giorno. Il peso lo aggiornerai spesso: è il segnale che dice se il piano funziona.")},
 
  {k:"pesoObiettivo",sez:"profilo",tipo:"numero",
   q:tr("Dove vorresti arrivare?"),
   sub:tr("Scrivi il peso che hai in mente: ti dico subito quanto ci vuole davvero."),
   unita:"kg",min:30,max:300},
+
+ {k:"pausa1",sez:"profilo",tipo:"pausa",posa:"pensa",
+  q:tr("Questo è già abbastanza per i numeri."),
+  sub:tr("Il resto serve a una cosa sola: che i piatti siano i tuoi, non quelli di un manuale.")},
 
  {k:"dieta",sez:"alimentazione",tipo:"dieta",
   q:tr("Come mangi, per scelta o abitudine?")},
@@ -82,7 +86,7 @@ function ONB2t(){return [
   op:[["niente",tr("Nessuna intolleranza"),""]]
      .concat((typeof INTOL_LIST!=="undefined"?INTOL_LIST:[]).map(x=>[x,O2CAP(x),""]))},
 
- {k:"salute",sez:"alimentazione",tipo:"multi",none:"niente",sensibile:true,
+ {k:"salute",sez:"alimentazione",tipo:"multi",none:"niente",
   testo:{k:"farmaci",label:tr("Farmaci che prendi in modo continuativo"),ph:tr("es. levotiroxina — se non ce ne sono, lascia vuoto")},
   q:tr("Condizioni di salute di cui tenere conto?"),
   sub:tr("Entrano nei criteri del piano. Non sono una diagnosi né una terapia."),
@@ -99,6 +103,10 @@ function ONB2t(){return [
   q:tr("Vincoli religiosi o etici a tavola?"),
   op:[["nessuno",tr("Nessun vincolo"),""]]
      .concat((typeof REL_LIST!=="undefined"?REL_LIST:[]).map(x=>[x,O2CAP(x),""]))},
+
+ {k:"pausa2",sez:"alimentazione",tipo:"pausa",posa:"cucina",
+  q:tr("Da qui in poi niente più liste."),
+  sub:tr("Restano le domande sulla tua settimana: quanto ti muovi, come sono fatte le giornate, quanto tempo hai.")},
 
  {k:"corpo",sez:"vita",tipo:"scelta",sensibile:true,
   se:()=>((onb2Stato().ris.bio||{}).gen==="f"),
@@ -142,7 +150,11 @@ function ONB2t(){return [
  {k:"preferenze",sez:"vita",tipo:"preferenze",
   q:tr("Le ultime tre cose per il piano")},
 
- {k:"cibo",sez:"conoscerti",tipo:"multi",none:"sereno",sensibile:true,
+ {k:"pausa3",sez:"conoscerti",tipo:"pausa",posa:"cerca",genera:true,
+  q:tr("Ho tutto quello che serve al piano."),
+  sub:tr("Comincio a scriverlo adesso, mentre rispondi alle ultime domande: quando arrivi in fondo è già pronto.")},
+
+ {k:"cibo",sez:"conoscerti",tipo:"multi",none:"sereno",
   q:tr("Che rapporto hai con il cibo?"),
   sub:tr("Non c'è una risposta giusta. Puoi segnarne più di una."),
   op:[["sereno",tr("Sereno"),tr("Mangio quando ho fame, e va bene così")],
@@ -286,6 +298,7 @@ function renderOnb2(){
   else if(sc.tipo==="dieta")c=onb2Dieta(sc);
   else if(sc.tipo==="pasti")c=onb2Pasti(sc);
   else if(sc.tipo==="preferenze")c=onb2Pref(sc);
+  else if(sc.tipo==="pausa")c=onb2Pausa(sc);
   else c=onb2Fine(sc);
 
   el.innerHTML=onb2Barra()+
@@ -293,11 +306,13 @@ function renderOnb2(){
       <h1 class="o2q">${esc(sc.q)}</h1>
       ${sc.sub?`<p class="o2sub">${esc(sc.sub)}</p>`:""}
       ${c}
-      <div class="o2nav">
+      <div class="o2nav o2nav3">
         <button class="btn ghost small o2back" type="button" onclick="onb2Indietro()"
           aria-label="${esc(tr("Torna indietro"))}">${esc(tr("Indietro"))}</button>
-        ${(i>0&&typeof onb2Rivedi==="function")?`<button class="btn ghost small o2rivedi" type="button"
-          onclick="onb2Rivedi()">${esc(tr("Rivedi le risposte"))}</button>`:""}
+        ${sc.tipo!=="fine"?`<button class="btn small o2next" type="button"
+          onclick="onb2AvantiSchermo()">${esc(tr("Avanti"))}</button>`:""}
+        <button class="btn ghost small o2rivedi" type="button"
+          ${i>0?"":"disabled"} onclick="onb2Rivedi()">${esc(tr("Rivedi"))}</button>
         ${onb2MicBarra(sc.k,i)}
       </div>
     </div>`;
@@ -325,14 +340,16 @@ function onb2Multi(sc){
   let h="";
   if(sc.sensibile)h+=onb2Consenso();
   h+=onb2Chip(sc.k);
+  /* Il quadratino non è decorazione: è l'unica cosa che dice «puoi
+     sceglierne più di una» prima che la persona provi. */
   h+=`<div class="o2ops o2multi">`+sc.op.map(([v,t,d])=>
-    `<button class="o2op${sel.includes(v)?" scelta":""}" type="button" onclick="onb2Toggle('${esc(sc.k)}','${esc(v)}')"
-       aria-pressed="${sel.includes(v)}"><b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</button>`).join("")+`</div>`;
+    `<button class="o2op o2opm${sel.includes(v)?" scelta":""}" type="button" onclick="onb2Toggle('${esc(sc.k)}','${esc(v)}')"
+       aria-pressed="${sel.includes(v)}"><i class="o2box" aria-hidden="true">${sel.includes(v)?"✓":""}</i>
+       <span class="o2opt"><b>${esc(t)}</b>${d?`<span>${esc(d)}</span>`:""}</span></button>`).join("")+`</div>`;
   if(sc.altro)h+=`<div class="o2form"><input type="text" id="o2alt" value="${esc(o.ris[sc.k+"_altro"]||"")}"
       placeholder="${esc(tr("altro, scrivilo tu"))}"></div>`;
   if(sc.testo)h+=`<div class="o2form"><label>${esc(sc.testo.label)}</label>
       <input type="text" id="o2txtx" value="${esc(o.ris[sc.testo.k]||"")}" placeholder="${esc(sc.testo.ph||"")}"></div>`;
-  h+=`<button class="btn o2avanti" type="button" onclick="onb2MultiOk('${esc(sc.k)}')">${esc(tr("Avanti"))}</button>`;
   return h;}
 
 window.onb2Toggle=(k,v)=>{
@@ -378,8 +395,7 @@ function onb2Dieta(sc){
       <label>${esc(tr("Tradizione culinaria"))}</label>
       <select id="o2dTrad">`+
         cuc.map(c=>`<option value="${esc(c[0])}"${(r.tradizione||"italiana")===c[0]?" selected":""}>${esc(tr(c[1]))}</option>`).join("")+`</select>
-    </div>
-    <button class="btn o2avanti" type="button" onclick="onb2DietaOk()">${esc(tr("Avanti"))}</button>`;}
+    </div>`;}
 
 window.onb2VegUI=(v)=>{const b=document.getElementById("o2VegBox");
   if(b)b.style.display=(v==="vegetariana")?"":"none";};
@@ -397,7 +413,10 @@ window.onb2DietaOk=()=>{
 /* ── Quali pasti fai: spunte sugli slot e pasti liberi. ─────────────
    Gli slot restano VALORI italiani (come in tutta l'app): a schermo
    passano da fascia(), nello stato vivono nudi. */
-const O2SLOTS=["Colazione","Metà mattina","Pranzo","Metà pomeriggio","Cena"];
+/* Gli stessi sette slot che l'app usa ovunque (SLOT_HOUR, motore AI,
+   spesa): se qui ne mancasse uno, il piano non potrebbe proporlo. */
+const O2SLOTS=["Colazione","Metà mattina","Pranzo","Metà pomeriggio",
+               "Tardo pomeriggio","Cena","Dopo cena"];
 function onb2Pasti(sc){
   const o=onb2Stato(),r=o.ris.pasti||{};
   const sel=Array.isArray(r.slots)?r.slots:["Colazione","Pranzo","Cena"];
@@ -408,8 +427,7 @@ function onb2Pasti(sc){
    `</div>
       <label>${esc(tr("Pasti liberi a settimana"))}</label>
       <input type="number" id="o2lib" inputmode="numeric" min="0" max="7" value="${r.liberi!=null?r.liberi:1}">
-    </div>
-    <button class="btn o2avanti" type="button" onclick="onb2PastiOk()">${esc(tr("Avanti"))}</button>`;}
+    </div>`;}
 
 window.onb2PastiOk=()=>{
   const slots=O2SLOTS.filter((s,i)=>{const e=document.getElementById("o2sl"+i);return e&&e.checked;});
@@ -430,14 +448,94 @@ function onb2Pref(sc){
       ${sel("o2pa",r.alcol,[["mai",tr("Mai")],["raramente",tr("Raramente")],["nel fine settimana",tr("Nel fine settimana")],["quotidiano",tr("Quotidiano")]])}
       <label>${esc(tr("Quanta varietà vuoi nel piano"))}</label>
       ${sel("o2pv",r.varieta,[["media",tr("Media")],["bassa",tr("Bassa: pochi piatti che tornano, spesa corta")],["alta",tr("Alta: ogni giorno diverso")]])}
-    </div>
-    <button class="btn o2avanti" type="button" onclick="onb2PrefOk()">${esc(tr("Avanti"))}</button>`;}
+    </div>`;}
 
 window.onb2PrefOk=()=>{
   const g=id=>(document.getElementById(id)||{}).value;
   const o=onb2Stato();
   o.ris.preferenze={budget:g("o2pb")||"medio",alcol:g("o2pa")||"mai",varieta:g("o2pv")||"media"};
   onb2Salva();onb2Avanti();};
+
+/* ── Le pause ──────────────────────────────────────────────────
+   Non chiedono niente: dicono a che punto siamo e perché le domande
+   fatte servivano. Sono il posto della mascotte — l'unica figura che
+   la persona vede in tutto il percorso. */
+function onb2Pausa(sc){
+  return `<div class="o2pausa">${masc(sc.posa||"pensa",120)}</div>`;}
+
+/* ── Il piano che si scrive da solo, in sottofondo ──────────────
+   Regola del founder (22/08): l'AI parte PRIMA delle domande che non
+   toccano il piano, così quando la persona arriva in fondo non
+   aspetta. Lo stato si racconta riga per riga, non con una rotella. */
+function onb2Gen(){
+  if(!window.__o2gen)window.__o2gen={stato:"fermo",perc:0,riga:"",righe:[],piano:null};
+  return window.__o2gen;}
+window.onb2Gen=onb2Gen;
+
+const O2GIORNI=["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+function onb2GenRighe(fatti,stato){
+  /* Le frasi stanno dentro tr() LETTERALI, non costruite con un
+     ternario: così il controllo delle traduzioni le vede davvero. */
+  const R=O2GIORNI.map((g,i)=>{
+    const n={g:tr(g)};
+    if(i<fatti) return {t:tr("{g}: completato",n),s:"ok"};
+    if(i===fatti)return {t:tr("{g}: in corso…",n),s:"ora"};
+    return {t:tr("{g}: in attesa",n),s:"attesa"};});
+  const fine=(stato==="fatto");
+  R.push(fine?{t:tr("Lista della spesa: pronta"),s:"ok"}
+             :{t:tr("Lista della spesa: da calcolare"),s:"attesa"});
+  R.push(fine?{t:tr("Controllo di coerenza: fatto"),s:"ok"}
+             :{t:tr("Controllo di coerenza: da fare"),s:"attesa"});
+  return R;}
+
+/* Ridisegna SOLO se la persona sta guardando la schermata finale:
+   altrimenti il piano cresce in silenzio, come deve. */
+function onb2GenTocca(){
+  try{const o=onb2Stato();
+    if(ONB2c()[o.step]&&ONB2c()[o.step].tipo==="fine")renderOnb2();}catch(e){}}
+
+window.onb2GeneraOra=async()=>{
+  const g=onb2Gen();
+  if(g.stato==="lavoro"||g.stato==="fatto")return;      /* mai due volte */
+  const o=onb2Stato();
+  onb2Travasa();                                         /* il piano nasce dai dati veri */
+  if(typeof aiOn!=="function"||!aiOn()){
+    g.stato="senzaAI";g.perc=100;
+    g.riga=tr("Il piano lo generiamo appena c'è connessione: intanto il diario è già pronto.");
+    g.righe=[];return onb2GenTocca();}
+  g.stato="lavoro";g.perc=2;g.riga=tr("Sto componendo il tuo piano…");
+  g.righe=onb2GenRighe(0,"lavoro");onb2GenTocca();
+  try{
+    const t=onb2Targets();
+    if(!t)throw new Error("dati");
+    const plan=await wizGenDays(onb2DatiPiano(),t,(i,nome)=>{
+      g.perc=Math.round(i/7*100);
+      g.riga=tr("Sto componendo il tuo piano: {g}…",{g:nome});
+      g.righe=onb2GenRighe(i,"lavoro");onb2GenTocca();});
+    g.piano=plan||null;g.stato="fatto";g.perc=100;
+    g.riga=tr("Piano pronto, spesa compresa.");
+    g.righe=onb2GenRighe(7,"fatto");
+  }catch(e){
+    g.stato="errore";g.perc=100;g.righe=[];
+    g.riga=tr("Il piano lo rifacciamo con calma da Piano: il diario intanto è già tuo.");}
+  onb2GenTocca();};
+
+/* I dati del piano in un posto solo: li usano la generazione in
+   sottofondo e la chiusura. Due copie diverse sarebbero due piani. */
+function onb2DatiPiano(){
+  const o=onb2Stato(),b=o.ris.bio||{};
+  const attMap={fermo:1.25,leggero:1.375,regolare:1.55,intenso:1.725};
+  const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
+  const nascita=b.dob?new Date(b.dob)
+    :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
+  const vietati=[S.diet.no,S.diet.religiose,S.diet.patologie?tr("tenere conto di: {v1}",{v1:S.diet.patologie}):""]
+    .filter(Boolean).join("; ");
+  return {gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
+    act:attMap[o.ris.attivita]||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
+    vita:o.ris.ritmi||"",sport:o.ris.attivita||"",
+    intol:S.diet.intol||"",no:vietati,si:S.diet.si||"",
+    pronto:(o.ris.cucina==="veloce")?"pronto":"semplice",
+    nPasti:S.diet.nPasti||5,colaz:"",liberi:(S.diet.pastiLiberi!=null?+S.diet.pastiLiberi:1),note:""};}
 
 /* Le sole quattro cose che non si possono dedurre da nient'altro. */
 function onb2Modulo(sc){
@@ -551,7 +649,7 @@ function onb2Consenso(){
 
 window.onb2ConsensoSet=(v)=>{const o=onb2Stato();
   o.sensibili=!!v;
-  if(!v){delete o.ris.cibo;delete o.ris.salute;delete o.ris.farmaci;delete o.ris.corpo;}
+  if(!v)delete o.ris.corpo;   /* l'unica sensibile rimasta: gli stati del corpo */
   onb2Salva();renderOnb2();};
 
 /* ── Chip modificabili: quello che la voce ha capito ─────────────
@@ -627,6 +725,24 @@ window.onb2Salta=()=>{const o=onb2Stato();
   if(ONB2c()[o.step]&&ONB2c()[o.step].sensibile&&o.sensibili===null)o.sensibili=false;
   onb2Salva();onb2Avanti();};
 
+/* Il pulsante «Avanti» della barra: una porta sola per tutte le
+   schermate. Prima ogni tipo aveva il suo bottone in mezzo alla
+   pagina e la barra sotto ne aveva altri due: tre pulsanti, tre
+   posti diversi. Ora sono tre, in fila, sempre nello stesso punto. */
+window.onb2AvantiSchermo=()=>{
+  const o=onb2Stato(),sc=ONB2c()[o.step];
+  if(!sc)return;
+  if(sc.tipo==="modulo")return onb2Bio();
+  if(sc.tipo==="numero")return onb2Goal();
+  if(sc.tipo==="dieta")return onb2DietaOk();
+  if(sc.tipo==="pasti")return onb2PastiOk();
+  if(sc.tipo==="preferenze")return onb2PrefOk();
+  if(sc.tipo==="multi")return onb2MultiOk(sc.k);
+  if(sc.tipo==="pausa")return onb2Avanti();
+  /* schermata a scelta: senza risposta non si va avanti a vuoto */
+  if(o.ris[sc.k]==null)return dlgAlert(tr("Scegli una risposta per andare avanti."));
+  return onb2Avanti();};
+
 function onb2Avanti(){
   const o=onb2Stato();
   let n=o.step+1;
@@ -638,6 +754,10 @@ function onb2Avanti(){
     if(s.se&&!s.se())return true;
     return o.saltate.includes(s.k)&&o.ris[s.k]!=null;};
   while(n<ONB2c().length-1&&salta(n))n++;
+  /* La schermata marcata `genera` è il confine: da lì in poi nessuna
+     risposta cambia il piano, quindi l'AI può partire. */
+  try{const arrivo=ONB2c()[n];
+    if(arrivo&&arrivo.genera&&typeof onb2GeneraOra==="function")onb2GeneraOra();}catch(e){}
   o.step=Math.min(n,ONB2c().length-1);
   if(o.step>o.maxVisto)o.maxVisto=o.step;
   onb2Salva();renderOnb2();try{window.scrollTo(0,0);}catch(e){}}
@@ -850,20 +970,28 @@ function onb2Chiedi(testo){
   ]);}
 
 /* ── Ultima schermata: come vuoi che ti segua ────────────────────── */
+/* PILASTRO: il piano è SETTIMANALE, sempre. Qui non si sceglie più
+   fra settimana e giornata (la scelta «Alla giornata» è stata tolta
+   il 22/08): si mostra soltanto a che punto è il piano che l'AI ha
+   cominciato a scrivere tre schermate fa. */
 function onb2Fine(sc){
-  const o=onb2Stato();
-  return `<div class="o2ops">
-    <button class="o2op" type="button" onclick="onb2Chiudi('piano')">
-      <b>${esc(tr("Con un piano settimanale"))}</b>
-      <span>${esc(tr("Ti preparo i pasti della settimana e la lista della spesa. Tu spunti."))}</span></button>
-    <button class="o2op" type="button" onclick="onb2Chiudi('libera')">
-      <b>${esc(tr("Alla giornata"))}</b>
-      <span>${esc(tr("Niente piano rigido: linee guida del giorno e via."))}</span></button>
+  const g=onb2Gen();
+  const pronto=(g.stato==="fatto"||g.stato==="senzaAI"||g.stato==="errore");
+  return `${masc(pronto?"festeggia":"cucina",96)}
+  <div class="o2gen" id="o2gen" aria-live="polite">
+    <div class="o2genbar"><i id="o2genb" style="width:${g.perc}%"></i></div>
+    <div class="o2gent" id="o2gent">${esc(g.riga||tr("Sto per cominciare…"))}</div>
+    ${onb2GenLista(g)}
   </div>
-  <div class="o2gen" id="o2gen" aria-live="polite" style="display:none">
-    <div class="o2genbar"><i id="o2genb" style="width:0%"></i></div>
-    <div class="o2gent" id="o2gent"></div>
-  </div>`;}
+  <button class="btn o2entra" type="button" onclick="onb2Chiudi('piano')">${
+    pronto?esc(tr("Entra")):esc(tr("Entra appena è pronto"))}</button>`;}
+
+/* L'avanzamento raccontato riga per riga: la persona vede cosa manca
+   invece di una rotella che gira. */
+function onb2GenLista(g){
+  if(!g.righe||!g.righe.length)return "";
+  return `<ul class="o2genl">`+g.righe.map(r=>
+    `<li class="${esc(r.s)}">${esc(r.t)}</li>`).join("")+`</ul>`;}
 
 /* Travaso finale: da S.onb2 alle chiavi di sempre. Si SCRIVE SOPRA
    solo ciò che la persona ha appena detto; il resto dello stato
@@ -921,71 +1049,45 @@ function onb2Travasa(){
     if(r.corpo==="lactP")S.phys.lact="parziale";}
   /* Il dato sensibile vive in un posto solo, con il suo consenso a fianco:
      così chi legge il codice sa sempre se può usarlo. */
+  /* Il consenso resta solo dove serve davvero: gravidanza e
+     allattamento. Condizioni di salute e rapporto col cibo non lo
+     chiedono più (scelta del founder, 22/08): erano due muri in
+     mezzo al percorso, e la riga sulla privacy vale per tutta l'app,
+     non per una domanda. */
   o.sensibili=(o.sensibili===true);
-  if(!o.sensibili){delete o.ris.cibo;delete o.ris.salute;delete o.ris.farmaci;delete o.ris.corpo;}
+  if(!o.sensibili)delete o.ris.corpo;
   onb2Salva();}
 window.onb2Travasa=onb2Travasa;
 
+/* La chiusura: il piano di solito è GIÀ pronto (l'AI è partita tre
+   schermate fa). Se non lo è, si aspetta lì mostrando lo stato —
+   nessuno resta davanti a una schermata muta. */
 window.onb2Chiudi=async(modo)=>{
-  const o=onb2Stato();
-  o.modalita=(modo==="libera")?"libera":"piano";
+  const o=onb2Stato(),g=onb2Gen();
+  o.modalita="piano";                         /* PILASTRO: solo settimanale */
   onb2Travasa();
-  if(modo==="libera"){
-    o.done=true;S.onboard.done=true;onb2Salva();
-    /* dieci schermate sono un investimento: arrivare in fondo merita
-       più di un cambio di pagina */
-    try{if(typeof confermaFine==="function")confermaFine();}catch(e){}
-    toast(tr("Fatto. Le linee guida del giorno arrivano prestissimo: intanto il diario è tuo."));
-    return show("oggi");}
-  /* Piano: si genera davvero. La barra racconta quello che succede,
-     non finge di lavorare mentre non succede niente. */
-  const box=document.getElementById("o2gen"),bar=document.getElementById("o2genb"),txt=document.getElementById("o2gent");
-  if(box)box.style.display="block";
-  const avanza=(i,nome)=>{
-    if(bar)bar.style.width=Math.round((i)/7*100)+"%";
-    if(txt)txt.textContent=tr("Sto componendo il tuo piano: {g}…",{g:nome});};
-  if(typeof aiOn!=="function"||!aiOn()){
+  const entra=()=>{
     o.done=true;S.onboard.done=true;onb2Salva();
     try{if(typeof confermaFine==="function")confermaFine();}catch(e){}
-    if(txt)txt.textContent=tr("Il piano lo generiamo appena c'è connessione: intanto il diario è già pronto.");
-    return setTimeout(()=>show("oggi"),900);}
-  try{
-    const t=onb2Targets();
-    if(!t)throw new Error("dati");
-    const attMap={fermo:1.25,leggero:1.375,regolare:1.55,intenso:1.725};
-    const goalMap={perdere:"moderato",mantenere:"mantenimento",massa:"massa"};
     const b=o.ris.bio||{};
-    /* la data vera se c'è; l'età resta solo come ripiego per chi ha
-       già compilato il percorso con la versione vecchia */
-    const nascita=b.dob?new Date(b.dob)
-      :(function(){const d=new Date();d.setFullYear(d.getFullYear()-(+b.eta||30));return d;})();
-    /* Il travaso è appena passato: S.diet contiene le risposte vere.
-       Prima qui c'erano stringhe vuote — e il primo piano nasceva
-       cieco su intolleranze e vincoli appena dichiarati. */
-    const vietati=[S.diet.no,S.diet.religiose,S.diet.patologie?tr("tenere conto di: {v1}",{v1:S.diet.patologie}):""]
-      .filter(Boolean).join("; ");
-    const d={gen:b.gen||"m",dob:nascita.toISOString().slice(0,10),h:+b.h,w:+b.w,fat:null,
-      act:attMap[o.ris.attivita]||1.375,goal:goalMap[o.ris.obiettivo]||"moderato",
-      vita:o.ris.ritmi||"",sport:o.ris.attivita||"",
-      intol:S.diet.intol||"",no:vietati,si:S.diet.si||"",
-      pronto:(o.ris.cucina==="veloce")?"pronto":"semplice",
-      nPasti:S.diet.nPasti||5,colaz:"",liberi:(S.diet.pastiLiberi!=null?+S.diet.pastiLiberi:1),note:""};
-    const plan=await wizGenDays(d,t,avanza);
+    if(b.w>0){try{S.profile.weights.push({d:iso(new Date()),w:b.w,fat:null,mus:null,pa:null,spo2:null});}catch(e){}}
+    save();setTimeout(()=>show("oggi"),300);};
+  /* mai partita (percorso ripreso a metà, o schermata raggiunta di
+     corsa): si avvia adesso e si aspetta */
+  if(g.stato==="fermo")onb2GeneraOra();
+  if(g.stato==="lavoro"){
+    const t0=Date.now();
+    while(onb2Gen().stato==="lavoro"&&Date.now()-t0<60000)
+      await new Promise(r=>setTimeout(r,200));}
+  const gg=onb2Gen();
+  if(gg.piano){
     /* Stesso meccanismo del percorso lungo: il piano diventa customPlan
        e la settimana riparte pulita. Niente scorciatoie: se un giorno
        cambia il modo di applicare un piano, cambia in un posto solo. */
-    if(plan){S.customPlan=plan;PLAN=S.customPlan;S.permMeals={};
-      S.customShop=null;S.week=freshWeek();
-      try{S.ui.pianoProprio=0;}catch(e){}}
-    if(b.w>0){try{S.profile.weights.push({d:iso(new Date()),w:b.w,fat:null,mus:null,pa:null,spo2:null});}catch(e){}}
-    o.done=true;S.onboard.done=true;onb2Salva();
-    if(bar)bar.style.width="100%";
-    if(txt)txt.textContent=tr("Pronto. Buon inizio.");
-    setTimeout(()=>show("oggi"),700);
-  }catch(e){
-    o.done=true;S.onboard.done=true;onb2Salva();
-    if(txt)txt.textContent=tr("Il piano lo rifacciamo con calma da Piano: il diario intanto è già tuo.");
-    setTimeout(()=>show("oggi"),1200);}};
+    S.customPlan=gg.piano;PLAN=S.customPlan;S.permMeals={};
+    S.customShop=null;S.week=freshWeek();
+    try{S.ui.pianoProprio=0;}catch(e){}}
+  entra();};
 
 /* Ripartire da capo: usato dalle impostazioni e dai collaudi. */
 window.onb2Ricomincia=()=>{S.onb2={v:1,step:0,maxVisto:0,ris:{},saltate:[],done:false,sensibili:null};

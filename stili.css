@@ -1301,11 +1301,38 @@ body.onb{padding-bottom:0}
 .o2nav{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:nowrap}
 .o2nav .o2back{margin-right:auto}
 .o2nav .btn{min-height:44px;padding:12px 16px;font-size:14px;white-space:nowrap;flex:0 0 auto}
+/* Tre pulsanti, una riga sola, sempre nello stesso posto (22/08):
+   Indietro a sinistra, Avanti al centro come azione principale,
+   Rivedi a destra. Su schermi stretti si stringe il padding, ma
+   NESSUNO dei tre sparisce e nessuno va a capo. */
+.o2nav3{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+.o2nav3 .o2back{margin-right:0}
+.o2nav3 .o2next{width:100%;justify-content:center}
+.o2nav3 .o2rivedi[disabled]{opacity:.4;pointer-events:none}
 @media (max-width:380px){
-  /* su schermi stretti si accorcia il testo, ma i bottoni NON vanno
-     a capo: una barra su due righe è la cosa che sembrava instabile */
-  .o2nav .btn{padding:12px}
-  .o2nav .o2rivedi{display:none}}
+  .o2nav .btn{padding:12px 8px;font-size:13.5px}}
+/* Le multi-selezioni si riconoscono dal quadratino, non dal testo. */
+.o2opm{display:flex;gap:12px;align-items:flex-start;text-align:left}
+.o2opm .o2box{flex:0 0 auto;width:24px;height:24px;border-radius:8px;border:2px solid var(--linea);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;
+  color:#fff;background:#fff;font-style:normal;transition:all .18s var(--ease)}
+.o2opm.scelta .o2box{background:var(--azione);border-color:var(--azione)}
+.o2opm .o2opt{display:block}
+/* La pausa: la mascotte e basta. */
+.o2pausa{display:flex;justify-content:center;padding:12px 0 4px}
+.o2entra{width:100%;margin-top:20px}
+/* Lo stato del piano: cosa è fatto, cosa manca. */
+.o2genl{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.o2genl li{font-size:14px;color:var(--grigio);padding-left:24px;position:relative;line-height:1.4}
+.o2genl li:before{position:absolute;left:0;top:0}
+.o2genl li.ok{color:var(--bosco)}
+.o2genl li.ok:before{content:"✓";color:var(--azione);font-weight:700}
+.o2genl li.ora{color:var(--ink);font-weight:600}
+.o2genl li.ora:before{content:"›";font-weight:700}
+.o2genl li.attesa:before{content:"·"}
+/* Primo avvio: le azioni stanno in riga, non incolonnate. */
+.primo-az{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.primo-az .btn{flex:1 1 auto;min-height:44px}
 .o2gen{margin-top:16px}
 .o2genbar{height:7px;background:var(--linea);border-radius:99px;overflow:hidden}
 .o2genbar i{display:block;height:100%;width:0;background:var(--azione);border-radius:99px;

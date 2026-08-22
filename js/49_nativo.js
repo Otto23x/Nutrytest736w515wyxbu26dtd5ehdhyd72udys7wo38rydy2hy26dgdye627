@@ -71,8 +71,11 @@ function legaTastoIndietro(){
     const dlg=document.querySelector(".dlg-bg");
     if(dlg){const ko=document.querySelector(".dlg-ko")||document.querySelector(".dlg-ok");
       if(ko){ko.click();return;}}
-    /* 3 · non sei sulla scheda principale? ci torni */
-    if(typeof cur!=="undefined"&&cur!=="punto"){try{show("punto");}catch(e){}return;}
+    /* 3 · non sei sulla scheda principale? si torna indietro di UNA
+       pagina, sulla stessa cronologia del browser: prima saltava
+       direttamente a «punto», perdendo il punto di partenza. */
+    if(typeof cur!=="undefined"&&cur!=="punto"){
+      try{if(typeof tornaIndietro==="function")tornaIndietro();else show("punto");}catch(e){}return;}
     /* 4 · solo da qui si esce, e lo si chiede */
     if(typeof App.exitApp==="function")App.exitApp();});}
 

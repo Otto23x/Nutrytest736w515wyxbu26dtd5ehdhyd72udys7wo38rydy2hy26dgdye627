@@ -2023,7 +2023,12 @@ window.genPlanAI=async()=>{
   try{if(typeof scheletroIn==="function"&&typeof skelRegistra==="function")
     skelRegistra(scheletroIn("pg-piano",6));}catch(e){}
   if(!aiOn())return aiFail(new Error("nokey"));
-  if(!await goalHealthCheck()){show("io");return toast(tr("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano"));}
+  if(!await goalHealthCheck()){
+    /* «Obiettivi» sta nella scheda Corpo: mandare qui senza aprire la
+       scheda giusta significava atterrare su una pagina vuota con un
+       messaggio che parlava di un campo invisibile. */
+    try{schedaVai("io","corpo");}catch(e){show("io");}
+    return toast(tr("Aggiorna il peso desiderato in Obiettivi, poi rigenera il piano"));}
   const p=S.profile,D=S.diet,t=tdee();
   const goal=p.goal||"dimagrimento graduale";
   const target=dayTargetK(),protG=dayTargetP();      /* stesso target del resto dell'app */

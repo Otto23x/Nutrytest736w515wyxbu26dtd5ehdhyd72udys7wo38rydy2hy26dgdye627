@@ -14,6 +14,44 @@ function portaInVista(el,extra){
     window.scrollTo({top:Math.max(0,Math.round(y)),behavior:"auto"});
   }catch(e){try{el.scrollIntoView({block:"start"});}catch(e2){}}}
 window.portaInVista=portaInVista;
+/* ── LA VIA DEL RITORNO ────────────────────────────────────────────
+   Le pagine della barra in basso sono quattro; tutte le altre (Io,
+   Regole, Strumenti, Guida…) si aprono dal ⋯ e finora NON avevano un
+   ritorno: nel browser il tasto indietro del telefono usciva dal sito,
+   nell'header non c'era una freccia. Chi ci finiva — anche mandato
+   dall'app stessa, com'è per il controllo dell'obiettivo — restava lì.
+
+   Due cose, insieme: una cronologia vera (una voce per pagina, così il
+   tasto di sistema naviga invece di uscire) e una freccia nell'header,
+   che compare SOLO dove serve. */
+const PAG_BARRA=["punto","oggi","sport","spesa"];
+let storiaNav=[];          /* dove sono passato, senza doppioni di fila */
+let storiaSalta=false;     /* sto tornando indietro: non registrare */
+
+function fuoriBarra(p){
+  return pages.includes(p)&&!PAG_BARRA.includes(p)
+    &&p!=="onb2"&&p!=="benvenuto"&&p!=="setup";}
+
+window.tornaIndietro=()=>{
+  /* prima si chiude ciò che è aperto sopra la pagina */
+  const foglio=document.getElementById("uiSheet");
+  if(foglio&&!foglio.hidden){try{return sheetClose();}catch(e){}}
+  const altre=document.getElementById("moreSheet");
+  if(altre&&!altre.hidden){try{return moreClose();}catch(e){}}
+  storiaNav.pop();                       /* la pagina corrente */
+  const dove=storiaNav.pop()||"punto";   /* quella prima */
+  storiaSalta=true;show(dove);storiaSalta=false;
+  storiaNav.push(dove);};
+
+/* Il tasto di sistema: nel browser passa da qui, nell'app nativa dal
+   modulo Capacitor. Stessa regola, due strade. */
+try{
+  window.addEventListener("popstate",()=>{
+    try{tornaIndietro();}catch(e){}
+    try{history.pushState({nuvia:1},"");}catch(e){}});
+  history.pushState({nuvia:1},"");
+}catch(e){}
+
 function show(p){
   /* Percorso guidato non finito: non si va da nessun'altra parte. Senza
      profilo l'app non sa nulla e ogni numero sarebbe inventato. */
@@ -25,6 +63,12 @@ function show(p){
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
   {const mb=document.getElementById("hMore");
    if(mb)mb.classList.toggle("on",ALTRE.some(x=>x[0]===p));}
+  /* la freccia compare solo fuori dalle quattro pagine della barra */
+  {const bb=document.getElementById("hBack");
+   if(bb)bb.hidden=!fuoriBarra(p);}
+  if(!storiaSalta&&storiaNav[storiaNav.length-1]!==p){
+    storiaNav.push(p);
+    if(storiaNav.length>30)storiaNav.shift();}
   /* Ogni pagina si apre dall'alto: senza questo si eredita lo scorrimento
      della pagina precedente e si atterra a metà contenuto. */
   try{window.scrollTo(0,0);}catch(e){}

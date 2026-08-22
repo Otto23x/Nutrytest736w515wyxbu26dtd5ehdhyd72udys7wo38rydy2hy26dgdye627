@@ -78,6 +78,10 @@ window.tlmAccendi=tlmAccendi;
     try{
       const el=document.getElementById("pg-io");
       if(!el||el.querySelector("#tlm-scheda"))return;
+      /* Appesa in coda, questa card finiva FUORI dal filtro delle
+         schede e compariva in tutte e quattro — anche su «Tu», dove
+         non c'entra niente. Ora compare solo dentro «Altro». */
+      if(typeof inScheda==="function"&&!inScheda("io","altro","tu"))return;
       const on=tlmAccesa();
       const box=document.createElement("div");
       box.className="card";box.id="tlm-scheda";

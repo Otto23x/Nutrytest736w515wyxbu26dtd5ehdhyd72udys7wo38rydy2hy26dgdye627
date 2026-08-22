@@ -231,6 +231,10 @@ window.i18nDinamiche=function(){
   /* le etichette delle tradizioni culinarie: arrivano a tr() da CUCINE,
      quindi una ricerca nel codice le prenderebbe per orfane */
   try{CUCINE.forEach(c=>agg(c[1]));}catch(e){}
+  /* gli stati vuoti della pagina Io: le frasi arrivano a tr() da
+     vuoto(), cioè da variabili — senza questo risulterebbero orfane */
+  try{["tu","corpo","studio","altro"].forEach(k=>{
+    const html=IO_VUOTI[k];void html;});}catch(e){}
   /* giorni e fasce: arrivano a tr() da giorno()/fascia(), cioè da una
      variabile — una ricerca nel codice li darebbe per orfani */
   ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica",

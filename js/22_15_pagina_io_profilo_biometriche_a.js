@@ -1630,7 +1630,27 @@ function renderIo(){const el=document.getElementById("pg-io");const p=S.profile;
   h+=`<div class="card"><h2>${tr("Rifai il percorso guidato")}</h2>
   ${hint2(tr("Ripercorri i nove passi con i dati che hai già inserito."),tr("Serve quando cambia qualcosa di grosso: obiettivo, abitudini, allenamenti. Nulla viene cancellato — trovi tutti i campi già compilati e cambi solo ciò che serve."))}
   <div class="mtools"><button class="btn ghost small" onclick="restartOnboarding()">${tr("Ricomincia il percorso")}</button></div></div>`;
-  el.innerHTML=schedeFiltra(h,schedaAttiva(SKio,"tu"));}
+  /* Una scheda che resta vuota non è una pagina: è un vicolo cieco.
+     Succede a chi è appena arrivato (la scheda «Tu» vive di storico) o
+     a chi non ha uno studio collegato. Meglio la mascotte con una cosa
+     da fare che il bianco. */
+  const att=schedaAttiva(SKio,"tu");
+  let corpo=schedeFiltra(h,att);
+  if(!/<div class="card|<div class="gsec/.test(corpo.split('<div class="schede"')[1]||"")){
+    corpo+=IO_VUOTI[att]||IO_VUOTI.tu;}
+  el.innerHTML=corpo;}
+
+/* Le frasi degli stati vuoti stanno qui, tutte insieme: è la regola
+   del catalogo VUOTI, e serve anche perché il controllo delle
+   traduzioni le veda. */
+const IO_VUOTI={
+  tu:  ()=>vuoto("cerca","Qui compare il tuo percorso: peso, traguardi, come stai andando. Comincia con una pesata.","schedaVai('io','corpo')","Vai a Corpo"),
+  corpo:()=>vuoto("pensa","Ancora nessuna misura registrata. La prima pesata fa nascere grafici e proiezioni.","schedaVai('io','corpo')","Registra la prima"),
+  studio:()=>vuoto("saluta","Nessuno studio collegato. Quando un professionista ti segue, qui vedi cosa condivide e cosa no.","show('regole')","Vai alle Regole"),
+  altro:()=>vuoto("dorme","Qui stanno le situazioni particolari e il percorso guidato. Per ora non serve niente.","show('punto')","Torna al Punto")};
+/* le funzioni si chiamano nel punto d'uso: {chiave: ()=>html} */
+Object.keys(IO_VUOTI).forEach(k=>{const f=IO_VUOTI[k];
+  Object.defineProperty(IO_VUOTI,k,{get:f,configurable:true});});
 /* ═══ PAGINA SISTEMA ═════════════════════════════════════════════════
    Il profilo parlava di te e, in mezzo, di chiavi API, backup e
    telemetria. Ora il tecnico vive qui: Io resta corpo e obiettivi. */
